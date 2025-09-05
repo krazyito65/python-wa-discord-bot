@@ -1,4 +1,36 @@
 #!/usr/bin/env python3
+"""
+WeakAuras Discord Bot - Main Entry Point
+
+This module serves as the main entry point for the WeakAuras Discord bot.
+It handles configuration loading, command-line argument parsing, bot initialization,
+and command/event registration.
+
+The bot is designed to facilitate common questions and FAQs for World of Warcraft
+addon support through Discord slash commands. Each Discord server has its own
+isolated macro and configuration storage.
+
+Example:
+    Run the bot in development mode (default)::
+
+        $ python main.py
+
+    Run the bot in production mode::
+
+        $ python main.py --env prod
+
+    Use a custom configuration file::
+
+        $ python main.py --config my_config.yml
+
+Attributes:
+    None
+
+Note:
+    Requires a valid configuration file with Discord bot tokens.
+    See settings/token.yml.example for the required format.
+"""
+
 import argparse
 import sys
 from pathlib import Path
@@ -13,7 +45,23 @@ from events import setup_temperature_event
 
 
 def load_config(config_path: str = "settings/token.yml") -> dict:
-    """Load configuration from YAML file"""
+    """Load configuration from YAML file.
+
+    Args:
+        config_path (str): Path to the YAML configuration file.
+            Defaults to "settings/token.yml".
+
+    Returns:
+        dict: Parsed configuration dictionary.
+
+    Raises:
+        SystemExit: If the configuration file is not found or contains
+            invalid YAML syntax.
+
+    Example:
+        >>> config = load_config("my_config.yml")
+        >>> print(config["discord"]["tokens"]["dev"])
+    """
     config_file = Path(config_path)
     if not config_file.exists():
         print(f"Error: Configuration file '{config_path}' not found!")
@@ -29,7 +77,23 @@ def load_config(config_path: str = "settings/token.yml") -> dict:
 
 
 def get_token(config: dict, environment: str) -> str:
-    """Get Discord token for the specified environment"""
+    """Get Discord token for the specified environment.
+
+    Args:
+        config (dict): Configuration dictionary loaded from YAML.
+        environment (str): Environment name ("dev" or "prod").
+
+    Returns:
+        str: Discord bot token for the specified environment.
+
+    Raises:
+        SystemExit: If the environment is not found in config or
+            if the token is not properly configured.
+
+    Example:
+        >>> config = {"discord": {"tokens": {"dev": "your_token_here"}}}
+        >>> token = get_token(config, "dev")
+    """
     tokens = config.get("discord", {}).get("tokens", {})
 
     if environment not in tokens:
@@ -47,7 +111,28 @@ def get_token(config: dict, environment: str) -> str:
     return token
 
 
-def main():
+def main() -> None:
+    """Main entry point for the WeakAuras Discord Bot.
+
+    This function handles:
+    - Command-line argument parsing
+    - Configuration loading
+    - Bot initialization
+    - Command and event registration
+    - Bot startup and error handling
+
+    Command-line Arguments:
+        --env: Environment to run in ("dev" or "prod", defaults to "dev")
+        --config: Path to configuration file (defaults to "settings/token.yml")
+
+    Raises:
+        SystemExit: If configuration is invalid or bot fails to start.
+
+    Example:
+        This function is called when the script is run directly::
+
+            $ python main.py --env prod
+    """
     parser = argparse.ArgumentParser(description="WeakAuras Discord Bot")
     parser.add_argument(
         "--env",

@@ -1,3 +1,28 @@
+"""
+WeakAuras Discord Bot - Core Bot Implementation
+
+This module contains the main WeakAurasBot class which extends discord.py's
+commands.Bot with WeakAuras-specific functionality including server-specific
+macro storage, configuration management, and administrative features.
+
+The bot provides:
+- Server-isolated macro storage and retrieval
+- Role-based permission system
+- Automatic folder management with guild ID matching
+- Branded embed creation for consistent UI
+- Server configuration management
+
+Example:
+    Creating and running the bot::
+
+        config = {"discord": {"tokens": {"dev": "your_token"}}}
+        bot = WeakAurasBot(config)
+        bot.run(config["discord"]["tokens"]["dev"])
+
+Attributes:
+    Module-level constants and imports for Discord bot functionality.
+"""
+
 import json
 import re
 from pathlib import Path
@@ -8,7 +33,36 @@ from discord.ext import commands
 
 
 class WeakAurasBot(commands.Bot):
-    def __init__(self, config: dict[str, Any]):
+    """WeakAuras Discord Bot with server-specific macro storage and management.
+
+    This bot extends discord.py's commands.Bot to provide WeakAuras-specific
+    functionality including macro storage, server configuration, and administrative
+    features. Each Discord server gets its own isolated data storage.
+
+    Attributes:
+        config (dict[str, Any]): Bot configuration dictionary.
+        data_dir (Path): Directory path for server data storage.
+
+    Example:
+        >>> config = {"storage": {"data_directory": "server_data"}}
+        >>> bot = WeakAurasBot(config)
+        >>> # Bot is now ready for command registration and startup
+    """
+
+    def __init__(self, config: dict[str, Any]) -> None:
+        """Initialize the WeakAuras bot with configuration.
+
+        Args:
+            config (dict[str, Any]): Configuration dictionary containing bot
+                settings, storage paths, and other options.
+
+        Example:
+            >>> config = {
+            ...     "storage": {"data_directory": "server_data"},
+            ...     "bot": {"brand_color": 0x9F4AF3}
+            ... }
+            >>> bot = WeakAurasBot(config)
+        """
         intents = discord.Intents.default()
         intents.message_content = True
 

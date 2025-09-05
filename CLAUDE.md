@@ -88,6 +88,21 @@ uv run ruff format .
 uv run ruff check --fix . && uv run ruff format .
 ```
 
+### Documentation
+```bash
+# Build documentation
+cd docs && uv run sphinx-build -b html . _build/html
+
+# Serve documentation locally (opens browser automatically)
+uv run python serve_docs.py
+
+# Serve on custom port
+uv run python serve_docs.py --port 8080
+
+# Rebuild API documentation (if new modules added)
+uv run sphinx-apidoc -o docs/api . migrate_old_macros.py
+```
+
 ### Pre-commit Hooks
 Pre-commit hooks automatically run code quality checks before each commit:
 

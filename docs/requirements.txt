@@ -1,0 +1,10 @@
+# Documentation build requirements
+# This file ensures documentation can be built even without uv
+
+sphinx>=8.0.0
+sphinx-rtd-theme>=3.0.0
+sphinx-autodoc-typehints>=3.0.0
+
+# Core dependencies needed for autodoc
+discord.py>=2.4.0
+pyyaml>=6.0.0
