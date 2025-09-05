@@ -11,8 +11,18 @@ discord:
 
 # Bot Settings
 bot:
-  # Role required for administrative actions (like deleting macros)
-  admin_role: "admin"
+  # Permission system for administrative actions (like deleting macros)
+  # Users need EITHER matching role names OR Discord permissions
+  permissions:
+    # Role names that grant admin access (case-insensitive)
+    admin_roles:
+      - "admin"
+      - "regular"
+    # Discord permissions that grant admin access
+    # See: https://discordpy.readthedocs.io/en/stable/api.html#discord.Permissions
+    admin_permissions:
+      - "administrator"
+      - "manage_channels"
 
   # WeakAuras branding
   logo_path: "resources/weakauras_logo.png"

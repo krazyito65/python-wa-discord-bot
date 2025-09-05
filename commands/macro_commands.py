@@ -106,14 +106,24 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
             )
             return
 
-        # Check if user has admin role (ensure user is a member)
-        if not isinstance(interaction.user, discord.Member) or not bot.has_admin_role(
+        # Check if user has admin access (ensure user is a member)
+        if not isinstance(interaction.user, discord.Member) or not bot.has_admin_access(
             interaction.user
         ):
-            admin_role_name = bot.config.get("bot", {}).get("admin_role", "admin")
+            permissions_config = bot.config.get("bot", {}).get("permissions", {})
+            admin_roles = permissions_config.get("admin_roles", ["admin"])
+            admin_permissions = permissions_config.get("admin_permissions", [])
+
+            roles_text = ", ".join(f"'{role}'" for role in admin_roles)
+            perms_text = ", ".join(admin_permissions)
+
+            description = (
+                f"You need either:\n• Role: {roles_text}\n• Permission: {perms_text}"
+            )
+
             embed, logo_file = bot.create_embed(
                 title="❌ Permission Denied",
-                description=f"You need the '{admin_role_name}' role to delete macros!",
+                description=description,
                 footer_text=f"Server: {interaction.guild.name}",
             )
             await send_embed_response(interaction, embed, logo_file)

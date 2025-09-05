@@ -87,10 +87,29 @@ class WeakAurasBot(commands.Bot):
         if old_folder.exists() and not new_folder.exists():
             old_folder.rename(new_folder)
 
-    def has_admin_role(self, member: discord.Member) -> bool:
-        """Check if member has the configured admin role"""
-        admin_role_name = self.config.get("bot", {}).get("admin_role", "admin").lower()
-        return any(role.name.lower() == admin_role_name for role in member.roles)
+    def has_admin_access(self, member: discord.Member) -> bool:
+        """Check if member has admin access via role names or Discord permissions"""
+        permissions_config = self.config.get("bot", {}).get("permissions", {})
+
+        # Check role names (case-insensitive)
+        admin_roles = permissions_config.get("admin_roles", ["admin"])
+        member_role_names = [role.name.lower() for role in member.roles]
+
+        for admin_role in admin_roles:
+            if admin_role.lower() in member_role_names:
+                return True
+
+        # Check Discord permissions
+        admin_permissions = permissions_config.get("admin_permissions", [])
+        member_permissions = member.guild_permissions
+
+        for permission_name in admin_permissions:
+            if hasattr(member_permissions, permission_name) and getattr(
+                member_permissions, permission_name
+            ):
+                return True
+
+        return False
 
     def create_embed(
         self,

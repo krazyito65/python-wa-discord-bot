@@ -186,3 +186,4 @@ The bot is built using discord.py with a slash commands only interface and serve
 - **Intents**: Bot uses default intents (message content intent enabled but not required for slash commands)
 - **Admin Role**: Configurable role name for delete permissions (default: "admin")
 - **Data Storage**: Server-specific folders and macro files created automatically in configured directory
+- since this is a standalone app and not an API, there is no need to preserve 'legacy methods'. simply rename or remove them as needed.
