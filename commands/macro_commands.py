@@ -3,7 +3,20 @@ import discord
 from bot.weakauras_bot import WeakAurasBot
 
 
-def setup_macro_commands(bot: WeakAurasBot):
+async def send_embed_response(
+    interaction: discord.Interaction,
+    embed: discord.Embed,
+    logo_file: discord.File | None,
+    ephemeral: bool = True,
+):
+    """Helper function to send embed response with optional file attachment"""
+    kwargs = {"embed": embed, "ephemeral": ephemeral}
+    if logo_file:
+        kwargs["file"] = logo_file
+    await interaction.response.send_message(**kwargs)
+
+
+def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
     """Setup all macro-related slash commands"""
 
     @bot.tree.command(
@@ -11,14 +24,17 @@ def setup_macro_commands(bot: WeakAurasBot):
     )
     async def create_macro(interaction: discord.Interaction, name: str, message: str):
         """Create a new macro with the given name and message"""
+        if not interaction.guild:
+            await interaction.response.send_message(
+                "This command can only be used in a server!", ephemeral=True
+            )
+            return
+
         guild_id = interaction.guild.id
         guild_name = interaction.guild.name
 
-        # Update server name in mapping
-        bot.update_server_name(guild_id, guild_name)
-
         # Load server-specific macros
-        macros = bot.load_server_macros(guild_id)
+        macros = bot.load_server_macros(guild_id, guild_name)
 
         if name in macros:
             await interaction.response.send_message(
@@ -31,35 +47,52 @@ def setup_macro_commands(bot: WeakAurasBot):
             "name": name,
             "message": message,
             "created_by": str(interaction.user.id),
+            "created_by_name": interaction.user.name,
             "created_at": interaction.created_at.isoformat(),
         }
 
         macros[name] = macro_data
-        bot.save_server_macros(guild_id, macros)
-        await interaction.response.send_message(
-            f"Created WeakAuras macro '{name}' successfully!", ephemeral=True
+        bot.save_server_macros(guild_id, guild_name, macros)
+
+        # Create branded success embed
+        embed, logo_file = bot.create_embed(
+            title="✅ Macro Created",
+            description=f"Successfully created macro **{name}**",
+            footer_text=f"Server: {guild_name}",
         )
+        await send_embed_response(interaction, embed, logo_file)
 
     @bot.tree.command(
         name="list_macros", description="List all available WeakAuras macros"
     )
     async def list_macros(interaction: discord.Interaction):
         """List all available macros for this server"""
-        guild_id = interaction.guild.id
-        macros = bot.load_server_macros(guild_id)
-
-        if not macros:
+        if not interaction.guild:
             await interaction.response.send_message(
-                "No WeakAuras macros available in this server.", ephemeral=True
+                "This command can only be used in a server!", ephemeral=True
             )
             return
 
+        guild_id = interaction.guild.id
+        guild_name = interaction.guild.name
+        macros = bot.load_server_macros(guild_id, guild_name)
+
+        if not macros:
+            embed, logo_file = bot.create_embed(
+                title="📂 No Macros Found",
+                description="No WeakAuras macros available in this server.",
+                footer_text=f"Server: {guild_name}",
+            )
+            await send_embed_response(interaction, embed, logo_file)
+            return
+
         macro_list = "\n".join([f"• {name}" for name in macros])
-        embed = discord.Embed(
-            title="WeakAuras Macros", description=macro_list, color=0x9F4AF3
+        embed, logo_file = bot.create_embed(
+            title="📂 WeakAuras Macros",
+            description=macro_list,
+            footer_text=f"Server: {guild_name}",
         )
-        embed.set_footer(text=f"Server: {interaction.guild.name}")
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await send_embed_response(interaction, embed, logo_file)
 
     @bot.tree.command(
         name="delete_macro",
@@ -67,40 +100,68 @@ def setup_macro_commands(bot: WeakAurasBot):
     )
     async def delete_macro(interaction: discord.Interaction, name: str):
         """Delete a macro from this server (requires admin role)"""
-        # Check if user has admin role
-        if not bot.has_admin_role(interaction.user):
-            admin_role_name = bot.config.get("bot", {}).get("admin_role", "admin")
+        if not interaction.guild:
             await interaction.response.send_message(
-                f"❌ You need the '{admin_role_name}' role to delete macros!",
-                ephemeral=True,
+                "This command can only be used in a server!", ephemeral=True
             )
+            return
+
+        # Check if user has admin role (ensure user is a member)
+        if not isinstance(interaction.user, discord.Member) or not bot.has_admin_role(
+            interaction.user
+        ):
+            admin_role_name = bot.config.get("bot", {}).get("admin_role", "admin")
+            embed, logo_file = bot.create_embed(
+                title="❌ Permission Denied",
+                description=f"You need the '{admin_role_name}' role to delete macros!",
+                footer_text=f"Server: {interaction.guild.name}",
+            )
+            await send_embed_response(interaction, embed, logo_file)
             return
 
         guild_id = interaction.guild.id
-        macros = bot.load_server_macros(guild_id)
+        guild_name = interaction.guild.name
+        macros = bot.load_server_macros(guild_id, guild_name)
 
         if name not in macros:
-            await interaction.response.send_message(
-                f"WeakAuras macro '{name}' does not exist!", ephemeral=True
+            embed, logo_file = bot.create_embed(
+                title="❌ Macro Not Found",
+                description=f"WeakAuras macro '{name}' does not exist!",
+                footer_text=f"Server: {guild_name}",
             )
+            await send_embed_response(interaction, embed, logo_file)
             return
 
         del macros[name]
-        bot.save_server_macros(guild_id, macros)
-        await interaction.response.send_message(
-            f"Deleted WeakAuras macro '{name}' successfully!", ephemeral=True
+        bot.save_server_macros(guild_id, guild_name, macros)
+
+        embed, logo_file = bot.create_embed(
+            title="🗑️ Macro Deleted",
+            description=f"Successfully deleted macro **{name}**",
+            footer_text=f"Server: {guild_name}",
         )
+        await send_embed_response(interaction, embed, logo_file)
 
     @bot.tree.command(name="macro", description="Execute a saved WeakAuras macro")
     async def execute_macro(interaction: discord.Interaction, name: str):
         """Execute a saved macro from this server"""
+        if not interaction.guild:
+            await interaction.response.send_message(
+                "This command can only be used in a server!", ephemeral=True
+            )
+            return
+
         guild_id = interaction.guild.id
-        macros = bot.load_server_macros(guild_id)
+        guild_name = interaction.guild.name
+        macros = bot.load_server_macros(guild_id, guild_name)
 
         if name not in macros:
-            await interaction.response.send_message(
-                f"WeakAuras macro '{name}' does not exist!", ephemeral=True
+            embed, logo_file = bot.create_embed(
+                title="❌ Macro Not Found",
+                description=f"WeakAuras macro '{name}' does not exist!",
+                footer_text=f"Server: {guild_name}",
             )
+            await send_embed_response(interaction, embed, logo_file)
             return
 
         macro_data = macros[name]

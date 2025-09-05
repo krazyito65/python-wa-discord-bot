@@ -135,9 +135,10 @@ The bot is built using discord.py with a slash commands only interface and serve
 
 ### Server-Specific Macro System
 - **Storage Structure**:
-  - `server_data/servers.json` - Maps server IDs to human-readable names
-  - `server_data/{guild_id}_macros.json` - Individual macro files per server
-- **Macro Format**: JSON objects with metadata (name, message, created_by, created_at)
+  - `server_data/{server_name}_{guild_id}/` - Individual folders per server (human-readable)
+  - `{guild_id}_macros.json` - Macro file within each server folder
+- **Folder Naming**: `{sanitized_server_name}_{guild_id}` (e.g., `WeakAuras_Discord_123456789012345678/`)
+- **Macro Format**: JSON objects with metadata (name, message, created_by, created_by_name, created_at)
 - **Commands Available** (`commands/macro_commands.py`):
   - `/create_macro <name> <message>` - Create new WeakAuras macro
   - `/macro <name>` - Execute existing WeakAuras macro
@@ -168,8 +169,8 @@ The bot is built using discord.py with a slash commands only interface and serve
   - `__init__.py` - Package initialization
   - `macro_commands.py` - All slash command implementations
 - `server_data/` - Directory containing server-specific data (auto-created)
-  - `servers.json` - Server ID to name mapping for human identification
-  - `{guild_id}_macros.json` - Individual macro storage files per Discord server
+  - `{server_name}_{guild_id}/` - Individual folders per Discord server
+    - `{guild_id}_macros.json` - Macro storage file for each server
 - `pyproject.toml` - Project configuration and dependencies (discord.py, pyyaml, ruff, pre-commit)
 - `ruff.toml` - Code formatting and linting configuration
 - `.pre-commit-config.yaml` - Pre-commit hooks configuration
@@ -184,4 +185,4 @@ The bot is built using discord.py with a slash commands only interface and serve
 - **Bot Permissions**: Bot needs application commands permission in Discord server
 - **Intents**: Bot uses default intents (message content intent enabled but not required for slash commands)
 - **Admin Role**: Configurable role name for delete permissions (default: "admin")
-- **Data Storage**: Server-specific macro files created automatically in configured directory
+- **Data Storage**: Server-specific folders and macro files created automatically in configured directory

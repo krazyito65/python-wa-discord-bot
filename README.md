@@ -103,6 +103,7 @@ A Discord bot designed to facilitate common questions and FAQs for the WeakAuras
 │   ├── __init__.py
 │   └── macro_commands.py      # Slash command implementations
 ├── server_data/               # Per-server macro storage (auto-created)
+│   └── {server_name}_{id}/    # Individual server folders
 ├── pyproject.toml             # Project configuration
 ├── ruff.toml                  # Code quality configuration
 └── .pre-commit-config.yaml    # Pre-commit hooks
@@ -146,7 +147,6 @@ bot:
 
 storage:
   data_directory: "server_data"
-  servers_mapping_file: "servers.json"
 ```
 
 ### Code Quality
@@ -181,7 +181,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Discord**: Join the WeakAuras Discord for community support
+- **Discord**: Join the [WeakAuras Discord](https://discord.gg/weakauras) for community support
 - **Issues**: Report bugs and request features via GitHub Issues
 - **Documentation**: See [CLAUDE.md](CLAUDE.md) for detailed technical documentation
 
