@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Configuration files with sensitive data
+settings/token.yml
+token.yml
+
+# But allow example/template files
+!settings/token.yml.example
+!token.yml.example
+
+# Bot data (optional - comment out if you want to track server data)
+server_data/
