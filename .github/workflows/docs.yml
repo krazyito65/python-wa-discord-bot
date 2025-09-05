@@ -38,13 +38,12 @@ jobs:
     - name: Install Python and dependencies
       run: uv sync
 
-    - name: Generate API documentation
-      run: uv run sphinx-apidoc -o docs/api . migrate_old_macros.py
-
-    - name: Build documentation
+    - name: Activate virtual environment and generate documentation
       run: |
+        source .venv/bin/activate
+        sphinx-apidoc -o docs/api . migrate_old_macros.py
         cd docs
-        uv run sphinx-build -b html . _build/html
+        sphinx-build -b html . _build/html
 
     - name: Upload documentation artifacts
       uses: actions/upload-pages-artifact@v3
