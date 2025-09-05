@@ -7,7 +7,9 @@ import yaml
 
 from bot import WeakAurasBot
 from commands import setup_macro_commands
+from commands.config_commands import setup_config_commands
 from commands.ping_commands import setup_ping_commands
+from events import setup_temperature_event
 
 
 def load_config(config_path: str = "settings/token.yml") -> dict:
@@ -73,6 +75,10 @@ def main():
     # Setup commands
     setup_macro_commands(bot)
     setup_ping_commands(bot)
+    setup_config_commands(bot)
+
+    # Setup events
+    setup_temperature_event(bot)
 
     print(f"Starting WeakAuras Discord Bot in '{args.env}' environment...")
 

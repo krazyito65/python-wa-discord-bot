@@ -67,6 +67,35 @@ class WeakAurasBot(commands.Bot):
         with open(macros_file, "w") as f:
             json.dump(macros, f, indent=2)
 
+    def get_server_config_file(self, guild_id: int, guild_name: str) -> Path:
+        """Get the configuration file path for a specific server"""
+        server_folder = self.get_server_folder(guild_id, guild_name)
+        return server_folder / f"{guild_id}_config.json"
+
+    def load_server_config(self, guild_id: int, guild_name: str) -> dict[str, Any]:
+        """Load configuration for a specific server"""
+        config_file = self.get_server_config_file(guild_id, guild_name)
+        try:
+            with open(config_file) as f:
+                return json.load(f)
+        except FileNotFoundError:
+            # Return default server configuration
+            return {
+                "events": {
+                    "temperature": {
+                        "enabled": True,
+                    }
+                }
+            }
+
+    def save_server_config(
+        self, guild_id: int, guild_name: str, config: dict[str, Any]
+    ) -> None:
+        """Save configuration for a specific server"""
+        config_file = self.get_server_config_file(guild_id, guild_name)
+        with open(config_file, "w") as f:
+            json.dump(config, f, indent=2)
+
     def update_server_folder_name(
         self, guild_id: int, old_name: str, new_name: str
     ) -> None:

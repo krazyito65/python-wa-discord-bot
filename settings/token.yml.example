@@ -31,3 +31,12 @@ bot:
 # Data Storage Settings
 storage:
   data_directory: "server_data"
+
+# Event System Settings
+events:
+  # Enable/disable all events
+  enabled: true
+
+  # Temperature conversion event
+  temperature:
+    enabled: true
