@@ -1,8 +1,21 @@
 [project]
 name = "python-wa-discord-bot"
 version = "0.1.0"
-description = "Add your description here"
+description = "Discord bot for WeakAuras community support"
 readme = "README.md"
+license = "MIT"
+authors = [
+    { name = "Leon Solis", email = "krazyito65@gmail.com" },
+]
+keywords = ["discord", "bot", "weakauras", "world-of-warcraft"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Communications :: Chat",
+    "Topic :: Games/Entertainment",
+]
 requires-python = ">=3.13"
 dependencies = [
     "discord-py>=2.6.3",

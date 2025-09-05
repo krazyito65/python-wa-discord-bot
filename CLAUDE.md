@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+For user-facing documentation and getting started instructions, see [README.md](README.md).
+
 ## Project Overview
 
 This is a WeakAuras Discord bot designed to facilitate common questions and FAQs for World of Warcraft addon support. The bot provides macro functionality that allows users to create custom commands (macros) that store and replay messages via Discord slash commands only. Each Discord server has its own isolated macro storage. The project uses modern Python tooling with uv for dependency management and Python 3.13.
@@ -173,6 +175,8 @@ The bot is built using discord.py with a slash commands only interface and serve
 - `.pre-commit-config.yaml` - Pre-commit hooks configuration
 - `uv.lock` - Locked dependency versions
 - `.python-version` - Python version specification for uv
+- `LICENSE` - MIT License file
+- `README.md` - User-facing documentation and setup instructions
 
 ## Configuration
 
