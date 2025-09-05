@@ -24,13 +24,18 @@ def setup_ping_commands(bot: WeakAurasBot):
         """Simple ping command to test bot responsiveness"""
         latency = round(bot.latency * 1000)  # Convert to milliseconds
 
+        # Get current server information
+        guild = interaction.guild
+        member_count = guild.member_count or 0 if guild else 0
+        server_name = guild.name if guild else "Unknown Server"
+
         # Build description with bot info and GitHub link
         description = (
             f"🏓 **Pong!** Bot latency: **{latency}ms**\n\n"
-            f"📊 **Bot Information:**\n"
-            f"• Servers: **{len(bot.guilds)}**\n"
-            f"• Users: **{sum(guild.member_count or 0 for guild in bot.guilds)}**\n"
-            f"• Commands: **{len(bot.tree.get_commands())}**\n\n"
+            f"📊 **Server Information:**\n"
+            f"• Server: **{server_name}**\n"
+            f"• Members: **{member_count:,}**\n"
+            f"• Available Commands: **{len(bot.tree.get_commands())}**\n\n"
             f"🔗 **Links:**\n"
             f"• [GitHub Repository](https://github.com/krazyito/python-wa-discord-bot)\n"
             f"• [WeakAuras Website](https://weakauras.wtf)"

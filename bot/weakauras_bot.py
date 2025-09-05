@@ -35,15 +35,35 @@ class WeakAurasBot(commands.Bot):
         return sanitized[:100]  # Limit to 100 chars
 
     def get_server_folder(self, guild_id: int, guild_name: str) -> Path:
-        """Get or create the server folder path"""
+        """Get or create the server folder path, checking for existing folders by guild ID"""
         sanitized_name = self.sanitize_server_name(guild_name)
-        folder_name = f"{sanitized_name}_{guild_id}"
-        server_folder = self.data_dir / folder_name
+        desired_folder_name = f"{sanitized_name}_{guild_id}"
+        desired_folder_path = self.data_dir / desired_folder_name
 
-        # Create folder if it doesn't exist
-        server_folder.mkdir(exist_ok=True)
+        # Check if any existing folder has the same guild_id suffix
+        existing_folder = None
+        for folder_path in self.data_dir.iterdir():
+            if folder_path.is_dir() and folder_path.name.endswith(f"_{guild_id}"):
+                existing_folder = folder_path
+                break
 
-        return server_folder
+        # If we found an existing folder with the same guild_id
+        if existing_folder:
+            # If the name matches what we want, use it
+            if existing_folder.name == desired_folder_name:
+                return existing_folder
+            # If the name is different, rename the folder to match current server name
+            try:
+                existing_folder.rename(desired_folder_path)
+            except OSError:
+                # If rename fails, use existing folder
+                return existing_folder
+            else:
+                return desired_folder_path
+
+        # No existing folder found, create new one
+        desired_folder_path.mkdir(exist_ok=True)
+        return desired_folder_path
 
     def get_server_macros_file(self, guild_id: int, guild_name: str) -> Path:
         """Get the macros file path for a specific server"""
@@ -95,26 +115,6 @@ class WeakAurasBot(commands.Bot):
         config_file = self.get_server_config_file(guild_id, guild_name)
         with open(config_file, "w") as f:
             json.dump(config, f, indent=2)
-
-    def update_server_folder_name(
-        self, guild_id: int, old_name: str, new_name: str
-    ) -> None:
-        """Update server folder name if server name changed"""
-        if old_name == new_name:
-            return
-
-        old_sanitized = self.sanitize_server_name(old_name)
-        new_sanitized = self.sanitize_server_name(new_name)
-
-        if old_sanitized == new_sanitized:
-            return  # No change needed
-
-        old_folder = self.data_dir / f"{old_sanitized}_{guild_id}"
-        new_folder = self.data_dir / f"{new_sanitized}_{guild_id}"
-
-        # Rename folder if it exists and new name doesn't exist
-        if old_folder.exists() and not new_folder.exists():
-            old_folder.rename(new_folder)
 
     def has_admin_access(self, member: discord.Member) -> bool:
         """Check if member has admin access via role names or Discord permissions"""
