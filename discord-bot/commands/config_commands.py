@@ -1,5 +1,4 @@
 import discord
-
 from bot.weakauras_bot import WeakAurasBot
 
 

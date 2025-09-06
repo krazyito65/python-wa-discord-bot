@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ guild_name }} - WeakAuras Bot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .brand-purple { background-color: #9f4af3; }
+        .macro-card { transition: transform 0.2s; }
+        .macro-card:hover { transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark brand-purple">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'servers:dashboard' %}">
+                <strong>WeakAuras Bot</strong> Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">{{ user.username }}</span>
+                <a class="btn btn-outline-light btn-sm" href="{% url 'account_logout' %}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Server Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1>{{ guild_name }}</h1>
+                        <p class="text-muted">Server ID: {{ guild_id }} | {{ macro_count }} macros</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'servers:dashboard' %}" class="btn btn-outline-secondary me-2">
+                            ← Back to Servers
+                        </a>
+                        <button class="btn btn-success" onclick="showAddMacroModal()">
+                            + Add Macro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Macros List -->
+        <div class="row">
+            <div class="col-12">
+                {% if macros %}
+                    <h3 class="mb-3">WeakAuras Macros</h3>
+                    <div class="row">
+                        {% for macro_name, macro_data in macros.items %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card macro-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ macro_name }}</h5>
+                                        <div class="card-text">
+                                            <small class="text-muted d-block mb-2">
+                                                {% if macro_data.created_by_name %}
+                                                    Created by: {{ macro_data.created_by_name }}
+                                                {% endif %}
+                                                {% if macro_data.created_at %}
+                                                    <br>{{ macro_data.created_at|date:"M d, Y" }}
+                                                {% endif %}
+                                            </small>
+                                            <div class="macro-preview bg-light p-2 rounded small" style="max-height: 100px; overflow: hidden;">
+                                                {% if macro_data.message %}
+                                                    {{ macro_data.message|truncatechars:100 }}
+                                                {% else %}
+                                                    {{ macro_data|truncatechars:100 }}
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <div class="btn-group btn-group-sm w-100" role="group">
+                                            <button class="btn btn-outline-primary" onclick="showMacroModal('{{ macro_name|escapejs }}', {% if macro_data.message %}'{{ macro_data.message|escapejs }}'{% else %}'{{ macro_data|escapejs }}'{% endif %})">
+                                                View
+                                            </button>
+                                            <button class="btn btn-outline-warning" onclick="editMacro('{{ macro_name|escapejs }}')">
+                                                Edit
+                                            </button>
+                                            <button class="btn btn-outline-danger" onclick="deleteMacro('{{ macro_name|escapejs }}')">
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">
+                        <h4>No macros found</h4>
+                        <p>This server doesn't have any WeakAuras macros yet.</p>
+                        <button class="btn btn-success" onclick="showAddMacroModal()">Create your first macro</button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Macro View Modal -->
+    <div class="modal fade" id="macroModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="macroModalTitle">Macro Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Macro Content:</label>
+                        <textarea class="form-control" id="macroContent" rows="10" readonly style="font-family: monospace;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="copyToClipboard()">Copy Content</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Macro Modal -->
+    <div class="modal fade" id="addMacroModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Macro</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Coming Soon!</strong> Macro creation through the web interface will be available in a future update.
+                        <br>For now, you can create macros using the Discord bot with <code>/create_macro</code>.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showMacroModal(name, content) {
+            document.getElementById('macroModalTitle').textContent = name;
+            document.getElementById('macroContent').value = content;
+            new bootstrap.Modal(document.getElementById('macroModal')).show();
+        }
+
+        function showAddMacroModal() {
+            new bootstrap.Modal(document.getElementById('addMacroModal')).show();
+        }
+
+        function editMacro(name) {
+            alert('Editing macro "' + name + '" coming soon! For now, use the Discord bot to update macros.');
+        }
+
+        function deleteMacro(name) {
+            if (confirm('Are you sure you want to delete the macro "' + name + '"? This action cannot be undone.')) {
+                window.location.href = '{% url "macros:macro_delete" guild_id "MACRO_NAME" %}'.replace('MACRO_NAME', encodeURIComponent(name));
+            }
+        }
+
+        function copyToClipboard() {
+            const content = document.getElementById('macroContent');
+            content.select();
+            document.execCommand('copy');
+
+            // Show temporary success message
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = 'Copied!';
+            btn.classList.remove('btn-primary');
+            btn.classList.add('btn-success');
+
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.classList.remove('btn-success');
+                btn.classList.add('btn-primary');
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

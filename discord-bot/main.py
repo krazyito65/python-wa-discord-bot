@@ -36,7 +36,6 @@ import sys
 from pathlib import Path
 
 import yaml
-
 from bot import WeakAurasBot
 from commands import setup_macro_commands
 from commands.config_commands import setup_config_commands

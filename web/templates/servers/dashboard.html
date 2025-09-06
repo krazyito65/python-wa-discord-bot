@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeakAuras Bot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .server-card {
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        .server-card:hover {
+            transform: translateY(-2px);
+        }
+        .brand-purple {
+            background-color: #9f4af3;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark brand-purple">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'servers:dashboard' %}">
+                <strong>WeakAuras Bot</strong> Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">Welcome, {{ user.username }}!</span>
+                <a class="btn btn-outline-light btn-sm" href="{% url 'account_logout' %}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">Your Discord Servers</h2>
+
+                {% if available_servers %}
+                    <p class="text-muted">
+                        Select a server to manage WeakAuras macros.
+                        You can only manage servers where you're a member and the WeakAuras bot has data.
+                    </p>
+
+                    <div class="row">
+                        {% for server in available_servers %}
+                            <div class="col-md-6 col-lg-4 mb-4">
+                                <div class="card server-card h-100" onclick="location.href='{% url 'servers:server_detail' server.guild_id %}'">
+                                    <div class="card-body">
+                                        <h5 class="card-title">
+                                            {% if server.guild_icon %}
+                                                <img src="https://cdn.discordapp.com/icons/{{ server.guild_id }}/{{ server.guild_icon }}.png"
+                                                     alt="Server Icon" class="rounded me-2" width="24" height="24">
+                                            {% endif %}
+                                            {{ server.guild_name }}
+                                        </h5>
+                                        <p class="card-text text-muted small">
+                                            Server ID: {{ server.guild_id }}<br>
+                                            Data Folder: {{ server.bot_folder_name }}
+                                        </p>
+                                    </div>
+                                    <div class="card-footer bg-transparent">
+                                        <small class="text-success">✓ WeakAuras Bot Active</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-4">
+                        <small class="text-muted">
+                            Total servers available: {{ total_servers }}
+                        </small>
+                    </div>
+
+                {% else %}
+                    <div class="alert alert-info" role="alert">
+                        <h4 class="alert-heading">No servers available</h4>
+                        <p>You don't have access to any servers where the WeakAuras bot is active and has stored data.</p>
+                        <hr>
+                        <p class="mb-0">
+                            Make sure:
+                            <ul>
+                                <li>You're a member of a Discord server</li>
+                                <li>The WeakAuras bot is added to that server</li>
+                                <li>Someone has created macros using the bot in that server</li>
+                            </ul>
+                        </p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -49,16 +49,16 @@ bot:
 
 ### Running the Bot
 ```bash
-# Run in development environment (default)
+# From project root (recommended)
+python run-bot.py
+python run-bot.py --env dev
+python run-bot.py --env prod
+python run-bot.py --config my_custom_token.yml
+
+# Or directly from discord-bot folder
+cd discord-bot
 uv run python main.py
-# or
-uv run python main.py --env dev
-
-# Run in production environment
 uv run python main.py --env prod
-
-# Use custom config file
-uv run python main.py --config my_custom_token.yml
 ```
 
 ### Development Tasks
@@ -203,3 +203,5 @@ The bot is built using discord.py with a slash commands only interface and serve
 - **Data Storage**: Server-specific folders and macro files created automatically in configured directory
 - since this is a standalone app and not an API, there is no need to preserve 'legacy methods'. simply rename or remove them as needed.
 - make sure you continue documenting functions as we crete or update them so that the sphinx documentation is always updated
+- keep launch.json updated with debug options to allow developers to test with breakpoints
+- make sure to fix ruff erorrs from the djanog application as well
