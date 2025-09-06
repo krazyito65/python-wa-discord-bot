@@ -4,13 +4,10 @@ utils package
 Submodules
 ----------
 
-utils.logging module
---------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: utils.logging
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   utils.logging
 
 Module contents
 ---------------

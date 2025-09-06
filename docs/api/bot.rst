@@ -4,13 +4,10 @@ bot package
 Submodules
 ----------
 
-bot.weakauras\_bot module
--------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: bot.weakauras_bot
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   bot.weakauras_bot
 
 Module contents
 ---------------

@@ -4,21 +4,11 @@ tests package
 Submodules
 ----------
 
-tests.test\_bot module
-----------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: tests.test_bot
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
-tests.test\_macro\_commands module
-----------------------------------
-
-.. automodule:: tests.test_macro_commands
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   tests.test_bot
+   tests.test_macro_commands
 
 Module contents
 ---------------
