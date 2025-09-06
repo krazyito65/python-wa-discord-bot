@@ -1,0 +1,28 @@
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.terminal.activateEnvironment": true,
+    "python.linting.enabled": true,
+    "python.linting.ruffEnabled": true,
+    "python.formatting.provider": "none",
+    "python.analysis.typeCheckingMode": "basic",
+    "files.associations": {
+        "*.yml": "yaml",
+        "*.yaml": "yaml"
+    },
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true,
+        "**/bot.log": false,
+        "**/django.log": false
+    },
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/.venv": true,
+        "**/__pycache__": true,
+        "**/discord-bot/server_data": true
+    },
+    "debug.terminal.clearBeforeReusing": true,
+    "debug.console.closeOnEnd": true,
+    "terminal.integrated.defaultProfile.linux": "bash"
+}

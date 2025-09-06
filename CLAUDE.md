@@ -202,6 +202,26 @@ The bot is built using discord.py with a slash commands only interface and serve
 - **Admin Role**: Configurable role name for delete permissions (default: "admin")
 - **Data Storage**: Server-specific folders and macro files created automatically in configured directory
 - since this is a standalone app and not an API, there is no need to preserve 'legacy methods'. simply rename or remove them as needed.
-- make sure you continue documenting functions as we crete or update them so that the sphinx documentation is always updated
+- make sure you continue documenting functions as we create or update them so that the sphinx documentation is always updated
 - keep launch.json updated with debug options to allow developers to test with breakpoints
-- make sure to fix ruff erorrs from the djanog application as well
+- make sure to fix ruff errors from the Django application as well
+
+## Debugging Configuration
+
+The project includes comprehensive VS Code debugging setup in `.vscode/`:
+
+### Debug Configurations
+- **Discord Bot Debugging**: Multiple configurations for dev/prod environments
+- **Django Web Server Debugging**: Web interface, shell, and test debugging
+- **Automatic Service Management**: Pre-launch tasks handle starting/stopping services
+- **Background Service Logs**: `bot.log` and `django.log` files for monitoring
+
+### Key Features
+- **Clean Service Management**: Every debug session stops all services first, then starts the opposite service in background
+- **Bot Debugging**: Automatically runs Django server in background for web interface access
+- **Django Debugging**: Automatically runs Discord bot in background for full system functionality
+- **Proper Environment Setup**: PYTHONPATH and working directories configured correctly
+- **Breakpoint Support**: Full debugging capabilities with watch variables and call stack
+- **Log Monitoring**: Built-in tasks to view real-time logs from background services
+
+See `.vscode/README.md` for detailed usage instructions.
