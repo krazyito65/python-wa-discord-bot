@@ -1,5 +1,8 @@
 import discord
 from bot.weakauras_bot import WeakAurasBot
+from utils.logging import get_logger, log_command
+
+logger = get_logger(__name__)
 
 
 async def send_embed_response(
@@ -31,6 +34,7 @@ def setup_ping_commands(bot: WeakAurasBot):
     """
 
     @bot.tree.command(name="wa_ping", description="Test WeakAuras bot responsiveness")
+    @log_command
     async def ping(interaction: discord.Interaction):
         """Test WeakAuras bot responsiveness with server information.
 
@@ -52,6 +56,10 @@ def setup_ping_commands(bot: WeakAurasBot):
         guild = interaction.guild
         member_count = guild.member_count or 0 if guild else 0
         server_name = guild.name if guild else "Unknown Server"
+
+        logger.info(
+            f"wa_ping response: latency={latency}ms, server={server_name}, members={member_count}"
+        )
 
         # Build description with bot info and GitHub link
         description = (

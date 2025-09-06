@@ -42,9 +42,12 @@ from commands.config_commands import setup_config_commands
 from commands.ping_commands import setup_ping_commands
 from commands.wiki_commands import setup_wiki_commands
 from events import setup_temperature_event
+from utils.logging import get_logger, setup_logging
+
+bot_root = Path(__file__).resolve().parent
 
 
-def load_config(config_path: str = "settings/token.yml") -> dict:
+def load_config(config_path: str = f"{bot_root}/settings/token.yml") -> dict:
     """Load configuration from YAML file.
 
     Args:
@@ -142,37 +145,57 @@ def main() -> None:
     )
     parser.add_argument(
         "--config",
-        default="settings/token.yml",
+        default=f"{bot_root}/settings/token.yml",
         help="Path to configuration file (default: settings/token.yml)",
     )
 
     args = parser.parse_args()
 
+    # Setup logging first
+    setup_logging(args.env)
+    logger = get_logger(__name__)
+
+    logger.info(f"Starting WeakAuras Discord Bot in '{args.env}' environment")
+
     # Load configuration
     config = load_config(args.config)
+    logger.info(f"Loaded configuration from: {args.config}")
 
     # Get token for specified environment
     token = get_token(config, args.env)
+    logger.info(f"Retrieved token for environment: {args.env}")
 
     # Create bot instance
     bot = WeakAurasBot(config)
+    logger.info("WeakAuras bot instance created")
 
     # Setup commands
     setup_macro_commands(bot)
+    logger.info("Macro commands registered")
+
     setup_ping_commands(bot)
+    logger.info("Ping commands registered")
+
     setup_config_commands(bot)
+    logger.info("Config commands registered")
+
     setup_wiki_commands(bot)
+    logger.info("Wiki commands registered")
 
     # Setup events
     setup_temperature_event(bot)
+    logger.info("Temperature event handler registered")
 
     print(f"Starting WeakAuras Discord Bot in '{args.env}' environment...")
+    logger.info("Bot initialization complete, starting Discord connection")
 
     try:
         bot.run(token)
     except KeyboardInterrupt:
+        logger.info("Bot stopped by user (KeyboardInterrupt)")
         print("\nBot stopped by user")
     except Exception as e:
+        logger.error(f"Error running bot: {e}", exc_info=True)
         print(f"Error running bot: {e}")
         sys.exit(1)
 

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Development script: Stop all services and start Discord bot in background
+# Usage: bin/dev-start-bot (can be run from anywhere)
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🔄 Stopping all services and starting Discord bot in background..."
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+# Change to repository root
+cd "$REPO_ROOT"
+
+# Stop any existing services
+echo "Stopping existing services..."
+pkill -f 'python.*main.py' || true
+pkill -f 'python.*manage.py.*runserver' || true
+
+# Give processes time to cleanup
+sleep 2
+
+# Start Discord bot in background
+echo "Starting Discord bot in background (dev environment)..."
+cd discord-bot
+nohup uv run python main.py --env dev > ../logs/bot.log 2>&1 &
+BOT_PID=$!
+
+echo ""
+echo "✅ All services stopped. Discord bot started in background (PID: $BOT_PID)"
+echo "📊 View logs with: bin/dev-logs-bot"
+echo "🛑 Stop services with: bin/dev-stop-all"
