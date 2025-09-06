@@ -22,7 +22,8 @@
             "justMyCode": false,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/discord-bot"
-            }
+            },
+            "preLaunchTask": "Stop All and Start Django Background"
         },
         {
             "name": "Debug Discord Bot (Prod)",
@@ -35,7 +36,8 @@
             "justMyCode": false,
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/discord-bot"
-            }
+            },
+            "preLaunchTask": "Stop All and Start Django Background"
         },
         {
             "name": "Debug Discord Bot Launcher",
@@ -45,7 +47,8 @@
             "args": ["--env", "dev"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}",
-            "justMyCode": false
+            "justMyCode": false,
+            "preLaunchTask": "Stop All and Start Django Background"
         },
         {
             "name": "Debug Django Web Server",
@@ -59,7 +62,8 @@
             "env": {
                 "DJANGO_SETTINGS_MODULE": "weakauras_web.settings",
                 "PYTHONPATH": "${workspaceFolder}/web"
-            }
+            },
+            "preLaunchTask": "Stop All and Start Bot Background"
         },
         {
             "name": "Debug Django Shell",
@@ -73,7 +77,8 @@
             "env": {
                 "DJANGO_SETTINGS_MODULE": "weakauras_web.settings",
                 "PYTHONPATH": "${workspaceFolder}/web"
-            }
+            },
+            "preLaunchTask": "Stop All and Start Bot Background"
         },
         {
             "name": "Debug Django Tests",
@@ -81,6 +86,34 @@
             "request": "launch",
             "program": "${workspaceFolder}/web/manage.py",
             "args": ["test"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/web",
+            "justMyCode": false,
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "weakauras_web.settings",
+                "PYTHONPATH": "${workspaceFolder}/web"
+            },
+            "preLaunchTask": "Stop All and Start Bot Background"
+        },
+        {
+            "name": "Debug Discord Bot (Dev) - No Background Services",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/discord-bot/main.py",
+            "args": ["--env", "dev"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/discord-bot"
+            }
+        },
+        {
+            "name": "Debug Django Web Server - No Background Services",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/web/manage.py",
+            "args": ["runserver", "8000"],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}/web",
             "justMyCode": false,
