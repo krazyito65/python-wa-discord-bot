@@ -28,3 +28,24 @@ logs/
 # Documentation build files
 docs/_build/
 docs/.doctrees/
+docs/docs/_build/
+
+# Django files
+*.sqlite3
+db.sqlite3
+
+# Testing files
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
