@@ -41,8 +41,8 @@ jobs:
     - name: Activate virtual environment and generate documentation
       run: |
         source .venv/bin/activate
-        sphinx-apidoc -o docs/api . migrate_old_macros.py
         cd docs
+        sphinx-apidoc -o api ../discord-bot --force
         sphinx-build -b html . _build/html
 
     - name: Upload documentation artifacts

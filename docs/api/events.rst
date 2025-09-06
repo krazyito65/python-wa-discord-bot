@@ -4,13 +4,10 @@ events package
 Submodules
 ----------
 
-events.temperature\_event module
---------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: events.temperature_event
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   events.temperature_event
 
 Module contents
 ---------------

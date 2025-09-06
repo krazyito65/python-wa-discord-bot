@@ -179,7 +179,7 @@ uv run python serve_docs.py
 uv run python serve_docs.py --port 8080
 
 # Rebuild API documentation (if new modules added)
-uv run sphinx-apidoc -o docs/api . migrate_old_macros.py
+cd docs && uv run sphinx-apidoc -o api ../discord-bot --force
 ```
 
 ### Testing
