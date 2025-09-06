@@ -45,8 +45,11 @@ class TestWeakAurasBot(unittest.TestCase):
             bot = WeakAurasBot(self.test_config)
 
             assert bot.config == self.test_config
-            # Check that data_dir is set from config
-            expected_path = Path("test_server_data")
+            # Check that data_dir is calculated as absolute path relative to discord-bot directory
+            bot_package_dir = (
+                Path(__file__).resolve().parent.parent
+            )  # discord-bot directory
+            expected_path = bot_package_dir / "test_server_data"
             assert bot.data_dir == expected_path
             mock_init.assert_called_once()
 
@@ -58,8 +61,11 @@ class TestWeakAurasBot(unittest.TestCase):
             mock_init.return_value = None
             bot = WeakAurasBot(config_no_storage)
 
-            # Should use default storage directory
-            expected_path = Path("server_data")
+            # Should use default storage directory as absolute path
+            bot_package_dir = (
+                Path(__file__).resolve().parent.parent
+            )  # discord-bot directory
+            expected_path = bot_package_dir / "server_data"
             assert bot.data_dir == expected_path
 
     def test_sanitize_server_name(self):
