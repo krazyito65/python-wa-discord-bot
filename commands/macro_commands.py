@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 
 from bot.weakauras_bot import WeakAurasBot
 
@@ -18,6 +19,25 @@ async def send_embed_response(
 
 def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
     """Setup all macro-related slash commands"""
+
+    async def macro_name_autocomplete(
+        interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        """Autocomplete function for macro names"""
+        if not interaction.guild:
+            return []
+
+        guild_id = interaction.guild.id
+        guild_name = interaction.guild.name
+        macros = bot.load_server_macros(guild_id, guild_name)
+
+        # Filter macro names based on current input
+        filtered_macros = [name for name in macros if current.lower() in name.lower()]
+
+        # Return up to 25 choices (Discord limit)
+        return [
+            app_commands.Choice(name=name, value=name) for name in filtered_macros[:25]
+        ]
 
     @bot.tree.command(
         name="create_macro", description="Create a new WeakAuras macro command"
@@ -98,6 +118,7 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         name="delete_macro",
         description="Delete an existing WeakAuras macro (Admin only)",
     )
+    @app_commands.autocomplete(name=macro_name_autocomplete)
     async def delete_macro(interaction: discord.Interaction, name: str):
         """Delete a macro from this server (requires admin role)"""
         if not interaction.guild:
@@ -153,6 +174,7 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         await send_embed_response(interaction, embed, logo_file)
 
     @bot.tree.command(name="macro", description="Execute a saved WeakAuras macro")
+    @app_commands.autocomplete(name=macro_name_autocomplete)
     async def execute_macro(interaction: discord.Interaction, name: str):
         """Execute a saved macro from this server"""
         if not interaction.guild:

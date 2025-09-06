@@ -17,11 +17,36 @@ async def send_embed_response(
 
 
 def setup_ping_commands(bot: WeakAurasBot):
-    """Setup ping-related commands"""
+    """Setup ping-related slash commands for the WeakAuras bot.
+
+    Registers the wa_ping command which provides bot status information
+    including latency, server details, and helpful links.
+
+    Args:
+        bot (WeakAurasBot): The WeakAuras bot instance to register
+            commands with.
+
+    Note:
+        This function should be called during bot initialization to
+        register all ping-related commands with the bot's command tree.
+    """
 
     @bot.tree.command(name="wa_ping", description="Test WeakAuras bot responsiveness")
     async def ping(interaction: discord.Interaction):
-        """Simple ping command to test bot responsiveness"""
+        """Test WeakAuras bot responsiveness with server information.
+
+        Responds with bot latency, server information, available commands count,
+        and helpful links to GitHub repository and WeakAuras website.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction object
+                containing user and guild information.
+
+        Note:
+            This command provides essential bot status information and
+            is useful for testing if the bot is responsive and properly
+            connected to Discord.
+        """
         latency = round(bot.latency * 1000)  # Convert to milliseconds
 
         # Get current server information
