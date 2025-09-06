@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Test runner script for Discord bot tests
+# Usage: bin/test-bot [--coverage] (can be run from anywhere)
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🧪 Running Discord Bot Tests..."
+echo "==============================="
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+# Change to the discord-bot directory relative to repo root
+cd "$REPO_ROOT/discord-bot"
+
+if [ "$1" = "--coverage" ]; then
+    echo "Running with coverage reporting..."
+    uv run pytest --cov=. --cov-report=term-missing --cov-report=html
+    echo ""
+    echo "📊 Coverage report generated in $REPO_ROOT/discord-bot/htmlcov/"
+else
+    uv run pytest
+fi
+
+echo ""
+echo "✅ Discord bot tests completed"

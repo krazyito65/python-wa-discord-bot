@@ -1,0 +1,59 @@
+#!/bin/bash
+
+# Test runner script for all tests (Discord bot + Django web)
+# Usage: bin/test-all [--coverage] [--verbose] (can be run from anywhere)
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+COVERAGE=false
+VERBOSE=false
+
+# Parse arguments
+for arg in "$@"
+do
+    case $arg in
+        --coverage)
+            COVERAGE=true
+            shift
+            ;;
+        --verbose)
+            VERBOSE=true
+            shift
+            ;;
+    esac
+done
+
+echo "🧪 Running All Tests..."
+echo "======================"
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+# Run Discord bot tests
+if [ "$COVERAGE" = true ]; then
+    "$SCRIPT_DIR/test-bot" --coverage
+else
+    "$SCRIPT_DIR/test-bot"
+fi
+
+echo ""
+
+# Run Django web tests
+if [ "$VERBOSE" = true ]; then
+    "$SCRIPT_DIR/test-web" --verbose
+else
+    "$SCRIPT_DIR/test-web"
+fi
+
+echo ""
+echo "🎉 All tests completed successfully!"
+
+if [ "$COVERAGE" = true ]; then
+    echo ""
+    echo "📊 Coverage reports available:"
+    echo "   - Discord bot: $REPO_ROOT/discord-bot/htmlcov/index.html"
+fi

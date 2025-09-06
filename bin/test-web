@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Test runner script for Django web application tests
+# Usage: bin/test-web [--verbose] (can be run from anywhere)
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🧪 Running Django Web Tests..."
+echo "=============================="
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+# Change to the web directory relative to repo root
+cd "$REPO_ROOT/web"
+
+if [ "$1" = "--verbose" ]; then
+    echo "Running with verbose output..."
+    uv run python manage.py test --verbosity=2
+else
+    uv run python manage.py test
+fi
+
+echo ""
+echo "✅ Django web tests completed"
