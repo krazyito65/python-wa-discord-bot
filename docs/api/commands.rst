@@ -28,6 +28,14 @@ commands.ping\_commands module
    :show-inheritance:
    :undoc-members:
 
+commands.wiki\_commands module
+------------------------------
+
+.. automodule:: commands.wiki_commands
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 Module contents
 ---------------
 

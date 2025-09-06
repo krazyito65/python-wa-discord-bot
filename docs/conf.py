@@ -6,7 +6,8 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath(".."))
+# Add the discord-bot directory to Python path for module imports
+sys.path.insert(0, os.path.abspath("../discord-bot"))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -70,7 +71,6 @@ html_theme_options = {
     "canonical_url": "",
     "analytics_id": "",
     "logo_only": False,
-    "display_version": True,
     "prev_next_buttons_location": "bottom",
     "style_external_links": False,
     "vcs_pageview_mode": "",

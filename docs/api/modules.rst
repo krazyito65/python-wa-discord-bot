@@ -1,5 +1,5 @@
-python-wa-discord-bot
-=====================
+discord-bot
+===========
 
 .. toctree::
    :maxdepth: 4
@@ -8,3 +8,5 @@ python-wa-discord-bot
    commands
    events
    main
+   tests
+   utils
