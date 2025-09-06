@@ -1,5 +1,8 @@
 import discord
 from bot.weakauras_bot import WeakAurasBot
+from utils.logging import get_logger, log_command
+
+logger = get_logger(__name__)
 
 
 async def send_embed_response(
@@ -21,9 +24,11 @@ def setup_config_commands(bot: WeakAurasBot):
     @bot.tree.command(
         name="config", description="Configure WeakAuras bot settings (Admin only)"
     )
+    @log_command
     async def config_command(interaction: discord.Interaction):
         """Main configuration command"""
         if not interaction.guild:
+            logger.warning("config command used outside of server")
             await interaction.response.send_message(
                 "This command can only be used in a server!", ephemeral=True
             )
@@ -50,12 +55,14 @@ def setup_config_commands(bot: WeakAurasBot):
                 footer_text=f"Server: {interaction.guild.name}",
             )
             await send_embed_response(interaction, embed, logo_file)
+            logger.warning("config command denied - insufficient permissions")
             return
 
         # Load current server configuration
         guild_id = interaction.guild.id
         guild_name = interaction.guild.name
         server_config = bot.load_server_config(guild_id, guild_name)
+        logger.info(f"config command authorized for guild {guild_name} ({guild_id})")
 
         # Create configuration view with buttons
         view = ConfigView(bot, guild_id, guild_name, server_config)
@@ -108,8 +115,14 @@ class ConfigView(discord.ui.View):
         events_config = self.config.setdefault("events", {})
         temp_config = events_config.setdefault("temperature", {"enabled": True})
 
-        temp_config["enabled"] = not temp_config.get("enabled", True)
+        old_state = temp_config.get("enabled", True)
+        temp_config["enabled"] = not old_state
+        new_state = temp_config["enabled"]
+
         self.bot.save_server_config(self.guild_id, self.guild_name, self.config)
+        logger.info(
+            f"Temperature event toggled in guild {self.guild_name} ({self.guild_id}): {old_state} -> {new_state}"
+        )
 
         # Update embed
         embed, _logo_file = self.bot.create_embed(

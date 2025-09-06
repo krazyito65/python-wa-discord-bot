@@ -6,11 +6,7 @@
         {
             "label": "Stop All and Start Django Background",
             "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "pkill -f 'python.*manage.py.*runserver' || true; pkill -f 'python.*main.py' || true; sleep 2; cd web && nohup uv run python manage.py runserver 8000 > ../django.log 2>&1 & echo 'All services stopped. Django server started in background (PID: $!)'"
-            ],
+            "command": "${workspaceFolder}/bin/dev-start-django",
             "group": "build",
             "presentation": {
                 "echo": true,
@@ -25,11 +21,7 @@
         {
             "label": "Stop All and Start Bot Background",
             "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "pkill -f 'python.*main.py' || true; pkill -f 'python.*manage.py.*runserver' || true; sleep 2; cd discord-bot && nohup uv run python main.py --env dev > ../bot.log 2>&1 & echo 'All services stopped. Bot started in background (PID: $!)'"
-            ],
+            "command": "${workspaceFolder}/bin/dev-start-bot",
             "group": "build",
             "presentation": {
                 "echo": true,
@@ -44,11 +36,7 @@
         {
             "label": "Stop All Services",
             "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "pkill -f 'python.*manage.py.*runserver' || true; pkill -f 'python.*main.py' || true; echo 'All services stopped'"
-            ],
+            "command": "${workspaceFolder}/bin/dev-stop-all",
             "group": "build",
             "presentation": {
                 "echo": true,
@@ -63,8 +51,7 @@
         {
             "label": "View Bot Logs",
             "type": "shell",
-            "command": "tail",
-            "args": ["-f", "bot.log"],
+            "command": "${workspaceFolder}/bin/dev-logs-bot",
             "group": "build",
             "presentation": {
                 "echo": true,
@@ -79,8 +66,7 @@
         {
             "label": "View Django Logs",
             "type": "shell",
-            "command": "tail",
-            "args": ["-f", "django.log"],
+            "command": "${workspaceFolder}/bin/dev-logs-django",
             "group": "build",
             "presentation": {
                 "echo": true,

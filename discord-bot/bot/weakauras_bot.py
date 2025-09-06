@@ -30,6 +30,7 @@ from typing import Any
 
 import discord
 from discord.ext import commands
+from utils.logging import get_logger
 
 
 class WeakAurasBot(commands.Bot):
@@ -74,8 +75,12 @@ class WeakAurasBot(commands.Bot):
             config.get("storage", {}).get("data_directory", "server_data")
         )
 
+        # Setup logger for this bot instance
+        self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
+
         # Ensure data directory exists
         self.data_dir.mkdir(exist_ok=True)
+        self.logger.info(f"Data directory initialized: {self.data_dir}")
 
     def sanitize_server_name(self, server_name: str) -> str:
         """Sanitize server name for use as folder name"""
@@ -239,10 +244,14 @@ class WeakAurasBot(commands.Bot):
         return embed, logo_file
 
     async def on_ready(self):
+        self.logger.info(f"{self.user} (WeakAuras Bot) has connected to Discord!")
         print(f"{self.user} (WeakAuras Bot) has connected to Discord!")
 
         # Print registered commands before sync
         registered_commands = [cmd.name for cmd in self.tree.get_commands()]
+        self.logger.info(
+            f"Commands registered locally: {', '.join(registered_commands)}"
+        )
         print(f"Commands registered locally: {', '.join(registered_commands)}")
 
         await self.sync_commands()
@@ -250,14 +259,20 @@ class WeakAurasBot(commands.Bot):
         # Ensure server folders exist for all guilds
         for guild in self.guilds:
             self.get_server_folder(guild.id, guild.name)
+            self.logger.info(
+                f"Initialized server folder for guild: {guild.name} (ID: {guild.id})"
+            )
 
     async def sync_commands(self):
         """Sync slash commands with Discord"""
         try:
             synced = await self.tree.sync()
+            self.logger.info(f"Synced {len(synced)} command(s) with Discord")
             print(f"Synced {len(synced)} command(s)")
             if synced:
                 command_names = [cmd.name for cmd in synced]
+                self.logger.info(f"Available commands: {', '.join(command_names)}")
                 print(f"Available commands: {', '.join(command_names)}")
         except Exception as e:
+            self.logger.error(f"Failed to sync commands: {e}", exc_info=True)
             print(f"Failed to sync commands: {e}")

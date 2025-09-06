@@ -2,6 +2,9 @@ import urllib.parse
 
 import discord
 from bot.weakauras_bot import WeakAurasBot
+from utils.logging import get_logger, log_command
+
+logger = get_logger(__name__)
 
 
 async def send_embed_response(
@@ -23,6 +26,7 @@ def setup_wiki_commands(bot: WeakAurasBot):
     @bot.tree.command(
         name="wiki", description="Search the Warcraft Wiki for information"
     )
+    @log_command
     async def wiki_search(interaction: discord.Interaction, query: str):
         """Search warcraft.wiki.gg for the given query"""
         # URL encode the search query
@@ -30,6 +34,8 @@ def setup_wiki_commands(bot: WeakAurasBot):
         search_url = (
             f"https://warcraft.wiki.gg/wiki/Special:Search?search={encoded_query}"
         )
+
+        logger.info(f"Generated wiki search URL for query '{query}': {search_url}")
 
         # Create branded embed with search link
         embed, logo_file = bot.create_embed(

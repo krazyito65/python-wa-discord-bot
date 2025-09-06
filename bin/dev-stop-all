@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Development script: Stop all running services
+# Usage: bin/dev-stop-all (can be run from anywhere)
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🛑 Stopping all development services..."
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+# Change to repository root
+cd "$REPO_ROOT"
+
+# Stop Django server
+echo "Stopping Django server..."
+pkill -f 'python.*manage.py.*runserver' || echo "  No Django server running"
+
+# Stop Discord bot
+echo "Stopping Discord bot..."
+pkill -f 'python.*main.py' || echo "  No Discord bot running"
+
+echo ""
+echo "✅ All services stopped"

@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Development script: View Discord bot logs in real-time
+# Usage: bin/dev-logs-bot (can be run from anywhere)
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "📊 Viewing Discord bot logs (Ctrl+C to stop)..."
+echo "📁 Repository root: $REPO_ROOT"
+echo "📄 Log file: $REPO_ROOT/logs/bot.log"
+echo ""
+
+# Change to repository root
+cd "$REPO_ROOT"
+
+# Check if log file exists
+if [ ! -f "logs/bot.log" ]; then
+    echo "⚠️  Log file 'logs/bot.log' not found. Make sure the bot is running."
+    echo "   Start the bot with: bin/dev-start-bot"
+    exit 1
+fi
+
+# Follow the log file
+tail -f logs/bot.log

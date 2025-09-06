@@ -20,6 +20,11 @@ token.yml
 # Bot data (optional - comment out if you want to track server data)
 server_data/
 
+# Log files
+logs/
+*.log
+*.out
+
 # Documentation build files
 docs/_build/
 docs/.doctrees/

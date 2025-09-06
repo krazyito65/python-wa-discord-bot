@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Development script: View Django server logs in real-time
+# Usage: bin/dev-logs-django (can be run from anywhere)
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "📊 Viewing Django server logs (Ctrl+C to stop)..."
+echo "📁 Repository root: $REPO_ROOT"
+echo "📄 Log file: $REPO_ROOT/logs/django.log"
+echo ""
+
+# Change to repository root
+cd "$REPO_ROOT"
+
+# Check if log file exists
+if [ ! -f "logs/django.log" ]; then
+    echo "⚠️  Log file 'logs/django.log' not found. Make sure Django is running."
+    echo "   Start Django with: bin/dev-start-django"
+    exit 1
+fi
+
+# Follow the log file
+tail -f logs/django.log

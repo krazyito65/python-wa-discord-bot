@@ -61,6 +61,60 @@ uv run python main.py
 uv run python main.py --env prod
 ```
 
+### Logging
+The bot includes comprehensive logging at the INFO level for all slash commands and events using a dedicated logging module:
+
+```bash
+# View bot logs in real-time
+bin/dev-logs-bot
+
+# Log files are stored in:
+logs/bot.log
+```
+
+**Logging Architecture:**
+- **Centralized Configuration**: `logging_config.py` module handles all logging setup
+- **Automatic Command Logging**: `@log_command` decorator logs all slash command invocations
+- **Event Logging**: `@log_event` decorator for Discord event handlers
+- **Action Logging**: `@log_action` decorator for specific business logic actions
+
+**Logged Information:**
+- Bot startup and initialization
+- Command registration and Discord connection events
+- All slash command invocations with user details, guild information, and parameters
+- Temperature conversion event triggers and results
+- Configuration changes and permission checks
+- Error conditions with full stack traces
+
+**Log Levels:**
+- **Development (`--env dev`)**: DEBUG level with console + file output
+- **Production (`--env prod`)**: INFO level with file output only
+- Discord.py logs are set to WARNING level to reduce noise
+
+**Using the Logging Module:**
+```python
+# Setup logging (done in main.py)
+from logging_config import setup_logging
+setup_logging("dev")
+
+# Get a logger for your module
+from logging_config import get_logger
+logger = get_logger(__name__)
+
+# Use decorators for automatic logging
+from logging_config import log_command, log_event
+
+@log_command
+async def my_slash_command(interaction: discord.Interaction, arg: str):
+    # Automatically logs invocation and completion/errors
+    pass
+
+@log_event("my_event")
+async def my_event_handler(message: discord.Message):
+    # Automatically logs event trigger and completion/errors
+    pass
+```
+
 ### Development Tasks
 ```bash
 # Add new dependencies
@@ -87,6 +141,31 @@ uv run ruff format .
 # Run both linting and formatting
 uv run ruff check --fix . && uv run ruff format .
 ```
+
+### Development Services
+The project includes convenient scripts for managing development services:
+
+```bash
+# Start/stop development services (can be run from anywhere)
+bin/dev-start-django        # Stop all and start Django in background
+bin/dev-start-bot           # Stop all and start Discord bot in background
+bin/dev-stop-all            # Stop all development services
+
+# View logs in real-time (Ctrl+C to stop)
+bin/dev-logs-django         # Follow Django server logs
+bin/dev-logs-bot            # Follow Discord bot logs
+
+# Examples from different directories
+./bin/dev-start-django      # From project root
+../bin/dev-logs-bot         # From subdirectory
+/full/path/to/bin/dev-stop-all  # Using absolute path
+```
+
+**Development Workflow:**
+1. Start Django server: `bin/dev-start-django`
+2. In VS Code, use "Debug Discord Bot" configuration
+3. Monitor logs: `bin/dev-logs-django` and `bin/dev-logs-bot`
+4. Stop all when done: `bin/dev-stop-all`
 
 ### Documentation
 ```bash
@@ -215,6 +294,7 @@ The bot is built using discord.py with a slash commands only interface and serve
 ## Project Structure
 
 - `main.py` - Entry point with argument parsing and bot initialization
+- `logging_config.py` - Centralized logging configuration and decorators
 - `settings/` - Configuration directory
   - `token.yml.example` - Configuration template (committed to repo)
   - `token.yml` - Actual configuration file with tokens (gitignored)
@@ -236,10 +316,15 @@ The bot is built using discord.py with a slash commands only interface and serve
 - `README.md` - User-facing documentation and setup instructions
 
 ### Test Structure
-- `bin/` - Test runner scripts for convenient execution
+- `bin/` - Test runner and development scripts for convenient execution
   - `test-bot` - Discord bot test runner with coverage support
   - `test-web` - Django web test runner with verbose output
   - `test-all` - Combined test runner for all components
+  - `dev-start-django` - Stop all services and start Django in background
+  - `dev-start-bot` - Stop all services and start Discord bot in background
+  - `dev-stop-all` - Stop all development services
+  - `dev-logs-django` - View Django server logs in real-time
+  - `dev-logs-bot` - View Discord bot logs in real-time
 - `discord-bot/tests/` - Discord bot unit tests
   - `__init__.py` - Test package initialization
   - `test_bot.py` - Core WeakAurasBot functionality tests
@@ -247,6 +332,9 @@ The bot is built using discord.py with a slash commands only interface and serve
   - `pytest.ini` - Pytest configuration
 - `web/authentication/tests.py` - Django authentication adapter tests
 - `web/shared/tests.py` - Bot interface and Discord API utility tests
+- `logs/` - Development log files (gitignored)
+  - `bot.log` - Discord bot runtime logs
+  - `django.log` - Django web server logs
 
 ### CI/CD Integration
 - `.pre-commit-config.yaml` - Pre-commit hooks including automated test execution
@@ -276,7 +364,7 @@ The project includes comprehensive VS Code debugging setup in `.vscode/`:
 - **Discord Bot Debugging**: Multiple configurations for dev/prod environments
 - **Django Web Server Debugging**: Web interface, shell, and test debugging
 - **Automatic Service Management**: Pre-launch tasks handle starting/stopping services
-- **Background Service Logs**: `bot.log` and `django.log` files for monitoring
+- **Background Service Logs**: Log files stored in `logs/` directory for monitoring
 
 ### Key Features
 - **Clean Service Management**: Every debug session stops all services first, then starts the opposite service in background
@@ -284,8 +372,18 @@ The project includes comprehensive VS Code debugging setup in `.vscode/`:
 - **Django Debugging**: Automatically runs Discord bot in background for full system functionality
 - **Proper Environment Setup**: PYTHONPATH and working directories configured correctly
 - **Breakpoint Support**: Full debugging capabilities with watch variables and call stack
-- **Log Monitoring**: Built-in tasks to view real-time logs from background services
+- **Log Monitoring**: Built-in tasks to view real-time logs from background services (stored in `logs/` directory)
 
 See `.vscode/README.md` for detailed usage instructions.
 - use absolute paths when trying to run scripts so we dont get the error where you're in the wrong directory.
-- after making changes to the code base, ensure you run ruff and the test suite to make sure everything works
+- **CRITICAL**: after making changes to the code base, ALWAYS run ruff and the test suite to ensure everything works:
+  ```bash
+  # Run linting and formatting
+  uv run ruff check --fix . && uv run ruff format .
+
+  # Run all tests to validate functionality
+  bin/test-all
+  ```
+- **IMPORTANT**: Keep unit tests up-to-date when modifying bot functionality, commands, or events. All tests must pass before considering changes complete.
+- New logging has been added to all slash commands and events at INFO level using the `logging_config.py` module - use the `@log_command` and `@log_event` decorators for future commands and events to maintain consistency.
+- do not cd to other directories to run commands, always start from the root of the project and run shell commands from there.

@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Development script: Stop all services and start Django in background
+# Usage: bin/dev-start-django (can be run from anywhere)
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🔄 Stopping all services and starting Django in background..."
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+# Change to repository root
+cd "$REPO_ROOT"
+
+# Stop any existing services
+echo "Stopping existing services..."
+pkill -f 'python.*manage.py.*runserver' || true
+pkill -f 'python.*main.py' || true
+
+# Give processes time to cleanup
+sleep 2
+
+# Start Django server in background
+echo "Starting Django server in background..."
+cd web
+nohup uv run python manage.py runserver 8000 > ../logs/django.log 2>&1 &
+DJANGO_PID=$!
+
+echo ""
+echo "✅ All services stopped. Django server started in background (PID: $DJANGO_PID)"
+echo "📊 View logs with: bin/dev-logs-django"
+echo "🛑 Stop services with: bin/dev-stop-all"

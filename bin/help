@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Help script: Show all available bin scripts
+# Usage: bin/help (can be run from anywhere)
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🛠️  WeakAuras Discord Bot - Available Scripts"
+echo "============================================="
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+echo "🧪 Testing Scripts:"
+echo "  bin/test-bot              Run Discord bot tests"
+echo "  bin/test-web              Run Django web tests"
+echo "  bin/test-all              Run all tests"
+echo ""
+
+echo "🚀 Development Service Scripts:"
+echo "  bin/dev-start-django      Stop all and start Django in background"
+echo "  bin/dev-start-bot         Stop all and start Discord bot in background"
+echo "  bin/dev-stop-all          Stop all development services"
+echo ""
+
+echo "📊 Log Monitoring Scripts:"
+echo "  bin/dev-logs-django       View Django server logs (real-time)"
+echo "  bin/dev-logs-bot          View Discord bot logs (real-time)"
+echo ""
+
+echo "ℹ️  Help:"
+echo "  bin/help                  Show this help message"
+echo ""
+
+echo "💡 Tips:"
+echo "  • All scripts can be run from any directory using absolute paths"
+echo "  • Use Ctrl+C to stop log monitoring scripts"
+echo "  • VS Code tasks are also available in the Command Palette"
+echo "  • See CLAUDE.md for detailed documentation"
