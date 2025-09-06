@@ -1,7 +1,6 @@
 import discord
-from discord import app_commands
-
 from bot.weakauras_bot import WeakAurasBot
+from discord import app_commands
 
 
 async def send_embed_response(

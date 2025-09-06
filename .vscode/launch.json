@@ -12,12 +12,82 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Debug Discord Bot Dev",
+            "name": "Debug Discord Bot (Dev)",
             "type": "debugpy",
             "request": "launch",
-            "program": "main.py",
+            "program": "${workspaceFolder}/discord-bot/main.py",
+            "args": ["--env", "dev"],
             "console": "integratedTerminal",
-            // "justMyCode": false
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/discord-bot"
+            }
+        },
+        {
+            "name": "Debug Discord Bot (Prod)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/discord-bot/main.py",
+            "args": ["--env", "prod"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/discord-bot"
+            }
+        },
+        {
+            "name": "Debug Discord Bot Launcher",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run-bot.py",
+            "args": ["--env", "dev"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false
+        },
+        {
+            "name": "Debug Django Web Server",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/web/manage.py",
+            "args": ["runserver", "8000"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/web",
+            "justMyCode": false,
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "weakauras_web.settings",
+                "PYTHONPATH": "${workspaceFolder}/web"
+            }
+        },
+        {
+            "name": "Debug Django Shell",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/web/manage.py",
+            "args": ["shell"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/web",
+            "justMyCode": false,
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "weakauras_web.settings",
+                "PYTHONPATH": "${workspaceFolder}/web"
+            }
+        },
+        {
+            "name": "Debug Django Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/web/manage.py",
+            "args": ["test"],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/web",
+            "justMyCode": false,
+            "env": {
+                "DJANGO_SETTINGS_MODULE": "weakauras_web.settings",
+                "PYTHONPATH": "${workspaceFolder}/web"
+            }
         }
     ]
 }
