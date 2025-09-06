@@ -103,6 +103,45 @@ uv run python serve_docs.py --port 8080
 uv run sphinx-apidoc -o docs/api . migrate_old_macros.py
 ```
 
+### Testing
+The project has comprehensive unit test coverage for both Discord bot and Django web components:
+
+```bash
+# Using convenient test runner scripts (recommended - can be run from anywhere)
+bin/test-bot              # Run Discord bot tests
+bin/test-web              # Run Django web tests
+bin/test-all              # Run all tests
+
+# With additional options
+bin/test-bot --coverage   # Run bot tests with coverage report
+bin/test-web --verbose    # Run web tests with verbose output
+bin/test-all --coverage --verbose  # Run all tests with options
+
+# Examples from different directories
+./bin/test-web            # From project root
+../bin/test-bot           # From subdirectory
+/full/path/to/bin/test-all  # Using absolute path
+
+# Manual commands (alternative)
+cd discord-bot && uv run pytest
+cd web && uv run python manage.py test
+```
+
+**Test Coverage Areas:**
+- Discord bot core functionality and macro commands
+- Django authentication adapters and Discord OAuth
+- Bot data interface and server macro management
+- Discord API utilities and error handling
+
+**Test Validation Requirements:**
+- **ALWAYS run tests before making changes** to ensure existing functionality works
+- **ALWAYS run tests after making changes** to validate your implementations
+- **ALWAYS update unit tests** when adding new features or modifying existing functionality
+- **NEVER commit code** without running the full test suite first
+- Add new test cases for any new functions, methods, or command handlers you create
+- Mock external dependencies (Discord API, file system, database) in tests
+- Use proper test isolation with temporary directories and cleanup
+
 ### Pre-commit Hooks
 Pre-commit hooks automatically run code quality checks before each commit:
 
@@ -129,6 +168,8 @@ git commit --no-verify -m "commit message"
 - Trailing whitespace removal
 - Private key detection
 - Python syntax validation
+- **Discord bot tests** (runs when discord-bot/ files are modified)
+- **Django web tests** (runs when web/ files are modified)
 
 ## Architecture
 
@@ -194,6 +235,27 @@ The bot is built using discord.py with a slash commands only interface and serve
 - `LICENSE` - MIT License file
 - `README.md` - User-facing documentation and setup instructions
 
+### Test Structure
+- `bin/` - Test runner scripts for convenient execution
+  - `test-bot` - Discord bot test runner with coverage support
+  - `test-web` - Django web test runner with verbose output
+  - `test-all` - Combined test runner for all components
+- `discord-bot/tests/` - Discord bot unit tests
+  - `__init__.py` - Test package initialization
+  - `test_bot.py` - Core WeakAurasBot functionality tests
+  - `test_macro_commands.py` - Macro command setup tests
+  - `pytest.ini` - Pytest configuration
+- `web/authentication/tests.py` - Django authentication adapter tests
+- `web/shared/tests.py` - Bot interface and Discord API utility tests
+
+### CI/CD Integration
+- `.pre-commit-config.yaml` - Pre-commit hooks including automated test execution
+- `.github/workflows/ci.yml` - GitHub Actions workflow for PR validation
+  - Runs all pre-commit hooks on pull requests
+  - Executes full test suite with coverage reporting
+  - Uploads coverage artifacts for review
+  - Validates both Discord bot and Django web components
+
 ## Configuration
 
 - **Required**: Valid tokens in `settings/token.yml` for desired environment(s)
@@ -225,3 +287,5 @@ The project includes comprehensive VS Code debugging setup in `.vscode/`:
 - **Log Monitoring**: Built-in tasks to view real-time logs from background services
 
 See `.vscode/README.md` for detailed usage instructions.
+- use absolute paths when trying to run scripts so we dont get the error where you're in the wrong directory.
+- after making changes to the code base, ensure you run ruff and the test suite to make sure everything works

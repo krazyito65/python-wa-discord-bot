@@ -43,3 +43,26 @@ repos:
       - id: debug-statements
       # Validate Python docstrings
       - id: check-docstring-first
+
+  # Test execution
+  - repo: local
+    hooks:
+      # Run Discord bot tests
+      - id: test-bot
+        name: Discord Bot Tests
+        entry: bin/test-bot
+        language: system
+        types: [python]
+        files: ^discord-bot/
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # Run Django web tests
+      - id: test-web
+        name: Django Web Tests
+        entry: bin/test-web
+        language: system
+        types: [python]
+        files: ^web/
+        pass_filenames: false
+        stages: [pre-commit]
