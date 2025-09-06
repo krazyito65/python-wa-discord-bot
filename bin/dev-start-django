@@ -25,13 +25,16 @@ pkill -f 'python.*main.py' || true
 # Give processes time to cleanup
 sleep 2
 
+# Ensure logs directory exists
+mkdir -p logs
+
 # Start Django server in background
 echo "Starting Django server in background..."
-cd web
-nohup uv run python manage.py runserver 8000 > ../logs/django.log 2>&1 &
+nohup uv run python web/manage.py runserver 8000 > logs/django.log 2>&1 &
 DJANGO_PID=$!
 
 echo ""
 echo "✅ All services stopped. Django server started in background (PID: $DJANGO_PID)"
+echo "📁 Log file: $REPO_ROOT/logs/django.log"
 echo "📊 View logs with: bin/dev-logs-django"
 echo "🛑 Stop services with: bin/dev-stop-all"

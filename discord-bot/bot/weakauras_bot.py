@@ -71,9 +71,14 @@ class WeakAurasBot(commands.Bot):
         super().__init__(command_prefix="!", intents=intents)
 
         self.config = config
-        self.data_dir = Path(
-            config.get("storage", {}).get("data_directory", "server_data")
-        )
+
+        # Calculate data directory relative to the bot package location
+        # This ensures server_data is always in the discord-bot directory
+        bot_package_dir = (
+            Path(__file__).resolve().parent.parent
+        )  # discord-bot directory
+        data_dir_name = config.get("storage", {}).get("data_directory", "server_data")
+        self.data_dir = bot_package_dir / data_dir_name
 
         # Setup logger for this bot instance
         self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")

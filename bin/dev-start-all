@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Development script: Stop all services and start both Django and Discord bot in background
+# Usage: bin/dev-start-all (can be run from anywhere)
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+echo "🔄 Stopping all services and starting both Django and Discord bot in background..."
+echo "📁 Repository root: $REPO_ROOT"
+echo ""
+
+# Change to repository root
+cd "$REPO_ROOT"
+
+# Stop any existing services
+echo "Stopping existing services..."
+pkill -f 'python.*manage.py.*runserver' || true
+pkill -f 'python.*main.py' || true
+
+# Give processes time to cleanup
+sleep 2
+
+# Ensure logs directory exists
+mkdir -p logs
+
+# Start Django server in background
+echo "Starting Django server in background..."
+nohup uv run python web/manage.py runserver 8000 > logs/django.log 2>&1 &
+DJANGO_PID=$!
+
+# Start Discord bot in background
+echo "Starting Discord bot in background (dev environment)..."
+nohup uv run python discord-bot/main.py --env dev > logs/bot.log 2>&1 &
+BOT_PID=$!
+
+echo ""
+echo "✅ All services started in background:"
+echo "   🌐 Django server (PID: $DJANGO_PID) - http://localhost:8000"
+echo "   🤖 Discord bot (PID: $BOT_PID) - dev environment"
+echo ""
+echo "📁 Log files:"
+echo "   Django: $REPO_ROOT/logs/django.log"
+echo "   Bot:    $REPO_ROOT/logs/bot.log"
+echo ""
+echo "📊 View logs with:"
+echo "   bin/dev-logs-django  # Django web server logs"
+echo "   bin/dev-logs-bot     # Discord bot logs"
+echo "🛑 Stop all services with: bin/dev-stop-all"
