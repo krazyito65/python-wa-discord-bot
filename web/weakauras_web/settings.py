@@ -16,7 +16,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Bot data directory (shared with the Discord bot)
-BOT_DATA_DIR = BASE_DIR.parent / "discord-bot" / "server_data"
+# Use external data directory to match bot configuration
+BOT_DATA_DIR = Path("~/weakauras-bot-data").expanduser()
 
 
 # Quick-start development settings - unsuitable for production
