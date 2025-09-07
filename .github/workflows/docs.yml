@@ -42,7 +42,7 @@ jobs:
       run: |
         source .venv/bin/activate
         cd docs
-        sphinx-apidoc -o api ../discord-bot --force
+        sphinx-apidoc -o api ../discord-bot --force --separate --no-toc
         sphinx-build -b html . _build/html
 
     - name: Upload documentation artifacts
