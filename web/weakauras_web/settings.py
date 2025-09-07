@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 import yaml
@@ -18,10 +19,9 @@ import yaml
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-# Bot data directory (shared with the Discord bot)
-# Load from bot configuration with fallback locations
-def load_bot_data_dir():
-    """Load bot data directory from configuration with fallback locations."""
+# Load configuration from token.yml with fallback locations
+def load_bot_config():
+    """Load bot configuration from token.yml with fallback locations."""
     # Fallback paths to check for bot config (same as main.py)
     fallback_paths = [
         Path("~/.config/weakauras-bot/token.yml").expanduser(),
@@ -33,26 +33,34 @@ def load_bot_data_dir():
         if config_path.exists():
             try:
                 with open(config_path) as f:
-                    config = yaml.safe_load(f)
-
-                data_dir_name = config.get("storage", {}).get(
-                    "data_directory", "server_data"
-                )
-
-                # Check if it's an absolute path or contains ~ (home directory)
-                if data_dir_name.startswith(("/", "~")):
-                    # Absolute path or home directory - expand ~ and use as-is
-                    return Path(data_dir_name).expanduser().resolve()
-
-                # Relative path - make it relative to the bot package location
-                bot_package_dir = BASE_DIR.parent / "discord-bot"
-                return bot_package_dir / data_dir_name
-
+                    return yaml.safe_load(f)
             except (yaml.YAMLError, KeyError, TypeError):
                 continue
 
-    # Ultimate fallback if no config found or all failed
-    return BASE_DIR.parent / "discord-bot" / "server_data"
+    # Return empty config if none found
+    return {}
+
+
+# Load bot configuration
+_bot_config = load_bot_config()
+
+# Environment detection - check for DJANGO_ENV or fall back to development
+ENVIRONMENT = os.getenv("DJANGO_ENV", "dev")
+
+
+# Bot data directory (shared with the Discord bot)
+def load_bot_data_dir():
+    """Load bot data directory from configuration with fallback locations."""
+    data_dir_name = _bot_config.get("storage", {}).get("data_directory", "server_data")
+
+    # Check if it's an absolute path or contains ~ (home directory)
+    if data_dir_name.startswith(("/", "~")):
+        # Absolute path or home directory - expand ~ and use as-is
+        return Path(data_dir_name).expanduser().resolve()
+
+    # Relative path - make it relative to the bot package location
+    bot_package_dir = BASE_DIR.parent / "discord-bot"
+    return bot_package_dir / data_dir_name
 
 
 BOT_DATA_DIR = load_bot_data_dir()
@@ -61,8 +69,32 @@ BOT_DATA_DIR = load_bot_data_dir()
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-2w)n^wuj824x*okyr6wwxow6frcfapgq1+nv3m0+3rpiooniq!"
+# Load SECRET_KEY from token.yml configuration based on environment
+def get_secret_key():
+    """Get Django SECRET_KEY from configuration with environment support."""
+    django_config = _bot_config.get("django", {})
+    secret_keys = django_config.get("secret_keys", {})
+
+    # Try to get environment-specific secret key
+    secret_key = secret_keys.get(ENVIRONMENT)
+
+    if not secret_key:
+        # Fallback to single secret_key for backward compatibility
+        secret_key = django_config.get("secret_key")
+
+    if not secret_key:
+        msg = (
+            f"Django SECRET_KEY is required for '{ENVIRONMENT}' environment. "
+            f"Add 'django.secret_keys.{ENVIRONMENT}' to your token.yml configuration."
+        )
+        raise ValueError(msg)
+
+    return secret_key
+
+
+SECRET_KEY = get_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

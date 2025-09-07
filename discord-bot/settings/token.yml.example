@@ -45,3 +45,16 @@ events:
   # Temperature conversion event
   temperature:
     enabled: true
+
+# Django Web Interface Settings
+django:
+  # Django SECRET_KEY for cryptographic signing (environment-specific)
+  # Generate with: python -c "import secrets; print(repr(secrets.token_urlsafe(50)))"
+  secret_keys:
+    # Development environment secret key
+    dev: "your_dev_secret_key_here"
+    # Production environment secret key
+    prod: "your_prod_secret_key_here"
+
+  # Legacy single secret key (deprecated - use secret_keys above)
+  # secret_key: "your_secret_key_here"
