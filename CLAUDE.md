@@ -350,7 +350,7 @@ The bot is built using discord.py with a slash commands only interface and serve
 - **Bot Permissions**: Bot needs application commands permission in Discord server
 - **Intents**: Bot uses default intents (message content intent enabled but not required for slash commands)
 - **Admin Role**: Configurable role name for delete permissions (default: "admin")
-- **Data Storage**: Server-specific folders and macro files created automatically in configured directory
+- **Data Storage**: Server-specific folders and macro files created automatically in configured directory (recommended to use external path to prevent data loss from `git clean`)
 - since this is a standalone app and not an API, there is no need to preserve 'legacy methods'. simply rename or remove them as needed.
 - make sure you continue documenting functions as we create or update them so that the sphinx documentation is always updated
 - keep launch.json updated with debug options to allow developers to test with breakpoints
@@ -387,3 +387,30 @@ See `.vscode/README.md` for detailed usage instructions.
 - **IMPORTANT**: Keep unit tests up-to-date when modifying bot functionality, commands, or events. All tests must pass before considering changes complete.
 - New logging has been added to all slash commands and events at INFO level using the `logging_config.py` module - use the `@log_command` and `@log_event` decorators for future commands and events to maintain consistency.
 - do not cd to other directories to run commands, always start from the root of the project and run shell commands from there.
+
+## Data Protection
+
+To prevent accidental loss of server macro data during development:
+
+### Recommended: External Data Directory
+Configure `discord-bot/settings/token.yml` to store data outside the repository:
+```yaml
+storage:
+  data_directory: "/home/username/weakauras-bot-data"
+```
+
+### Benefits
+- **Safe from `git clean -dffx`**: Data is stored outside the repository
+- **Persistent across resets**: Server macros survive repository cleanup
+- **Easy backups**: Single directory contains all server data
+- **Production ready**: External storage is standard for production deployments
+
+### Manual Backup (Alternative)
+If using relative paths, backup data before major operations:
+```bash
+# Backup server data
+cp -r discord-bot/server_data ~/backup-server-data-$(date +%Y%m%d)
+
+# Restore after git clean if needed
+cp -r ~/backup-server-data-* discord-bot/server_data
+```
