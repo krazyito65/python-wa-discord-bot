@@ -30,6 +30,11 @@ bot:
 
 # Data Storage Settings
 storage:
+  # RECOMMENDED: Store data outside git repo to prevent accidental deletion
+  # Use absolute path to store data safely outside the repository
+  # data_directory: "/home/username/weakauras-bot-data"
+
+  # For development/testing, you can use relative path (will be inside repo)
   data_directory: "server_data"
 
 # Event System Settings
