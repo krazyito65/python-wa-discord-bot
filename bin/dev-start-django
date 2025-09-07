@@ -28,6 +28,10 @@ sleep 2
 # Ensure logs directory exists
 mkdir -p logs
 
+# Run Django migrations to ensure database is ready
+echo "Running Django migrations..."
+uv run python web/manage.py migrate --verbosity 1
+
 # Start Django server in background
 echo "Starting Django server in background..."
 nohup uv run python web/manage.py runserver 8000 > logs/django.log 2>&1 &
