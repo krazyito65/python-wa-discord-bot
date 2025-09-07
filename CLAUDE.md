@@ -390,27 +390,48 @@ See `.vscode/README.md` for detailed usage instructions.
 
 ## Data Protection
 
-To prevent accidental loss of server macro data during development:
+To prevent accidental loss of server data and configuration during development:
 
-### Recommended: External Data Directory
-Configure `discord-bot/settings/token.yml` to store data outside the repository:
+### Configuration Protection (Critical)
+**IMPORTANT**: The `token.yml` file contains sensitive Discord tokens and is gitignored, so it gets deleted by `git clean -dffx`. Store it externally:
+
+**Recommended locations (automatically checked in order):**
+1. `~/.config/weakauras-bot/token.yml` (XDG standard)
+2. `~/weakauras-bot-config/token.yml` (user directory)
+3. `discord-bot/settings/token.yml` (repository - unsafe)
+
+**Setup external config:**
+```bash
+# Create external config directory and copy tokens
+mkdir -p ~/.config/weakauras-bot
+cp discord-bot/settings/token.yml ~/.config/weakauras-bot/
+
+# Now safe from git clean operations
+```
+
+### Server Data Protection
+Configure `token.yml` to store server data outside the repository:
 ```yaml
 storage:
-  data_directory: "/home/username/weakauras-bot-data"
+  data_directory: "~/weakauras-bot-data"  # External storage (safe)
+  # data_directory: "server_data"         # Repository storage (unsafe)
 ```
 
 ### Benefits
-- **Safe from `git clean -dffx`**: Data is stored outside the repository
-- **Persistent across resets**: Server macros survive repository cleanup
-- **Easy backups**: Single directory contains all server data
+- **Safe from `git clean -dffx`**: Both config and data stored outside repository
+- **Persistent across resets**: Configuration and server macros survive repository cleanup
+- **Easy backups**: Single directories contain all sensitive data
 - **Production ready**: External storage is standard for production deployments
+- **Automatic fallback**: Bot automatically finds config in multiple locations
 
 ### Manual Backup (Alternative)
-If using relative paths, backup data before major operations:
+If using repository paths, backup before major operations:
 ```bash
-# Backup server data
+# Backup configuration and server data
+cp discord-bot/settings/token.yml ~/backup-token-$(date +%Y%m%d).yml
 cp -r discord-bot/server_data ~/backup-server-data-$(date +%Y%m%d)
 
 # Restore after git clean if needed
+cp ~/backup-token-*.yml discord-bot/settings/token.yml
 cp -r ~/backup-server-data-* discord-bot/server_data
 ```
