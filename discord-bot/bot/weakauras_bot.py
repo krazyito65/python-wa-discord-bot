@@ -72,13 +72,19 @@ class WeakAurasBot(commands.Bot):
 
         self.config = config
 
-        # Calculate data directory relative to the bot package location
-        # This ensures server_data is always in the discord-bot directory
-        bot_package_dir = (
-            Path(__file__).resolve().parent.parent
-        )  # discord-bot directory
+        # Calculate data directory path with support for absolute paths and ~ expansion
         data_dir_name = config.get("storage", {}).get("data_directory", "server_data")
-        self.data_dir = bot_package_dir / data_dir_name
+
+        # Check if it's an absolute path or contains ~ (home directory)
+        if data_dir_name.startswith(("/", "~")):
+            # Absolute path or home directory - expand ~ and use as-is
+            self.data_dir = Path(data_dir_name).expanduser().resolve()
+        else:
+            # Relative path - make it relative to the bot package location
+            bot_package_dir = (
+                Path(__file__).resolve().parent.parent
+            )  # discord-bot directory
+            self.data_dir = bot_package_dir / data_dir_name
 
         # Setup logger for this bot instance
         self.logger = get_logger(f"{__name__}.{self.__class__.__name__}")
