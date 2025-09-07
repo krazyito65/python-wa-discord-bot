@@ -37,10 +37,14 @@ def setup_wiki_commands(bot: WeakAurasBot):
 
         logger.info(f"Generated wiki search URL for query '{query}': {search_url}")
 
-        # Create branded embed with search link
-        embed, logo_file = bot.create_embed(
+        # Create branded WeakAuras embed with proper logo handling
+        embed, logo_file = interaction.client.create_embed(
             title="🔍 Warcraft Wiki Search",
             description=f"**Search Query:** {query}\n\n[Click here to view search results]({search_url})",
             footer_text="Powered by warcraft.wiki.gg",
         )
+
+        # Use Warcraft wiki logo as a smaller thumbnail (overrides WeakAuras logo)
+        embed.set_thumbnail(url="https://warcraft.wiki.gg/images/Site-logo.png")
+
         await send_embed_response(interaction, embed, logo_file, ephemeral=False)
