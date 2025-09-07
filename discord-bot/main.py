@@ -48,7 +48,7 @@ bot_root = Path(__file__).resolve().parent
 
 
 def load_config(config_path: str = f"{bot_root}/settings/token.yml") -> dict:
-    """Load configuration from YAML file.
+    """Load configuration from YAML file with fallback locations.
 
     Args:
         config_path (str): Path to the YAML configuration file.
@@ -58,25 +58,53 @@ def load_config(config_path: str = f"{bot_root}/settings/token.yml") -> dict:
         dict: Parsed configuration dictionary.
 
     Raises:
-        SystemExit: If the configuration file is not found or contains
-            invalid YAML syntax.
+        SystemExit: If the configuration file is not found in any location or
+            contains invalid YAML syntax.
 
     Example:
         >>> config = load_config("my_config.yml")
         >>> print(config["discord"]["tokens"]["dev"])
     """
-    config_file = Path(config_path)
-    if not config_file.exists():
-        print(f"Error: Configuration file '{config_path}' not found!")
-        print("Please create a settings/token.yml file with your bot tokens.")
-        sys.exit(1)
+    # Expand ~ if present
+    config_file = Path(config_path).expanduser()
 
-    try:
-        with open(config_file) as f:
-            return yaml.safe_load(f)
-    except yaml.YAMLError as e:
-        print(f"Error parsing config file: {e}")
-        sys.exit(1)
+    # If specific config path provided and exists, use it
+    if config_file.exists():
+        try:
+            with open(config_file) as f:
+                return yaml.safe_load(f)
+        except yaml.YAMLError as e:
+            print(f"Error parsing config file '{config_file}': {e}")
+            sys.exit(1)
+
+    # If default path was requested, try fallback locations
+    if config_path == f"{bot_root}/settings/token.yml":
+        fallback_paths = [
+            Path("~/.config/weakauras-bot/token.yml").expanduser(),
+            Path("~/weakauras-bot-config/token.yml").expanduser(),
+            Path(f"{bot_root}/settings/token.yml"),
+        ]
+
+        for fallback in fallback_paths:
+            if fallback.exists():
+                try:
+                    with open(fallback) as f:
+                        print(f"Using config from: {fallback}")
+                        return yaml.safe_load(f)
+                except yaml.YAMLError as e:
+                    print(f"Error parsing config file '{fallback}': {e}")
+                    continue
+
+        print("Error: Configuration file not found in any of these locations:")
+        for path in fallback_paths:
+            print(f"  - {path}")
+        print(
+            "\nPlease create a token.yml file in one of these locations with your bot tokens."
+        )
+    else:
+        print(f"Error: Configuration file '{config_file}' not found!")
+
+    sys.exit(1)
 
 
 def get_token(config: dict, environment: str) -> str:
