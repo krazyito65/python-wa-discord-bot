@@ -125,6 +125,9 @@ def server_detail(request, guild_id):
         # Load macros for this server
         macros = bot_interface.load_server_macros(guild_id, guild_name)
 
+        # Sort macros by name for better user experience
+        macros.sort(key=lambda macro: macro.get("name", "").lower())
+
         context = {
             "guild_id": guild_id,
             "guild_name": guild_name,
