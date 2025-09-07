@@ -32,6 +32,17 @@ mkdir -p logs
 echo "Running Django migrations..."
 uv run python web/manage.py migrate --verbosity 1
 
+# Ensure Discord OAuth is configured (backup if migration didn't handle it)
+echo "Verifying Discord OAuth configuration..."
+if ! (cd "$REPO_ROOT" && uv run python web/manage.py shell -c "from allauth.socialaccount.models import SocialApp; exit(0 if SocialApp.objects.filter(provider='discord').exists() else 1)") 2>/dev/null; then
+    echo "Setting up Discord OAuth configuration..."
+    (cd "$REPO_ROOT" && uv run python web/manage.py setup_discord_oauth --config-path ~/.config/weakauras-bot/token.yml) 2>/dev/null || \
+    (cd "$REPO_ROOT" && uv run python web/manage.py setup_discord_oauth) 2>/dev/null || \
+    echo "Warning: Could not set up Discord OAuth automatically"
+else
+    echo "Discord OAuth already configured"
+fi
+
 # Start Django server in background
 echo "Starting Django server in background..."
 nohup uv run python web/manage.py runserver 8000 > logs/django.log 2>&1 &
