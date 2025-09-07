@@ -143,12 +143,13 @@ uv run ruff check --fix . && uv run ruff format .
 ```
 
 ### Development Services
-The project includes convenient scripts for managing development services:
+The project includes convenient scripts for managing development services with automatic database setup:
 
 ```bash
 # Start/stop development services (can be run from anywhere)
-bin/dev-start-django        # Stop all and start Django in background
+bin/dev-start-django        # Stop all and start Django in background (auto-runs migrations)
 bin/dev-start-bot           # Stop all and start Discord bot in background
+bin/dev-start-all           # Stop all and start both services in background (auto-runs migrations)
 bin/dev-stop-all            # Stop all development services
 
 # View logs in real-time (Ctrl+C to stop)
@@ -162,7 +163,7 @@ bin/dev-logs-bot            # Follow Discord bot logs
 ```
 
 **Development Workflow:**
-1. Start Django server: `bin/dev-start-django`
+1. Start Django server: `bin/dev-start-django` (auto-runs migrations)
 2. In VS Code, use "Debug Discord Bot" configuration
 3. Monitor logs: `bin/dev-logs-django` and `bin/dev-logs-bot`
 4. Stop all when done: `bin/dev-stop-all`
@@ -443,7 +444,7 @@ If you have external config/data setup and run `git clean -dffx`, here's the rec
 
 **Automatic Recovery (Recommended Setup):**
 1. **Bot**: Already works - uses external config and data automatically
-2. **Django**: Run `python manage.py migrate` - migration auto-restores Discord OAuth from external config
+2. **Django**: Run `bin/dev-start-django` - automatically runs migrations and restores Discord OAuth
 
 **Manual Recovery (if needed):**
 ```bash
