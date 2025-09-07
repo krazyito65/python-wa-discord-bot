@@ -2,7 +2,7 @@ import re
 
 import discord
 from bot.weakauras_bot import WeakAurasBot
-from utils.logging import get_logger, log_event
+from utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -11,7 +11,6 @@ def setup_temperature_event(bot: WeakAurasBot):
     """Setup temperature conversion event handler"""
 
     @bot.event
-    @log_event("temperature_conversion")
     async def on_message(message: discord.Message):
         # Don't respond to bot messages
         if message.author.bot:
@@ -40,12 +39,14 @@ def setup_temperature_event(bot: WeakAurasBot):
         if not matches:
             return
 
+        # Get channel name safely (DM channels don't have names)
+        channel_name = getattr(message.channel, "name", "DM")
         logger.info(
-            f"Temperature conversion triggered by {message.author.name} ({message.author.id}) in guild {message.guild.name} ({message.guild.id}) with matches: {matches}"
+            f"Temperature conversion triggered by {message.author.name} ({message.author.id}) in guild {message.guild.name} ({message.guild.id}) channel #{channel_name} ({message.channel.id}) with matches: {matches}"
         )
 
         conversions = []
-        for temp_str, _degree_symbol, temp_unit in matches:
+        for temp_str, _, temp_unit in matches:
             try:
                 temp = float(temp_str)
                 unit = temp_unit.upper()
