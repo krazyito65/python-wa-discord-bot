@@ -223,42 +223,6 @@ def log_command(func: F) -> F:  # noqa: UP047
     return wrapper  # type: ignore[return-value]
 
 
-def log_event(event_name: str) -> Callable[[F], F]:
-    """Decorator to automatically log event handler invocations.
-
-    Args:
-        event_name (str): Name of the event for logging purposes.
-
-    Returns:
-        Decorator function that logs event invocations.
-
-    Example:
-        >>> @log_event("temperature_conversion")
-        ... async def handle_temperature(message):
-        ...     # Event handler implementation
-        ...     pass
-    """
-
-    def decorator(func: F) -> F:
-        @functools.wraps(func)
-        async def wrapper(*args, **kwargs):
-            logger = logging.getLogger(func.__module__)
-            logger.debug(f"{event_name} event triggered")
-
-            try:
-                result = await func(*args, **kwargs)
-            except Exception as e:
-                logger.error(f"{event_name} event failed: {e}", exc_info=True)
-                raise
-            else:
-                logger.debug(f"{event_name} event completed")
-                return result
-
-        return wrapper  # type: ignore[return-value]
-
-    return decorator
-
-
 def log_action(
     action: str, success_msg: str | None = None, failure_msg: str | None = None
 ) -> Callable[[F], F]:
