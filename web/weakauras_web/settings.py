@@ -85,6 +85,10 @@ def get_secret_key():
         secret_key = django_config.get("secret_key")
 
     if not secret_key:
+        if ENVIRONMENT == "dev":
+            # Allow default SECRET_KEY for development/CI environments
+            return "django-insecure-dev-default-key-not-for-production"
+
         msg = (
             f"Django SECRET_KEY is required for '{ENVIRONMENT}' environment. "
             f"Add 'django.secret_keys.{ENVIRONMENT}' to your token.yml configuration."
