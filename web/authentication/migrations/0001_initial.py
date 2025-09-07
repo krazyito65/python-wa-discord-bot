@@ -11,17 +11,29 @@ def setup_discord_oauth(apps, schema_editor):  # noqa: ARG001
     SocialApp = apps.get_model("socialaccount", "SocialApp")
     Site = apps.get_model("sites", "Site")
 
-    # Load Discord OAuth credentials from bot config
-    config_path = (
+    # Load Discord OAuth credentials from bot config with fallback locations
+    fallback_paths = [
+        Path("~/.config/weakauras-bot/token.yml").expanduser(),
+        Path("~/weakauras-bot-config/token.yml").expanduser(),
         Path(__file__).resolve().parent.parent.parent.parent
         / "discord-bot"
         / "settings"
-        / "token.yml"
-    )
+        / "token.yml",
+    ]
 
-    if not config_path.exists():
-        print(f"Warning: Bot config not found at {config_path}")
+    config_path = None
+    for path in fallback_paths:
+        if path.exists():
+            config_path = path
+            break
+
+    if not config_path:
+        print("Warning: Bot config not found in any of these locations:")
+        for path in fallback_paths:
+            print(f"  - {path}")
         return
+
+    print(f"Using bot config from: {config_path}")
 
     try:
         with open(config_path) as f:
