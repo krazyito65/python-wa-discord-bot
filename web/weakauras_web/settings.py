@@ -12,12 +12,50 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+import yaml
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
 # Bot data directory (shared with the Discord bot)
-# Use external data directory to match bot configuration
-BOT_DATA_DIR = Path("~/weakauras-bot-data").expanduser()
+# Load from bot configuration with fallback locations
+def load_bot_data_dir():
+    """Load bot data directory from configuration with fallback locations."""
+    # Fallback paths to check for bot config (same as main.py)
+    fallback_paths = [
+        Path("~/.config/weakauras-bot/token.yml").expanduser(),
+        Path("~/weakauras-bot-config/token.yml").expanduser(),
+        BASE_DIR.parent / "discord-bot" / "settings" / "token.yml",
+    ]
+
+    for config_path in fallback_paths:
+        if config_path.exists():
+            try:
+                with open(config_path) as f:
+                    config = yaml.safe_load(f)
+
+                data_dir_name = config.get("storage", {}).get(
+                    "data_directory", "server_data"
+                )
+
+                # Check if it's an absolute path or contains ~ (home directory)
+                if data_dir_name.startswith(("/", "~")):
+                    # Absolute path or home directory - expand ~ and use as-is
+                    return Path(data_dir_name).expanduser().resolve()
+
+                # Relative path - make it relative to the bot package location
+                bot_package_dir = BASE_DIR.parent / "discord-bot"
+                return bot_package_dir / data_dir_name
+
+            except (yaml.YAMLError, KeyError, TypeError):
+                continue
+
+    # Ultimate fallback if no config found or all failed
+    return BASE_DIR.parent / "discord-bot" / "server_data"
+
+
+BOT_DATA_DIR = load_bot_data_dir()
 
 
 # Quick-start development settings - unsuitable for production
