@@ -60,38 +60,34 @@
                 {% if macros %}
                     <h3 class="mb-3">WeakAuras Macros</h3>
                     <div class="row">
-                        {% for macro_name, macro_data in macros.items %}
+                        {% for macro in macros %}
                             <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="card macro-card">
                                     <div class="card-body">
-                                        <h5 class="card-title">{{ macro_name }}</h5>
+                                        <h5 class="card-title">{{ macro.name }}</h5>
                                         <div class="card-text">
                                             <small class="text-muted d-block mb-2">
-                                                {% if macro_data.created_by_name %}
-                                                    Created by: {{ macro_data.created_by_name }}
+                                                {% if macro.created_by_name %}
+                                                    Created by: {{ macro.created_by_name }}
                                                 {% endif %}
-                                                {% if macro_data.created_at %}
-                                                    <br>{{ macro_data.created_at|date:"M d, Y" }}
+                                                {% if macro.created_at %}
+                                                    <br>{{ macro.created_at|date:"M d, Y" }}
                                                 {% endif %}
                                             </small>
                                             <div class="macro-preview bg-light p-2 rounded small" style="max-height: 100px; overflow: hidden;">
-                                                {% if macro_data.message %}
-                                                    {{ macro_data.message|truncatechars:100 }}
-                                                {% else %}
-                                                    {{ macro_data|truncatechars:100 }}
-                                                {% endif %}
+                                                {{ macro.message|truncatechars:100 }}
                                             </div>
                                         </div>
                                     </div>
                                     <div class="card-footer bg-transparent">
                                         <div class="btn-group btn-group-sm w-100" role="group">
-                                            <button class="btn btn-outline-primary" onclick="showMacroModal('{{ macro_name|escapejs }}', {% if macro_data.message %}'{{ macro_data.message|escapejs }}'{% else %}'{{ macro_data|escapejs }}'{% endif %})">
+                                            <button class="btn btn-outline-primary" onclick="showMacroModal('{{ macro.name|escapejs }}', '{{ macro.message|escapejs }}')">
                                                 View
                                             </button>
-                                            <button class="btn btn-outline-warning" onclick="editMacro('{{ macro_name|escapejs }}')">
+                                            <button class="btn btn-outline-warning" onclick="editMacro('{{ macro.name|escapejs }}')">
                                                 Edit
                                             </button>
-                                            <button class="btn btn-outline-danger" onclick="deleteMacro('{{ macro_name|escapejs }}')">
+                                            <button class="btn btn-outline-danger" onclick="deleteMacro('{{ macro.name|escapejs }}')">
                                                 Delete
                                             </button>
                                         </div>
