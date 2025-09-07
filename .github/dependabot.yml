@@ -5,11 +5,34 @@
 
 version: 2
 updates:
-  - package-ecosystem: "uv" # See documentation for possible values
+  - package-ecosystem: "uv" # Python dependencies via uv
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-  - package-ecosystem: "github-actions" # See documentation for possible values
+    # Only use released versions (stable releases)
+    versioning-strategy: increase
+    # Group related updates together
+    groups:
+      production-dependencies:
+        patterns:
+          - "discord.py"
+          - "pyyaml"
+          - "aiofiles"
+          - "django*"
+          - "djangorestframework"
+      development-dependencies:
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "sphinx*"
+          - "pre-commit"
+    # Allow both minor and patch updates for stable packages
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: "github-actions" # GitHub Actions
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
+    # Only use released action versions
+    versioning-strategy: increase
+    open-pull-requests-limit: 5
