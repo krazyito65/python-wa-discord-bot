@@ -123,10 +123,28 @@ def server_detail(request, guild_id):
             raise Http404(msg)
 
         # Load macros for this server
-        macros = bot_interface.load_server_macros(guild_id, guild_name)
+        macros_dict = bot_interface.load_server_macros(guild_id, guild_name)
+
+        # Convert dict to sorted list of macro data for template display
+        macros = []
+        for name, data in macros_dict.items():
+            if isinstance(data, dict):
+                # Modern macro format with metadata
+                macro_info = data.copy()
+                macro_info["name"] = name  # Ensure name is included
+            else:
+                # Legacy format (just message string)
+                macro_info = {
+                    "name": name,
+                    "message": data,
+                    "created_by": "",
+                    "created_by_name": "Unknown",
+                    "created_at": "",
+                }
+            macros.append(macro_info)
 
         # Sort macros by name for better user experience
-        macros.sort(key=lambda macro: macro.get("name", "").lower())
+        macros.sort(key=lambda macro: macro["name"].lower())
 
         context = {
             "guild_id": guild_id,
