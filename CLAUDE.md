@@ -423,6 +423,7 @@ storage:
 - **Easy backups**: Single directories contain all sensitive data
 - **Production ready**: External storage is standard for production deployments
 - **Automatic fallback**: Bot automatically finds config in multiple locations
+- **Auto-recovery**: Django migration automatically restores Discord OAuth from external config
 
 ### Manual Backup (Alternative)
 If using repository paths, backup before major operations:
@@ -435,3 +436,30 @@ cp -r discord-bot/server_data ~/backup-server-data-$(date +%Y%m%d)
 cp ~/backup-token-*.yml discord-bot/settings/token.yml
 cp -r ~/backup-server-data-* discord-bot/server_data
 ```
+
+### Recovery After `git clean -dffx`
+
+If you have external config/data setup and run `git clean -dffx`, here's the recovery process:
+
+**Automatic Recovery (Recommended Setup):**
+1. **Bot**: Already works - uses external config and data automatically
+2. **Django**: Run `python manage.py migrate` - migration auto-restores Discord OAuth from external config
+
+**Manual Recovery (if needed):**
+```bash
+# From web directory
+cd web
+
+# Recreate Django database and tables
+uv run python manage.py migrate
+
+# If migration didn't find external config, manually setup Discord OAuth
+uv run python manage.py setup_discord_oauth --config-path ~/.config/weakauras-bot/token.yml
+
+# Both Discord bot and Django web interface now work normally
+```
+
+**What Survives `git clean -dffx`:**
+- ✅ Discord tokens (stored in `~/.config/weakauras-bot/token.yml`)
+- ✅ Server macro data (stored in `~/weakauras-bot-data/`)
+- ❌ Django database (gets recreated automatically by migrations)
