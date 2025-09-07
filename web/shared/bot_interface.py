@@ -27,6 +27,19 @@ class MacroData:
     created_by_name: str
 
 
+@dataclass
+class MacroUpdateData:
+    """Data structure for macro update information."""
+
+    guild_id: int
+    guild_name: str
+    old_name: str
+    new_name: str
+    message: str
+    edited_by: str
+    edited_by_name: str
+
+
 class BotDataInterface:
     """Interface class for accessing Discord bot data from the web application.
 
@@ -212,34 +225,62 @@ class BotDataInterface:
             macro_data.guild_id, macro_data.guild_name, macros
         )
 
-    def update_macro(
-        self, guild_id: int, guild_name: str, name: str, message: str
-    ) -> bool:
-        """Update an existing macro's message.
+    def update_macro(self, update_data: MacroUpdateData) -> bool:
+        """Update an existing macro's name and/or message.
 
         Args:
-            guild_id (int): Discord guild/server ID.
-            guild_name (str): Discord guild/server name.
-            name (str): Macro name to update.
-            message (str): New macro message content.
+            update_data (MacroUpdateData): Macro update information containing all required fields.
 
         Returns:
             bool: True if macro was updated successfully, False if macro doesn't exist or save failed.
         """
-        macros = self.load_server_macros(guild_id, guild_name)
+        macros = self.load_server_macros(update_data.guild_id, update_data.guild_name)
 
-        if name not in macros:
+        if update_data.old_name not in macros:
             return False  # Macro doesn't exist
 
-        # Update the message while preserving other metadata
-        if isinstance(macros[name], dict):
-            macros[name]["message"] = message
-            macros[name]["updated_at"] = datetime.now().isoformat()
-        else:
-            # Handle legacy string-only macros
-            macros[name] = message
+        # Check if new name conflicts with existing macro (unless it's the same macro)
+        if (
+            update_data.new_name != update_data.old_name
+            and update_data.new_name in macros
+        ):
+            return False  # Name conflict
 
-        return self.save_server_macros(guild_id, guild_name, macros)
+        current_macro = macros[update_data.old_name]
+        now = datetime.now()
+
+        # Update the macro data while preserving metadata
+        if isinstance(current_macro, dict):
+            updated_macro = current_macro.copy()
+            updated_macro["message"] = update_data.message
+            updated_macro["updated_at"] = now.isoformat()
+            updated_macro["updated_by"] = update_data.edited_by
+            updated_macro["updated_by_name"] = update_data.edited_by_name
+        else:
+            # Convert legacy format to modern format
+            updated_macro = {
+                "name": update_data.new_name,
+                "message": update_data.message,
+                "created_by": "",
+                "created_by_name": "Unknown",
+                "created_at": "",
+                "updated_at": now.isoformat(),
+                "updated_by": update_data.edited_by,
+                "updated_by_name": update_data.edited_by_name,
+            }
+
+        # Handle name change
+        if update_data.new_name != update_data.old_name:
+            # Remove old entry and add new one
+            del macros[update_data.old_name]
+            macros[update_data.new_name] = updated_macro
+        else:
+            # Just update existing entry
+            macros[update_data.old_name] = updated_macro
+
+        return self.save_server_macros(
+            update_data.guild_id, update_data.guild_name, macros
+        )
 
     def delete_macro(self, guild_id: int, guild_name: str, name: str) -> bool:
         """Delete a macro from the server.
