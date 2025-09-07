@@ -33,6 +33,5 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "weekly"
-    # Only use released action versions
-    versioning-strategy: increase
+    # GitHub Actions automatically use released versions only
     open-pull-requests-limit: 5
