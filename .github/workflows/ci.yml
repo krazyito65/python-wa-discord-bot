@@ -15,11 +15,6 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
-
     - name: Install uv
       uses: astral-sh/setup-uv@v3
       with:
@@ -28,11 +23,9 @@ jobs:
     - name: Install dependencies
       run: |
         # Install Discord bot dependencies
-        cd discord-bot
-        uv sync
-        cd ../web
-        uv sync
-        cd ..
+        uv sync --directory discord-bot
+        # Install Django web dependencies
+        uv sync --directory web
 
     - name: Install pre-commit
       run: uv tool install pre-commit
@@ -43,14 +36,12 @@ jobs:
         mkdir -p web/server_data
 
         # Create minimal Django local settings for tests
-        cd web
-        if [ ! -f weakauras_web/local_settings.py ]; then
-          echo "# Minimal settings for CI testing" > weakauras_web/local_settings.py
-          echo "from .settings import *" >> weakauras_web/local_settings.py
-          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> weakauras_web/local_settings.py
-          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> weakauras_web/local_settings.py
+        if [ ! -f web/weakauras_web/local_settings.py ]; then
+          echo "# Minimal settings for CI testing" > web/weakauras_web/local_settings.py
+          echo "from .settings import *" >> web/weakauras_web/local_settings.py
+          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> web/weakauras_web/local_settings.py
+          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> web/weakauras_web/local_settings.py
         fi
-        cd ..
 
     - name: Run pre-commit hooks
       run: |
@@ -65,11 +56,6 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.13'
-
     - name: Install uv
       uses: astral-sh/setup-uv@v3
       with:
@@ -78,11 +64,9 @@ jobs:
     - name: Install dependencies
       run: |
         # Install Discord bot dependencies
-        cd discord-bot
-        uv sync
-        cd ../web
-        uv sync
-        cd ..
+        uv sync --directory discord-bot
+        # Install Django web dependencies
+        uv sync --directory web
 
     - name: Create required directories and files
       run: |
@@ -90,14 +74,12 @@ jobs:
         mkdir -p web/server_data
 
         # Create minimal Django local settings for tests
-        cd web
-        if [ ! -f weakauras_web/local_settings.py ]; then
-          echo "# Minimal settings for CI testing" > weakauras_web/local_settings.py
-          echo "from .settings import *" >> weakauras_web/local_settings.py
-          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> weakauras_web/local_settings.py
-          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> weakauras_web/local_settings.py
+        if [ ! -f web/weakauras_web/local_settings.py ]; then
+          echo "# Minimal settings for CI testing" > web/weakauras_web/local_settings.py
+          echo "from .settings import *" >> web/weakauras_web/local_settings.py
+          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> web/weakauras_web/local_settings.py
+          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> web/weakauras_web/local_settings.py
         fi
-        cd ..
 
     - name: Run Discord Bot Tests
       run: bin/test-bot --coverage
