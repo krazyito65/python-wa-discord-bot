@@ -70,7 +70,12 @@ API Documentation
    getting_started
    configuration
    development
-   api/modules
+   api/main
+   api/bot
+   api/commands
+   api/events
+   api/tests
+   api/utils
 
 Indices and tables
 ==================
