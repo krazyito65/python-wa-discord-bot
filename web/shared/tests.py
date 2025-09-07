@@ -17,7 +17,7 @@ from allauth.socialaccount.models import SocialToken
 from django.contrib.auth.models import User
 from django.test import TestCase
 
-from shared.bot_interface import BotDataInterface, MacroData
+from shared.bot_interface import BotDataInterface, MacroData, MacroUpdateData
 from shared.discord_api import (
     DiscordAPIError,
     filter_available_servers,
@@ -249,9 +249,17 @@ class TestBotDataInterface(TestCase):
         with open(macros_file, "w", encoding="utf-8") as f:
             json.dump(existing_macros, f)
 
-        result = self.interface.update_macro(
-            self.test_guild_id, self.test_guild_name, "test_macro", "New message"
+        update_data = MacroUpdateData(
+            guild_id=self.test_guild_id,
+            guild_name=self.test_guild_name,
+            old_name="test_macro",
+            new_name="test_macro",
+            message="New message",
+            edited_by="123456789",
+            edited_by_name="TestUser",
         )
+
+        result = self.interface.update_macro(update_data)
 
         assert result is True
 
@@ -260,6 +268,95 @@ class TestBotDataInterface(TestCase):
             self.test_guild_id, self.test_guild_name
         )
         assert macros["test_macro"]["message"] == "New message"
+        assert "updated_at" in macros["test_macro"]
+        assert macros["test_macro"]["updated_by"] == "123456789"
+        assert macros["test_macro"]["updated_by_name"] == "TestUser"
+
+    def test_rename_macro(self):
+        """Test macro renaming."""
+        # Create server folder and macro first
+        test_folder = (
+            self.interface.data_dir / f"{self.test_guild_name}_{self.test_guild_id}"
+        )
+        test_folder.mkdir(exist_ok=True)
+
+        existing_macros = {
+            "old_macro": {
+                "name": "old_macro",
+                "message": "Original message",
+                "created_by": "123456789",
+                "created_by_name": "Creator",
+                "created_at": "2023-01-01T00:00:00",
+            }
+        }
+
+        macros_file = test_folder / f"{self.test_guild_id}_macros.json"
+        with open(macros_file, "w", encoding="utf-8") as f:
+            json.dump(existing_macros, f)
+
+        # Test renaming macro
+        update_data = MacroUpdateData(
+            guild_id=self.test_guild_id,
+            guild_name=self.test_guild_name,
+            old_name="old_macro",
+            new_name="new_macro",
+            message="Updated message",
+            edited_by="987654321",
+            edited_by_name="Editor",
+        )
+
+        result = self.interface.update_macro(update_data)
+
+        assert result is True
+
+        # Verify old name is gone and new name exists
+        loaded_macros = self.interface.load_server_macros(
+            self.test_guild_id, self.test_guild_name
+        )
+        assert "old_macro" not in loaded_macros
+        assert "new_macro" in loaded_macros
+        assert loaded_macros["new_macro"]["message"] == "Updated message"
+        assert loaded_macros["new_macro"]["updated_by"] == "987654321"
+        assert loaded_macros["new_macro"]["updated_by_name"] == "Editor"
+
+    def test_rename_conflict(self):
+        """Test macro renaming with name conflict."""
+        # Create server folder and macros first
+        test_folder = (
+            self.interface.data_dir / f"{self.test_guild_name}_{self.test_guild_id}"
+        )
+        test_folder.mkdir(exist_ok=True)
+
+        existing_macros = {
+            "macro1": {"name": "macro1", "message": "Message 1"},
+            "macro2": {"name": "macro2", "message": "Message 2"},
+        }
+
+        macros_file = test_folder / f"{self.test_guild_id}_macros.json"
+        with open(macros_file, "w", encoding="utf-8") as f:
+            json.dump(existing_macros, f)
+
+        # Try to rename macro1 to macro2 (should fail)
+        update_data = MacroUpdateData(
+            guild_id=self.test_guild_id,
+            guild_name=self.test_guild_name,
+            old_name="macro1",
+            new_name="macro2",
+            message="Updated message",
+            edited_by="123456789",
+            edited_by_name="TestUser",
+        )
+
+        result = self.interface.update_macro(update_data)
+
+        assert result is False
+
+        # Verify original macros are unchanged
+        loaded_macros = self.interface.load_server_macros(
+            self.test_guild_id, self.test_guild_name
+        )
+        assert loaded_macros["macro1"]["message"] == "Message 1"
+        assert loaded_macros["macro2"]["message"] == "Message 2"
 
     def test_delete_macro(self):
         """Test macro deletion."""
