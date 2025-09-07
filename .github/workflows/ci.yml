@@ -42,13 +42,13 @@ jobs:
         # Create required directories for Django
         mkdir -p web/server_data
 
-        # Create minimal Django settings for tests
+        # Create minimal Django local settings for tests
         cd web
-        if [ ! -f weakauras_web/settings/local.py ]; then
-          echo "# Minimal settings for CI testing" > weakauras_web/settings/local.py
-          echo "from .base import *" >> weakauras_web/settings/local.py
-          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> weakauras_web/settings/local.py
-          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> weakauras_web/settings/local.py
+        if [ ! -f weakauras_web/local_settings.py ]; then
+          echo "# Minimal settings for CI testing" > weakauras_web/local_settings.py
+          echo "from .settings import *" >> weakauras_web/local_settings.py
+          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> weakauras_web/local_settings.py
+          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> weakauras_web/local_settings.py
         fi
         cd ..
 
@@ -89,13 +89,13 @@ jobs:
         # Create required directories for Django
         mkdir -p web/server_data
 
-        # Create minimal Django settings for tests
+        # Create minimal Django local settings for tests
         cd web
-        if [ ! -f weakauras_web/settings/local.py ]; then
-          echo "# Minimal settings for CI testing" > weakauras_web/settings/local.py
-          echo "from .base import *" >> weakauras_web/settings/local.py
-          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> weakauras_web/settings/local.py
-          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> weakauras_web/settings/local.py
+        if [ ! -f weakauras_web/local_settings.py ]; then
+          echo "# Minimal settings for CI testing" > weakauras_web/local_settings.py
+          echo "from .settings import *" >> weakauras_web/local_settings.py
+          echo "SECRET_KEY = 'ci-test-key-not-for-production'" >> weakauras_web/local_settings.py
+          echo "BOT_DATA_DIR = '/tmp/bot_data'" >> weakauras_web/local_settings.py
         fi
         cd ..
 
