@@ -387,7 +387,7 @@ See `.vscode/README.md` for detailed usage instructions.
   ```
 - **IMPORTANT**: Keep unit tests up-to-date when modifying bot functionality, commands, or events. All tests must pass before considering changes complete.
 - New logging has been added to all slash commands and events at INFO level using the `logging_config.py` module - use the `@log_command` and `@log_event` decorators for future commands and events to maintain consistency.
-- do not cd to other directories to run commands, always start from the root of the project and run shell commands from there.
+- use absolute paths when using cd to ensure you always know where you're going.
 
 ## Data Protection
 
