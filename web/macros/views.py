@@ -5,12 +5,16 @@ This module contains views for managing macros (create, edit, delete, list)
 for specific Discord servers through the web interface.
 """
 
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect
 from shared.bot_interface import MacroUpdateData, bot_interface
 from shared.discord_api import DiscordAPIError, get_user_guilds
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -106,17 +110,32 @@ def macro_edit(request, guild_id, macro_name):
         guild_name = _validate_server_access(request, guild_id)
 
         if request.method == "POST":
+            # Debug logging
+            logger.debug(f"Editing macro '{macro_name}' for guild {guild_id}")
+            logger.debug(
+                f"Form data - name: '{request.POST.get('name')}', message length: {len(request.POST.get('message', ''))}"
+            )
+
             validation_result = _validate_macro_edit_inputs(
                 request, macro_name, guild_id, guild_name
             )
             if validation_result[0] is None:  # Validation failed
+                logger.debug("Validation failed, redirecting")
                 return redirect("servers:server_detail", guild_id=guild_id)
 
             new_name, new_message, existing_macros = validation_result
+            logger.debug(
+                f"After validation - old_name: '{macro_name}', new_name: '{new_name}'"
+            )
+            logger.debug(f"Existing macros: {list(existing_macros.keys())}")
 
             # Check for name conflicts
             if new_name != macro_name and new_name in existing_macros:
-                messages.error(request, f"A macro named '{new_name}' already exists")
+                error_msg = f"A macro named '{new_name}' already exists"
+                messages.error(request, error_msg)
+                logger.info(
+                    f"Name conflict detected for '{new_name}' in guild {guild_id}"
+                )
                 return redirect("servers:server_detail", guild_id=guild_id)
 
             # Get user info and update macro
@@ -133,7 +152,7 @@ def macro_edit(request, guild_id, macro_name):
                 edited_by_name=user_name,
             )
 
-            success = bot_interface.update_macro(update_data)
+            success, error_message = bot_interface.update_macro(update_data)
 
             if success:
                 if new_name != macro_name:
@@ -146,7 +165,8 @@ def macro_edit(request, guild_id, macro_name):
                         request, f"Successfully updated macro '{macro_name}'"
                     )
             else:
-                messages.error(request, f"Failed to update macro '{macro_name}'")
+                messages.error(request, error_message)
+                logger.error(f"Bot interface error: {error_message}")
 
             return redirect("servers:server_detail", guild_id=guild_id)
 

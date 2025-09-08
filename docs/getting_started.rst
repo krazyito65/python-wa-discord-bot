@@ -16,7 +16,7 @@ Installation
 
    .. code-block:: bash
 
-      git clone https://github.com/krazyito/python-wa-discord-bot.git
+      git clone https://github.com/krazyito65/python-wa-discord-bot.git
       cd python-wa-discord-bot
 
 2. **Install Dependencies**

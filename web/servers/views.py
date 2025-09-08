@@ -5,6 +5,8 @@ This module contains views for server selection and dashboard functionality,
 allowing users to choose which Discord server to manage macros for.
 """
 
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -15,6 +17,8 @@ from shared.discord_api import (
     filter_available_servers,
     get_user_guilds,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -87,21 +91,27 @@ def server_detail(request, guild_id):
         Http404: If user doesn't have access to this server or server doesn't exist.
     """
     try:
+        logger.debug(f"Server detail view called for guild_id: {guild_id}")
+
         # Get user's Discord guilds to verify access
         user_guilds = get_user_guilds(request.user)
         user_guild_ids = [int(guild["id"]) for guild in user_guilds]
+        logger.debug(f"User guild IDs: {user_guild_ids}")
 
         # Check if user has access to this server
         if guild_id not in user_guild_ids:
             msg = "You don't have access to this server"
+            logger.debug(f"Access denied: {msg}")
             raise Http404(msg)
 
         # Get bot servers and check if this server has data
         bot_servers = bot_interface.get_available_servers()
         bot_guild_ids = [server["guild_id"] for server in bot_servers]
+        logger.debug(f"Bot guild IDs: {bot_guild_ids}")
 
         if guild_id not in bot_guild_ids:
             msg = "No bot data found for this server"
+            logger.debug(f"No bot data: {msg}")
             raise Http404(msg)
 
         # Find the specific server info
@@ -146,6 +156,12 @@ def server_detail(request, guild_id):
         # Sort macros by name for better user experience
         macros.sort(key=lambda macro: macro["name"].lower())
 
+        # Test message to verify message display is working
+        if request.GET.get("test_message"):
+            messages.info(
+                request, "Test message: Message display is working correctly!"
+            )
+
         context = {
             "guild_id": guild_id,
             "guild_name": guild_name,
@@ -157,5 +173,6 @@ def server_detail(request, guild_id):
         return render(request, "servers/server_detail.html", context)
 
     except DiscordAPIError as e:
+        logger.exception("DiscordAPIError in server_detail")
         messages.error(request, f"Error accessing server information: {e}")
         return redirect("servers:dashboard")

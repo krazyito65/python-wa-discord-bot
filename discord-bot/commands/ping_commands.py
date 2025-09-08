@@ -69,7 +69,7 @@ def setup_ping_commands(bot: WeakAurasBot):
             f"• Members: **{member_count:,}**\n"
             f"• Available Commands: **{len(bot.tree.get_commands())}**\n\n"
             f"🔗 **Links:**\n"
-            f"• [GitHub Repository](https://github.com/krazyito/python-wa-discord-bot)\n"
+            f"• [GitHub Repository](https://github.com/krazyito65/python-wa-discord-bot)\n"
             f"• [WeakAuras Website](https://weakauras.wtf)"
         )
 

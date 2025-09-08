@@ -259,9 +259,10 @@ class TestBotDataInterface(TestCase):
             edited_by_name="TestUser",
         )
 
-        result = self.interface.update_macro(update_data)
+        success, error_message = self.interface.update_macro(update_data)
 
-        assert result is True
+        assert success is True
+        assert error_message == ""
 
         # Verify macro was updated
         macros = self.interface.load_server_macros(
@@ -305,9 +306,10 @@ class TestBotDataInterface(TestCase):
             edited_by_name="Editor",
         )
 
-        result = self.interface.update_macro(update_data)
+        success, error_message = self.interface.update_macro(update_data)
 
-        assert result is True
+        assert success is True
+        assert error_message == ""
 
         # Verify old name is gone and new name exists
         loaded_macros = self.interface.load_server_macros(
@@ -347,9 +349,10 @@ class TestBotDataInterface(TestCase):
             edited_by_name="TestUser",
         )
 
-        result = self.interface.update_macro(update_data)
+        success, error_message = self.interface.update_macro(update_data)
 
-        assert result is False
+        assert success is False
+        assert "already exists" in error_message
 
         # Verify original macros are unchanged
         loaded_macros = self.interface.load_server_macros(
