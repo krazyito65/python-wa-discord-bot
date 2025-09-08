@@ -26,16 +26,73 @@
             color: #dc3545;
         }
         .macro-preview {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background-color: #36393f;
+            color: #dcddde;
+            border: 1px solid #40444b;
             border-radius: 0.375rem;
-            padding: 0.75rem;
+            padding: 1rem;
             margin-top: 1rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
-            white-space: pre-wrap;
+            font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 1rem;
+            line-height: 1.375;
             word-wrap: break-word;
             min-height: 100px;
+        }
+        .macro-preview strong, .macro-preview .discord-bold {
+            font-weight: 700;
+            color: #ffffff;
+        }
+        .macro-preview em, .macro-preview .discord-italic {
+            font-style: italic;
+        }
+        .macro-preview u, .macro-preview .discord-underline {
+            text-decoration: underline;
+        }
+        .macro-preview s, .macro-preview .discord-strikethrough {
+            text-decoration: line-through;
+        }
+        .macro-preview code, .macro-preview .discord-code {
+            background-color: #2f3136;
+            border-radius: 3px;
+            padding: 0.125rem 0.25rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+        .macro-preview .discord-code-block {
+            background-color: #2f3136;
+            border: 1px solid #202225;
+            border-radius: 4px;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        .macro-preview .discord-spoiler {
+            background-color: #202225;
+            color: #202225;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+        .macro-preview .discord-spoiler:hover {
+            background-color: transparent;
+            color: #dcddde;
+        }
+        .macro-preview .discord-mention {
+            background-color: rgba(88, 101, 242, 0.3);
+            color: #dee0fc;
+            padding: 0 2px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        .macro-preview a, .macro-preview .discord-link {
+            color: #00b0f4;
+            text-decoration: none;
+        }
+        .macro-preview a:hover, .macro-preview .discord-link:hover {
+            text-decoration: underline;
         }
         .name-available {
             color: #198754;
@@ -150,8 +207,8 @@
                         required
                     >{{ form_data.message|default:'' }}</textarea>
                     <div class="form-text">
-                        This message will be posted to Discord when someone uses the macro.
-                        You can use Discord formatting like **bold**, *italic*, and links.
+                        This message will be posted to Discord when someone uses the macro.<br>
+                        <strong>Discord formatting:</strong> **bold**, *italic*, __underline__, ~~strikethrough~~, `code`, ```code blocks```, ||spoilers||, @mentions, #channels, and https://links
                     </div>
                     <div class="char-counter" id="messageCounter">0 / 2000</div>
                     <div class="invalid-feedback" id="messageError"></div>
@@ -159,9 +216,12 @@
 
                 <!-- Live Preview -->
                 <div class="mb-4">
-                    <label class="form-label"><strong>Preview</strong></label>
+                    <label class="form-label">
+                        <strong>Discord Preview</strong>
+                        <small class="text-muted ms-2">How your message will appear in Discord</small>
+                    </label>
                     <div class="macro-preview" id="macroPreview">
-                        <em class="text-muted">Type your message above to see a preview...</em>
+                        <em style="color: #72767d; font-style: italic;">Type your message above to see a Discord-style preview...</em>
                     </div>
                 </div>
 
@@ -210,14 +270,60 @@
                 messageCounter.className = 'char-counter' + (messageLen > 1800 ? ' warning' : '') + (messageLen > 1950 ? ' danger' : '');
             }
 
-            // Update preview
+            // Parse Discord markdown and render preview
             function updatePreview() {
                 const message = messageInput.value.trim();
                 if (message) {
-                    macroPreview.innerHTML = message.replace(/\n/g, '<br>');
+                    macroPreview.innerHTML = parseDiscordMarkdown(message);
                 } else {
-                    macroPreview.innerHTML = '<em class="text-muted">Type your message above to see a preview...</em>';
+                    macroPreview.innerHTML = '<em style="color: #72767d; font-style: italic;">Type your message above to see a Discord-style preview...</em>';
                 }
+            }
+
+            // Parse Discord markdown formatting
+            function parseDiscordMarkdown(text) {
+                // Escape HTML first
+                let parsed = text
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;');
+
+                // Code blocks (```code```)
+                parsed = parsed.replace(/```([\s\S]*?)```/g, '<div class="discord-code-block">$1</div>');
+
+                // Inline code (`code`)
+                parsed = parsed.replace(/`([^`\n]+)`/g, '<code class="discord-code">$1</code>');
+
+                // Bold (**text** or __text__)
+                parsed = parsed.replace(/\*\*([^*\n]+)\*\*/g, '<strong class="discord-bold">$1</strong>');
+                parsed = parsed.replace(/__([^_\n]+)__/g, '<strong class="discord-bold">$1</strong>');
+
+                // Italic (*text* or _text_)
+                parsed = parsed.replace(/(?<!\*)\*([^*\n]+)\*(?!\*)/g, '<em class="discord-italic">$1</em>');
+                parsed = parsed.replace(/(?<!_)_([^_\n]+)_(?!_)/g, '<em class="discord-italic">$1</em>');
+
+                // Underline (__text__)
+                parsed = parsed.replace(/__(.*?)__/g, '<u class="discord-underline">$1</u>');
+
+                // Strikethrough (~~text~~)
+                parsed = parsed.replace(/~~([^~\n]+)~~/g, '<s class="discord-strikethrough">$1</s>');
+
+                // Spoiler (||text||)
+                parsed = parsed.replace(/\|\|([^|\n]+)\|\|/g, '<span class="discord-spoiler">$1</span>');
+
+                // Basic URL detection
+                parsed = parsed.replace(/(https?:\/\/[^\s<>"{}|\\^`\[\]]+)/g, '<a href="$1" class="discord-link" target="_blank">$1</a>');
+
+                // User mentions (@user)
+                parsed = parsed.replace(/@([a-zA-Z0-9_]+)/g, '<span class="discord-mention">@$1</span>');
+
+                // Channel mentions (#channel)
+                parsed = parsed.replace(/#([a-zA-Z0-9_-]+)/g, '<span class="discord-mention">#$1</span>');
+
+                // Convert newlines to <br>
+                parsed = parsed.replace(/\n/g, '<br>');
+
+                return parsed;
             }
 
             // Check name availability via AJAX
@@ -355,6 +461,14 @@
             document.getElementById('macroForm').addEventListener('submit', function(e) {
                 if (!validateForm()) {
                     e.preventDefault();
+                }
+            });
+
+            // Add spoiler click functionality
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('discord-spoiler')) {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.color = '#dcddde';
                 }
             });
 
