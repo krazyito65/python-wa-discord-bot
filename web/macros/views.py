@@ -294,3 +294,54 @@ def macro_delete(request, guild_id, macro_name):
         messages.error(request, f"Error accessing server: {e}")
 
     return redirect("servers:server_detail", guild_id=guild_id)
+
+
+@login_required
+def check_macro_name(request, guild_id, macro_name):
+    """Check if a macro name is available for use (AJAX endpoint).
+
+    Args:
+        request: Django HTTP request object with authenticated user.
+        guild_id (int): Discord guild/server ID to check macros for.
+        macro_name (str): Name to check for availability.
+
+    Returns:
+        JsonResponse: Availability status and message.
+    """
+    try:
+        # Get user's Discord guilds to verify access
+        user_guilds = get_user_guilds(request.user)
+        user_guild_ids = [int(guild["id"]) for guild in user_guilds]
+
+        if guild_id not in user_guild_ids:
+            return JsonResponse(
+                {"error": "You don't have access to this server"}, status=403
+            )
+
+        # Find guild name
+        guild_name = None
+        for guild in user_guilds:
+            if int(guild["id"]) == guild_id:
+                guild_name = guild["name"]
+                break
+
+        if not guild_name:
+            return JsonResponse({"error": "Server not found"}, status=404)
+
+        # Load current macros
+        macros_dict = bot_interface.load_server_macros(guild_id, guild_name)
+
+        # Check if name exists
+        name_exists = macro_name in macros_dict
+
+        return JsonResponse(
+            {
+                "available": not name_exists,
+                "message": f"Macro name '{macro_name}' is already taken"
+                if name_exists
+                else f"Macro name '{macro_name}' is available",
+            }
+        )
+
+    except DiscordAPIError as e:
+        return JsonResponse({"error": f"Error accessing server: {e}"}, status=500)

@@ -176,6 +176,7 @@
                             <label for="editMacroName" class="form-label">Macro Name: *</label>
                             <input type="text" class="form-control" id="editMacroName" name="name" required
                                    placeholder="Enter macro name..." maxlength="100">
+                            <div id="nameValidationMessage" class="form-text"></div>
                             <div class="form-text">This is the command name used in Discord (/macro name).</div>
                         </div>
                         <div class="form-group mb-3">
@@ -232,6 +233,14 @@
                     document.getElementById('editMacroName').value = data.name;
                     document.getElementById('editMacroCreatedBy').value = data.created_by_name || 'Unknown';
                     document.getElementById('editMacroMessage').value = data.message;
+
+                    // Set original name for validation
+                    originalMacroName = data.name;
+
+                    // Reset validation state
+                    nameValidationMessage.textContent = 'Current name (no change)';
+                    nameValidationMessage.className = 'form-text text-muted';
+                    saveButton.disabled = false;
 
                     // Handle edit history display
                     const updatedByGroup = document.getElementById('editMacroUpdatedByGroup');
@@ -312,7 +321,79 @@
             });
         });
 
-        // Handle edit form submission with client-side validation only
+        // Global variable to track original macro name for validation
+        let originalMacroName = '';
+
+        // Real-time name validation variables
+        let nameCheckTimeout = null;
+        const nameValidationMessage = document.getElementById('nameValidationMessage');
+        const nameInput = document.getElementById('editMacroName');
+        const saveButton = document.getElementById('editMacroSaveBtn');
+
+        // Real-time name validation
+        nameInput.addEventListener('input', function() {
+            clearTimeout(nameCheckTimeout);
+            const newName = this.value.trim();
+
+            // Clear previous message
+            nameValidationMessage.textContent = '';
+            nameValidationMessage.className = 'form-text';
+
+            if (!newName) {
+                nameValidationMessage.textContent = 'Macro name is required';
+                nameValidationMessage.className = 'form-text text-danger';
+                saveButton.disabled = true;
+                return;
+            }
+
+            // If it's the same as the original name, it's valid
+            if (newName === originalMacroName) {
+                nameValidationMessage.textContent = 'Current name (no change)';
+                nameValidationMessage.className = 'form-text text-muted';
+                saveButton.disabled = false;
+                return;
+            }
+
+            // Show loading message
+            nameValidationMessage.textContent = 'Checking availability...';
+            nameValidationMessage.className = 'form-text text-muted';
+
+            // Debounce the API call
+            nameCheckTimeout = setTimeout(() => {
+                checkNameAvailability(newName);
+            }, 500);
+        });
+
+        function checkNameAvailability(name) {
+            fetch('{% url "macros:check_name" guild_id "MACRO_NAME" %}'.replace('MACRO_NAME', encodeURIComponent(name)))
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        nameValidationMessage.textContent = 'Error checking name: ' + data.error;
+                        nameValidationMessage.className = 'form-text text-danger';
+                        saveButton.disabled = true;
+                        return;
+                    }
+
+                    if (data.available) {
+                        nameValidationMessage.textContent = '✓ Name is available';
+                        nameValidationMessage.className = 'form-text text-success';
+                        saveButton.disabled = false;
+                    } else {
+                        nameValidationMessage.textContent = '✗ ' + data.message;
+                        nameValidationMessage.className = 'form-text text-danger';
+                        saveButton.disabled = true;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking name:', error);
+                    nameValidationMessage.textContent = 'Error checking name availability';
+                    nameValidationMessage.className = 'form-text text-danger';
+                    saveButton.disabled = true;
+                });
+        }
+
+        // Handle edit form submission with validation and confirmation
         document.getElementById('editMacroForm').addEventListener('submit', function(e) {
             const form = e.target;
             const formData = new FormData(form);
@@ -333,6 +414,25 @@
                 e.preventDefault();
                 errorDiv.textContent = 'Macro content cannot be empty';
                 errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            // Check if save button is disabled (name conflict)
+            if (saveButton.disabled) {
+                e.preventDefault();
+                errorDiv.textContent = 'Please resolve the name conflict before saving';
+                errorDiv.classList.remove('d-none');
+                return;
+            }
+
+            // If name changed, show confirmation dialog
+            if (name !== originalMacroName) {
+                e.preventDefault();
+                if (confirm(`Are you sure you want to rename the macro from "${originalMacroName}" to "${name}"?`)) {
+                    // User confirmed, submit the form
+                    errorDiv.classList.add('d-none');
+                    form.submit();
+                }
                 return;
             }
 
