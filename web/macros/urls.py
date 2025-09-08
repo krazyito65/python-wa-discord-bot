@@ -20,4 +20,9 @@ urlpatterns = [
         views.macro_delete,
         name="macro_delete",
     ),
+    path(
+        "<int:guild_id>/check-name/<str:macro_name>/",
+        views.check_macro_name,
+        name="check_name",
+    ),
 ]
