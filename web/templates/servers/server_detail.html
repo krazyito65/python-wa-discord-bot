@@ -28,10 +28,13 @@
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
+                    <strong>{{ message.tags|capfirst|default:'Info' }}:</strong> {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             {% endfor %}
+        {% else %}
+            <!-- Debug: No messages found -->
+            <div class="alert alert-warning" style="display: none;">No messages to display</div>
         {% endif %}
 
         <!-- Server Header -->
@@ -309,13 +312,10 @@
             });
         });
 
-        // Handle edit form submission
+        // Handle edit form submission with client-side validation only
         document.getElementById('editMacroForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
             const form = e.target;
             const formData = new FormData(form);
-            const submitBtn = document.getElementById('editMacroSaveBtn');
             const errorDiv = document.getElementById('editMacroError');
 
             // Validate name and message content
@@ -323,55 +323,22 @@
             const message = formData.get('message').trim();
 
             if (!name) {
+                e.preventDefault();
                 errorDiv.textContent = 'Macro name cannot be empty';
                 errorDiv.classList.remove('d-none');
                 return;
             }
 
             if (!message) {
+                e.preventDefault();
                 errorDiv.textContent = 'Macro content cannot be empty';
                 errorDiv.classList.remove('d-none');
                 return;
             }
 
-            // Show loading state
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Saving...';
+            // Clear any previous client-side errors and let the form submit normally
             errorDiv.classList.add('d-none');
-
-            // Submit form
-            fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => {
-                if (response.redirected) {
-                    // Success - redirect to server detail page
-                    window.location.href = response.url;
-                } else {
-                    return response.text();
-                }
-            })
-            .then(data => {
-                if (data) {
-                    // Handle error case
-                    errorDiv.textContent = 'Error saving macro. Please try again.';
-                    errorDiv.classList.remove('d-none');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                errorDiv.textContent = 'Error saving macro. Please try again.';
-                errorDiv.classList.remove('d-none');
-            })
-            .finally(() => {
-                // Reset button state
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Save Changes';
-            });
+            // Form will submit normally - no preventDefault() or AJAX
         });
     </script>
 </body>

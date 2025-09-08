@@ -10,6 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Get the repository root (parent of bin directory)
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
+export PYTHONUNBUFFERED=1
+
 echo "🔄 Stopping all services and starting Discord bot in background..."
 echo "📁 Repository root: $REPO_ROOT"
 echo ""

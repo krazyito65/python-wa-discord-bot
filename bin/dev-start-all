@@ -4,6 +4,7 @@
 # Usage: bin/dev-start-all (can be run from anywhere)
 
 set -e
+export PYTHONUNBUFFERED=1
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

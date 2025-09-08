@@ -225,26 +225,27 @@ class BotDataInterface:
             macro_data.guild_id, macro_data.guild_name, macros
         )
 
-    def update_macro(self, update_data: MacroUpdateData) -> bool:
+    def update_macro(self, update_data: MacroUpdateData) -> tuple[bool, str]:
         """Update an existing macro's name and/or message.
 
         Args:
             update_data (MacroUpdateData): Macro update information containing all required fields.
 
         Returns:
-            bool: True if macro was updated successfully, False if macro doesn't exist or save failed.
+            tuple[bool, str]: (success, error_message). If success is True, error_message is empty.
+                             If success is False, error_message contains the specific error.
         """
         macros = self.load_server_macros(update_data.guild_id, update_data.guild_name)
 
         if update_data.old_name not in macros:
-            return False  # Macro doesn't exist
+            return False, f"Macro '{update_data.old_name}' not found"
 
         # Check if new name conflicts with existing macro (unless it's the same macro)
         if (
             update_data.new_name != update_data.old_name
             and update_data.new_name in macros
         ):
-            return False  # Name conflict
+            return False, f"A macro named '{update_data.new_name}' already exists"
 
         current_macro = macros[update_data.old_name]
         now = datetime.now()
@@ -278,9 +279,13 @@ class BotDataInterface:
             # Just update existing entry
             macros[update_data.old_name] = updated_macro
 
-        return self.save_server_macros(
+        save_success = self.save_server_macros(
             update_data.guild_id, update_data.guild_name, macros
         )
+
+        if save_success:
+            return True, ""
+        return False, "Failed to save macro changes to file"
 
     def delete_macro(self, guild_id: int, guild_name: str, name: str) -> bool:
         """Delete a macro from the server.

@@ -6,6 +6,7 @@ A Discord bot designed to facilitate common questions and FAQs for the WeakAuras
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![Code style: Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://krazyito65.github.io/python-wa-discord-bot/)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/krazyito65/python-wa-discord-bot)
 
 📖 **[View Full Documentation](https://krazyito65.github.io/python-wa-discord-bot/)**
 

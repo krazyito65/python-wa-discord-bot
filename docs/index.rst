@@ -5,7 +5,7 @@ Welcome to the WeakAuras Discord Bot documentation! This bot is designed to faci
 
 .. note::
    This documentation is automatically updated from the main branch.
-   Visit the `live documentation <https://krazyito.github.io/python-wa-discord-bot/>`_ for the latest version.
+   Visit the `live documentation <https://krazyito65.github.io/python-wa-discord-bot/>`_ for the latest version.
 
 Features
 --------
@@ -24,7 +24,7 @@ Quick Start
    .. code-block:: bash
 
       # Clone the repository
-      git clone https://github.com/krazyito/python-wa-discord-bot.git
+      git clone https://github.com/krazyito65/python-wa-discord-bot.git
       cd python-wa-discord-bot
 
       # Install dependencies
