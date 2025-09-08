@@ -10,8 +10,8 @@ import logging
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
-from django.shortcuts import redirect
-from shared.bot_interface import MacroUpdateData, bot_interface
+from django.shortcuts import redirect, render
+from shared.bot_interface import MacroData, MacroUpdateData, bot_interface
 from shared.discord_api import DiscordAPIError, get_user_guilds
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ def macro_list(_request, guild_id):
 
 
 @login_required
-def macro_add(request, guild_id):
+def macro_add(request, guild_id):  # noqa: PLR0911
     """Add a new macro to a specific server.
 
     Args:
@@ -46,9 +46,120 @@ def macro_add(request, guild_id):
     Returns:
         HttpResponse: Rendered macro add template or redirect after creation.
     """
-    # TODO: Implement macro creation form
-    messages.info(request, "Macro creation form coming soon!")
-    return redirect("servers:server_detail", guild_id=guild_id)
+    try:
+        guild_name = _validate_server_access(request, guild_id)
+
+        if request.method == "POST":
+            # Get form data
+            macro_name = request.POST.get("name", "").strip()
+            macro_message = request.POST.get("message", "").strip()
+
+            # Validate inputs - if validation fails, we'll render the form again with data
+            validation_errors = []
+            if not macro_name:
+                validation_errors.append("Macro name cannot be empty")
+
+            if not macro_message:
+                validation_errors.append("Macro message cannot be empty")
+
+            # Check if macro name already exists
+            if macro_name:  # Only check if name is not empty
+                existing_macros = bot_interface.load_server_macros(guild_id, guild_name)
+                if macro_name in existing_macros:
+                    validation_errors.append(
+                        f"A macro named '{macro_name}' already exists"
+                    )
+
+            # If there are validation errors, render form with preserved data
+            if validation_errors:
+                for error in validation_errors:
+                    messages.error(request, error)
+
+                # Get guild info for template context
+                user_guilds = get_user_guilds(request.user)
+                guild_info = next(
+                    (guild for guild in user_guilds if int(guild["id"]) == guild_id),
+                    None,
+                )
+
+                if not guild_info:
+                    messages.error(request, "Server not found")
+                    return redirect("servers:dashboard")
+
+                context = {
+                    "guild": guild_info,
+                    "guild_id": guild_id,
+                    "form_data": {
+                        "name": macro_name,
+                        "message": macro_message,
+                    },
+                }
+
+                return render(request, "macros/macro_add.html", context)
+
+            # Get user info
+            user_id = str(request.user.socialaccount_set.first().uid)
+            user_name = request.user.username
+
+            # Create macro data
+            macro_data = MacroData(
+                guild_id=guild_id,
+                guild_name=guild_name,
+                name=macro_name,
+                message=macro_message,
+                created_by=user_id,
+                created_by_name=user_name,
+            )
+
+            # Add the macro
+            if bot_interface.add_macro(macro_data):
+                messages.success(request, f"Successfully created macro '{macro_name}'")
+                return redirect("servers:server_detail", guild_id=guild_id)
+
+            messages.error(request, "Failed to create macro. Please try again.")
+
+            # Get guild info for template context
+            user_guilds = get_user_guilds(request.user)
+            guild_info = next(
+                (guild for guild in user_guilds if int(guild["id"]) == guild_id), None
+            )
+
+            if not guild_info:
+                messages.error(request, "Server not found")
+                return redirect("servers:dashboard")
+
+            context = {
+                "guild": guild_info,
+                "guild_id": guild_id,
+                "form_data": {
+                    "name": macro_name,
+                    "message": macro_message,
+                },
+            }
+
+            return render(request, "macros/macro_add.html", context)
+
+        # For GET requests, render the creation form
+        # Get guild info for template context
+        user_guilds = get_user_guilds(request.user)
+        guild_info = next(
+            (guild for guild in user_guilds if int(guild["id"]) == guild_id), None
+        )
+
+        if not guild_info:
+            messages.error(request, "Server not found")
+            return redirect("servers:dashboard")
+
+        context = {
+            "guild": guild_info,
+            "guild_id": guild_id,
+        }
+
+        return render(request, "macros/macro_add.html", context)
+
+    except DiscordAPIError as e:
+        messages.error(request, f"Error accessing server: {e}")
+        return redirect("servers:dashboard")
 
 
 def _validate_server_access(request, guild_id):

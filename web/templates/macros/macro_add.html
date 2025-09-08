@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Macro - {{ guild.name }} - WeakAuras Bot</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .brand-purple { background-color: #9f4af3; }
+        .form-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .char-counter {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        .char-counter.warning {
+            color: #fd7e14;
+        }
+        .char-counter.danger {
+            color: #dc3545;
+        }
+        .macro-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            min-height: 100px;
+        }
+        .name-available {
+            color: #198754;
+        }
+        .name-unavailable {
+            color: #dc3545;
+        }
+        .name-checking {
+            color: #6c757d;
+        }
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #6c757d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark brand-purple">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'servers:dashboard' %}">
+                <strong>WeakAuras Bot</strong> Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">{{ user.username }}</span>
+                <a class="btn btn-outline-light btn-sm" href="{% url 'account_logout' %}">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                    <strong>{{ message.tags|capfirst|default:'Info' }}:</strong> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1>Create New Macro</h1>
+                        <p class="text-muted">Server: {{ guild.name }} ({{ guild_id }})</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'servers:server_detail' guild_id=guild_id %}" class="btn btn-outline-secondary">
+                            ← Back to {{ guild.name }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Macro Creation Form -->
+        <div class="form-container">
+            <form method="post" id="macroForm" novalidate>
+                {% csrf_token %}
+
+                <!-- Macro Name -->
+                <div class="mb-4">
+                    <label for="macroName" class="form-label">
+                        <strong>Macro Name</strong>
+                        <span class="text-danger">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        class="form-control"
+                        id="macroName"
+                        name="name"
+                        placeholder="e.g. welcome, help, rules"
+                        maxlength="50"
+                        value="{{ form_data.name|default:'' }}"
+                        required
+                    >
+                    <div class="form-text">
+                        Choose a simple, descriptive name. Users will type <code>/macro [name]</code> to use it.
+                    </div>
+                    <div class="char-counter" id="nameCounter">0 / 50</div>
+                    <div class="invalid-feedback" id="nameError"></div>
+                    <div class="form-text" id="nameAvailability" style="display: none;">
+                        <span id="availabilityIcon"></span>
+                        <span id="availabilityMessage"></span>
+                    </div>
+                </div>
+
+                <!-- Macro Message -->
+                <div class="mb-4">
+                    <label for="macroMessage" class="form-label">
+                        <strong>Macro Message</strong>
+                        <span class="text-danger">*</span>
+                    </label>
+                    <textarea
+                        class="form-control"
+                        id="macroMessage"
+                        name="message"
+                        rows="6"
+                        placeholder="Enter the message that will be sent when this macro is used..."
+                        maxlength="2000"
+                        required
+                    >{{ form_data.message|default:'' }}</textarea>
+                    <div class="form-text">
+                        This message will be posted to Discord when someone uses the macro.
+                        You can use Discord formatting like **bold**, *italic*, and links.
+                    </div>
+                    <div class="char-counter" id="messageCounter">0 / 2000</div>
+                    <div class="invalid-feedback" id="messageError"></div>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="mb-4">
+                    <label class="form-label"><strong>Preview</strong></label>
+                    <div class="macro-preview" id="macroPreview">
+                        <em class="text-muted">Type your message above to see a preview...</em>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success" id="submitBtn" disabled>
+                        <i class="fas fa-plus"></i> Create Macro
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const nameInput = document.getElementById('macroName');
+            const messageInput = document.getElementById('macroMessage');
+            const nameCounter = document.getElementById('nameCounter');
+            const messageCounter = document.getElementById('messageCounter');
+            const macroPreview = document.getElementById('macroPreview');
+            const submitBtn = document.getElementById('submitBtn');
+            const nameError = document.getElementById('nameError');
+            const messageError = document.getElementById('messageError');
+            const nameAvailability = document.getElementById('nameAvailability');
+            const availabilityIcon = document.getElementById('availabilityIcon');
+            const availabilityMessage = document.getElementById('availabilityMessage');
+
+            let nameCheckTimeout = null;
+            let lastCheckedName = '';
+            let nameIsAvailable = false;
+
+            // Update character counters
+            function updateCounters() {
+                const nameLen = nameInput.value.length;
+                const messageLen = messageInput.value.length;
+
+                nameCounter.textContent = `${nameLen} / 50`;
+                messageCounter.textContent = `${messageLen} / 2000`;
+
+                // Update counter colors
+                nameCounter.className = 'char-counter' + (nameLen > 40 ? ' warning' : '') + (nameLen > 48 ? ' danger' : '');
+                messageCounter.className = 'char-counter' + (messageLen > 1800 ? ' warning' : '') + (messageLen > 1950 ? ' danger' : '');
+            }
+
+            // Update preview
+            function updatePreview() {
+                const message = messageInput.value.trim();
+                if (message) {
+                    macroPreview.innerHTML = message.replace(/\n/g, '<br>');
+                } else {
+                    macroPreview.innerHTML = '<em class="text-muted">Type your message above to see a preview...</em>';
+                }
+            }
+
+            // Check name availability via AJAX
+            function checkNameAvailability(name) {
+                if (!name.trim()) {
+                    hideAvailabilityFeedback();
+                    return;
+                }
+
+                if (name === lastCheckedName) {
+                    return; // Already checked this name
+                }
+
+                lastCheckedName = name;
+                showCheckingFeedback();
+
+                const guildId = {{ guild_id }};
+                const url = `/macros/${guildId}/check-name/${encodeURIComponent(name)}/`;
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (name === nameInput.value.trim()) { // Make sure we're still checking the current input
+                            if (data.available) {
+                                showAvailableFeedback(data.message);
+                                nameIsAvailable = true;
+                            } else {
+                                showUnavailableFeedback(data.message);
+                                nameIsAvailable = false;
+                            }
+                            validateForm(); // Re-validate with availability info
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking name availability:', error);
+                        hideAvailabilityFeedback();
+                        nameIsAvailable = true; // Don't block submission on API error
+                        validateForm();
+                    });
+            }
+
+            function showCheckingFeedback() {
+                nameAvailability.style.display = 'block';
+                nameAvailability.className = 'form-text name-checking';
+                availabilityIcon.innerHTML = '<div class="spinner"></div>';
+                availabilityMessage.textContent = 'Checking availability...';
+            }
+
+            function showAvailableFeedback(message) {
+                nameAvailability.style.display = 'block';
+                nameAvailability.className = 'form-text name-available';
+                availabilityIcon.innerHTML = '✓ ';
+                availabilityMessage.textContent = message;
+            }
+
+            function showUnavailableFeedback(message) {
+                nameAvailability.style.display = 'block';
+                nameAvailability.className = 'form-text name-unavailable';
+                availabilityIcon.innerHTML = '✗ ';
+                availabilityMessage.textContent = message;
+            }
+
+            function hideAvailabilityFeedback() {
+                nameAvailability.style.display = 'none';
+                nameIsAvailable = false;
+                lastCheckedName = '';
+            }
+
+            // Validate form
+            function validateForm() {
+                let isValid = true;
+
+                // Validate name
+                const name = nameInput.value.trim();
+                if (!name) {
+                    nameError.textContent = 'Macro name is required';
+                    nameInput.classList.add('is-invalid');
+                    isValid = false;
+                } else if (name.length > 50) {
+                    nameError.textContent = 'Macro name must be 50 characters or less';
+                    nameInput.classList.add('is-invalid');
+                    isValid = false;
+                } else if (name === lastCheckedName && !nameIsAvailable) {
+                    nameError.textContent = 'This macro name is already taken';
+                    nameInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    nameInput.classList.remove('is-invalid');
+                }
+
+                // Validate message
+                const message = messageInput.value.trim();
+                if (!message) {
+                    messageError.textContent = 'Macro message is required';
+                    messageInput.classList.add('is-invalid');
+                    isValid = false;
+                } else if (message.length > 2000) {
+                    messageError.textContent = 'Macro message must be 2000 characters or less';
+                    messageInput.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    messageInput.classList.remove('is-invalid');
+                }
+
+                submitBtn.disabled = !isValid;
+                return isValid;
+            }
+
+            // Event listeners
+            nameInput.addEventListener('input', function() {
+                updateCounters();
+                validateForm();
+
+                // Debounced name availability checking
+                clearTimeout(nameCheckTimeout);
+                const currentName = nameInput.value.trim();
+
+                if (currentName && currentName !== lastCheckedName) {
+                    hideAvailabilityFeedback(); // Hide previous feedback immediately
+                    nameCheckTimeout = setTimeout(() => {
+                        checkNameAvailability(currentName);
+                    }, 500); // 500ms debounce
+                } else if (!currentName) {
+                    hideAvailabilityFeedback();
+                }
+            });
+
+            messageInput.addEventListener('input', function() {
+                updateCounters();
+                updatePreview();
+                validateForm();
+            });
+
+            // Form submission
+            document.getElementById('macroForm').addEventListener('submit', function(e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                }
+            });
+
+            // Initial validation and counter updates
+            updateCounters();
+            updatePreview();
+            validateForm();
+
+            // Check pre-filled name availability
+            const initialName = nameInput.value.trim();
+            if (initialName) {
+                checkNameAvailability(initialName);
+            }
+        });
+    </script>
+</body>
+</html>

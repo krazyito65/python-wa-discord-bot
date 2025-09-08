@@ -49,9 +49,9 @@
                         <a href="{% url 'servers:dashboard' %}" class="btn btn-outline-secondary me-2">
                             ← Back to Servers
                         </a>
-                        <button class="btn btn-success" onclick="showAddMacroModal()">
+                        <a href="{% url 'macros:macro_add' guild_id=guild_id %}" class="btn btn-success">
                             + Add Macro
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
