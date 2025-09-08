@@ -15,8 +15,12 @@ A Discord bot designed to facilitate common questions and FAQs for the WeakAuras
 - **Server-Isolated Macros**: Each Discord server has its own separate macro storage
 - **Slash Commands Only**: Modern Discord interface with `/create_macro`, `/macro`, `/list_macros`, `/delete_macro`
 - **Role-Based Permissions**: Admin role required for macro deletion (configurable)
+- **Django Web Interface**: Web dashboard for macro management with Discord OAuth authentication
 - **Environment Management**: Separate dev/prod configuration support
+- **Comprehensive Testing**: Full test coverage for both Discord bot and Django web components
+- **Development Tools**: Convenient scripts for testing, logging, and service management
 - **Automatic Code Quality**: Pre-commit hooks with Ruff formatting and linting
+- **External Configuration**: Safe storage of tokens and data outside repository
 - **WeakAuras Branding**: Purple theme and WeakAuras-focused messaging
 
 ## 🚀 Quick Start
@@ -56,11 +60,26 @@ A Discord bot designed to facilitate common questions and FAQs for the WeakAuras
 
 5. **Run the bot**
    ```bash
-   # Development environment (default)
-   uv run python main.py
+   # Using the launcher script from project root (recommended)
+   python run-bot.py
+   python run-bot.py --env dev
+   python run-bot.py --env prod
 
-   # Production environment
+   # Or directly from discord-bot folder
+   cd discord-bot
+   uv run python main.py
    uv run python main.py --env prod
+   ```
+
+6. **Set up Django web interface** (optional)
+   ```bash
+   # Start Django development server
+   bin/dev-start-django
+
+   # Or manually
+   cd web
+   uv run python manage.py migrate
+   uv run python manage.py runserver
    ```
 
 ### Discord Bot Setup
@@ -96,16 +115,38 @@ A Discord bot designed to facilitate common questions and FAQs for the WeakAuras
 ### Project Structure
 
 ```
-├── main.py                     # Entry point with CLI argument parsing
-├── settings/
-│   ├── token.yml.example      # Configuration template
-│   └── token.yml              # Your actual tokens (gitignored)
-├── bot/
-│   ├── __init__.py
-│   └── weakauras_bot.py       # Main bot class
-├── commands/
-│   ├── __init__.py
-│   └── macro_commands.py      # Slash command implementations
+├── run-bot.py                  # Launcher script (recommended entry point)
+├── discord-bot/                # Discord bot application
+│   ├── main.py                # Bot entry point with CLI argument parsing
+│   ├── logging_config.py      # Centralized logging configuration
+│   ├── settings/
+│   │   ├── token.yml.example  # Configuration template
+│   │   └── token.yml          # Your actual tokens (gitignored)
+│   ├── bot/
+│   │   ├── __init__.py
+│   │   └── weakauras_bot.py   # Main bot class
+│   ├── commands/
+│   │   ├── __init__.py
+│   │   └── macro_commands.py  # Slash command implementations
+│   ├── events/                # Discord event handlers
+│   ├── utils/                 # Utility modules
+│   └── tests/                 # Discord bot unit tests
+├── web/                       # Django web interface
+│   ├── manage.py              # Django management script
+│   ├── weakauras_web/         # Django project settings
+│   ├── authentication/        # Discord OAuth authentication
+│   ├── macros/                # Macro management views
+│   ├── servers/               # Server management views
+│   ├── shared/                # Shared utilities and bot interface
+│   └── templates/             # HTML templates
+├── bin/                       # Development and testing scripts
+│   ├── dev-start-django       # Start Django server in background
+│   ├── dev-start-bot          # Start Discord bot in background
+│   ├── dev-logs-*             # Real-time log viewers
+│   ├── test-*                 # Test runners with coverage
+│   └── dev-stop-all           # Stop all services
+├── docs/                      # Sphinx documentation
+├── logs/                      # Development log files (auto-created)
 ├── server_data/               # Per-server macro storage (auto-created)
 │   └── {server_name}_{id}/    # Individual server folders
 ├── pyproject.toml             # Project configuration
@@ -116,11 +157,25 @@ A Discord bot designed to facilitate common questions and FAQs for the WeakAuras
 ### Development Commands
 
 ```bash
-# Install with dev dependencies
-uv sync --dev
+# Environment setup
+uv sync --dev                          # Install with dev dependencies
 
-# Run development server
-uv run python main.py --env dev
+# Running services
+python run-bot.py --env dev            # Run Discord bot (development)
+bin/dev-start-django                   # Start Django web server in background
+bin/dev-start-bot                      # Start Discord bot in background
+bin/dev-start-all                      # Start both services in background
+bin/dev-stop-all                       # Stop all background services
+
+# Development monitoring
+bin/dev-logs-bot                       # View Discord bot logs in real-time
+bin/dev-logs-django                    # View Django server logs in real-time
+
+# Testing
+bin/test-bot                           # Run Discord bot tests
+bin/test-web                           # Run Django web tests
+bin/test-all                           # Run all tests
+bin/test-all --coverage                # Run all tests with coverage
 
 # Code quality checks
 uv run ruff check .                    # Lint code
@@ -131,14 +186,19 @@ uv run ruff format .                   # Format code
 uv run pre-commit install              # Install hooks
 uv run pre-commit run --all-files      # Run all hooks manually
 
-# Add new dependencies
+# Dependencies
 uv add <package-name>                  # Production dependency
 uv add --dev <package-name>            # Development dependency
 ```
 
 ### Configuration
 
-The bot uses a YAML configuration file (`settings/token.yml`):
+The bot uses a YAML configuration file that can be stored in multiple locations for security:
+
+**Recommended locations (checked in order):**
+1. `~/.config/weakauras-bot/token.yml` (XDG standard - **recommended**)
+2. `~/weakauras-bot-config/token.yml` (user directory)
+3. `discord-bot/settings/token.yml` (repository - **unsafe with git clean**)
 
 ```yaml
 discord:
@@ -150,7 +210,19 @@ bot:
   admin_role: "admin"  # Role required for deletions
 
 storage:
-  data_directory: "server_data"
+  data_directory: "~/weakauras-bot-data"  # External storage (recommended)
+  # data_directory: "server_data"         # Repository storage (unsafe)
+```
+
+**⚠️ Data Protection**: Store configuration and data externally to prevent loss from `git clean -dffx`:
+
+```bash
+# Setup external configuration (recommended)
+mkdir -p ~/.config/weakauras-bot
+cp discord-bot/settings/token.yml ~/.config/weakauras-bot/
+
+# External data storage
+mkdir -p ~/weakauras-bot-data
 ```
 
 ### Code Quality
@@ -163,21 +235,24 @@ This project uses automated code quality tools:
 
 ## 🤝 Contributing
 
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information about:
+
+- **Development Setup**: Getting your environment ready
+- **Code Standards**: Style guidelines and best practices
+- **Testing Requirements**: How to write and run tests
+- **Pull Request Process**: Step-by-step submission guide
+- **Architecture Overview**: Understanding the codebase structure
+
+### Quick Start for Contributors
+
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run the code quality checks (`uv run ruff check --fix . && uv run ruff format .`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+2. Set up development environment: `uv sync --dev`
+3. Create feature branch: `git checkout -b feature/amazing-feature`
+4. Make changes and run tests: `bin/test-all`
+5. Check code quality: `uv run ruff check --fix . && uv run ruff format .`
+6. Submit PR with detailed description
 
-### Development Guidelines
-
-- Follow the existing code style (enforced by Ruff)
-- Add type hints to all functions
-- Write descriptive commit messages
-- Test your changes with both dev and prod configurations
-- Update documentation as needed
+📖 **[Read the full Contributing Guide →](CONTRIBUTING.md)**
 
 ## 📜 License
 
