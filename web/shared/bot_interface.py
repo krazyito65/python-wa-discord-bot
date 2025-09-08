@@ -92,6 +92,27 @@ class BotDataInterface:
 
         return None
 
+    def create_server_folder(self, guild_id: int, guild_name: str) -> Path | None:
+        """Create a server folder for the given guild.
+
+        Args:
+            guild_id (int): Discord guild/server ID.
+            guild_name (str): Discord guild/server name.
+
+        Returns:
+            Optional[Path]: Path to the created server folder, None if creation failed.
+        """
+        sanitized_name = self.sanitize_server_name(guild_name)
+        folder_name = f"{sanitized_name}_{guild_id}"
+        server_folder = self.data_dir / folder_name
+
+        try:
+            server_folder.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return None
+        else:
+            return server_folder
+
     def get_available_servers(self) -> list[dict[str, Any]]:
         """Get list of all servers that have data folders.
 
@@ -186,7 +207,10 @@ class BotDataInterface:
         server_folder = self.get_server_folder(guild_id, guild_name)
 
         if not server_folder:
-            return False
+            # Try to create the folder if it doesn't exist
+            server_folder = self.create_server_folder(guild_id, guild_name)
+            if not server_folder:
+                return False
 
         macros_file = server_folder / f"{guild_id}_macros.json"
 
