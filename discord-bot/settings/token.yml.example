@@ -48,6 +48,13 @@ events:
 
 # Django Web Interface Settings
 django:
+  # Database Configuration
+  # RECOMMENDED: Store database outside git repo to prevent accidental deletion
+  database_url: "sqlite:///~/weakauras-bot-data/statistics.db"
+
+  # For development/testing, you can use repository path (unsafe - gets deleted by git clean)
+  # database_url: "sqlite:///web/db.sqlite3"
+
   # Django SECRET_KEY for cryptographic signing (environment-specific)
   # Generate with: python -c "import secrets; print(repr(secrets.token_urlsafe(50)))"
   secret_keys:
