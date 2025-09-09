@@ -63,6 +63,7 @@ class StatsCollector:
                     "started_at": datetime.now(),
                     "messages_processed": 0,
                     "users_found": set(),
+                    "guild_id": guild.id,
                 }
 
             # Get channels to scan
@@ -272,6 +273,16 @@ class StatsCollector:
             return True
         return False
 
+    def get_active_guild_job(self, guild_id: int) -> dict:
+        """Check if there's an active collection job for a specific guild."""
+        for job_id, job_data in self.active_jobs.items():
+            if (
+                job_data.get("status") in ["running", "pending"]
+                and job_data.get("guild_id") == guild_id
+            ):
+                return {"job_id": job_id, **job_data}
+        return None
+
 
 def setup_stats_commands(bot: WeakAurasBot):  # noqa: PLR0915
     """Setup all user statistics slash commands."""
@@ -303,12 +314,49 @@ def setup_stats_commands(bot: WeakAurasBot):  # noqa: PLR0915
             )
             return
 
-        # Check permissions
-        if not interaction.user.guild_permissions.manage_messages:
+        # Check permissions - require administrator
+        if not interaction.user.guild_permissions.administrator:
             await interaction.response.send_message(
-                "❌ You need 'Manage Messages' permission to collect user statistics.",
+                "❌ You need 'Administrator' permission to collect user statistics.",
                 ephemeral=True,
             )
+            return
+
+        # Check for existing active collection job
+        active_job = stats_collector.get_active_guild_job(interaction.guild.id)
+        if active_job:
+            job_id = active_job["job_id"]
+            started_at = active_job.get("started_at", "Unknown")
+            progress = active_job.get("progress", 0)
+            total = active_job.get("total", 0)
+            messages_processed = active_job.get("messages_processed", 0)
+
+            embed = discord.Embed(
+                title="📊 Collection Already Running",
+                description="A statistics collection is already in progress for this server.",
+                color=discord.Color.orange(),
+            )
+            embed.add_field(name="Job ID", value=job_id, inline=True)
+            embed.add_field(
+                name="Started",
+                value=started_at.strftime("%H:%M:%S")
+                if hasattr(started_at, "strftime")
+                else str(started_at),
+                inline=True,
+            )
+            embed.add_field(
+                name="Progress", value=f"{progress}/{total} channels", inline=True
+            )
+            embed.add_field(
+                name="Messages Processed", value=str(messages_processed), inline=True
+            )
+            embed.add_field(
+                name="Status Check",
+                value=f"Use `/check_stats_job job_id:{job_id}` to monitor progress",
+                inline=False,
+            )
+
+            await interaction.response.send_message(embed=embed, ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
