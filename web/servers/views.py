@@ -53,7 +53,7 @@ def dashboard(request):
         # If user only has access to one server, redirect directly to it
         if len(available_servers) == 1:
             return redirect(
-                "servers:server_detail", guild_id=available_servers[0]["guild_id"]
+                "servers:server_hub", guild_id=available_servers[0]["guild_id"]
             )
 
         return render(request, "servers/dashboard.html", context)
@@ -74,6 +74,81 @@ def server_select(request):
         HttpResponse: Rendered server selection template.
     """
     return dashboard(request)  # Use same logic as dashboard
+
+
+@login_required
+def server_hub(request, guild_id):
+    """Server management hub - choose between stats or macros.
+
+    Args:
+        request: Django HTTP request object with authenticated user.
+        guild_id (int): Discord guild/server ID.
+
+    Returns:
+        HttpResponse: Rendered server hub template with management options.
+    """
+    try:
+        logger.debug(f"Server hub view called for guild_id: {guild_id}")
+
+        # Get user's Discord guilds to verify access
+        user_guilds = get_user_guilds(request.user)
+        user_guild_ids = [int(guild["id"]) for guild in user_guilds]
+
+        # Check if user has access to this server
+        if guild_id not in user_guild_ids:
+            raise Http404("You don't have access to this server")
+
+        # Get bot servers and check if this server has data
+        bot_servers = bot_interface.get_available_servers()
+        bot_guild_ids = [server["guild_id"] for server in bot_servers]
+
+        # Find the specific server info
+        guild_name = None
+        guild_icon = None
+
+        for guild in user_guilds:
+            if int(guild["id"]) == guild_id:
+                guild_name = guild["name"]
+                guild_icon = guild.get("icon")
+                break
+
+        if not guild_name:
+            raise Http404("Server information not found")
+
+        # Check what features are available
+        has_bot_data = guild_id in bot_guild_ids
+        has_stats_data = False
+
+        if has_bot_data:
+            # Check if server has statistics data
+            try:
+                from user_stats.models import DiscordGuild, MessageStatistics
+
+                try:
+                    stats_guild = DiscordGuild.objects.get(guild_id=str(guild_id))
+                    stats_count = MessageStatistics.objects.filter(
+                        channel__guild=stats_guild
+                    ).count()
+                    has_stats_data = stats_count > 0
+                except DiscordGuild.DoesNotExist:
+                    has_stats_data = False
+            except ImportError:
+                has_stats_data = False
+
+        context = {
+            "guild_id": guild_id,
+            "guild_name": guild_name,
+            "guild_icon": guild_icon,
+            "has_bot_data": has_bot_data,
+            "has_stats_data": has_stats_data,
+        }
+
+        return render(request, "servers/server_hub.html", context)
+
+    except DiscordAPIError as e:
+        logger.exception("DiscordAPIError in server_hub")
+        messages.error(request, f"Error accessing server information: {e}")
+        return redirect("servers:dashboard")
 
 
 @login_required

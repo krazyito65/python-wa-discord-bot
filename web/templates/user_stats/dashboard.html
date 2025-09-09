@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}User Statistics Dashboard - WeakAuras{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #9f4af3, #7c3aed); color: white;">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            User Statistics Dashboard
+                        </h2>
+                        <p class="mb-0 mt-1 opacity-75">View message statistics for Discord servers</p>
+                    </div>
+                    <div class="text-end">
+                        <small class="opacity-75">{{ total_guilds }} total server{{ total_guilds|pluralize }}</small>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    {% if guilds_with_stats %}
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="card-title">Servers with Statistics Data</h5>
+                                <p class="text-muted">Click on a server to view detailed user statistics.</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <div class="dropdown">
+                                    <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-info-circle me-1"></i> How to collect stats
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li class="dropdown-header">Discord Bot Commands:</li>
+                                        <li><span class="dropdown-item-text"><code>/collect_user_stats</code> - Collect all users</span></li>
+                                        <li><span class="dropdown-item-text"><code>/collect_user_stats user:@someone</code> - Specific user</span></li>
+                                        <li><span class="dropdown-item-text"><code>/stats_progress job_id</code> - Check progress</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            {% for guild in guilds_with_stats %}
+                            <div class="col-lg-4 col-md-6 mb-4">
+                                <div class="card border-0 shadow-sm h-100">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center mb-3">
+                                            {% if guild.icon_url %}
+                                            <img src="{{ guild.icon_url }}" alt="{{ guild.name }}" class="rounded-circle me-3" style="width: 48px; height: 48px;">
+                                            {% else %}
+                                            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                                                <i class="fas fa-server text-white"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0 text-truncate" title="{{ guild.name }}">{{ guild.name }}</h6>
+                                                <small class="text-muted">{{ guild.user_count }} user{{ guild.user_count|pluralize }}</small>
+                                            </div>
+                                        </div>
+
+                                        <div class="row text-center mb-3">
+                                            <div class="col-6">
+                                                <div class="border-end">
+                                                    <div class="fw-bold text-primary fs-5">{{ guild.message_count|floatformat:0|default:"0" }}</div>
+                                                    <small class="text-muted">Messages</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="fw-bold text-success fs-5">{{ guild.channel_count }}</div>
+                                                <small class="text-muted">Channels</small>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Updated {{ guild.last_updated|timesince }} ago
+                                            </small>
+                                            <a href="{% url 'user_stats:guild_stats' guild.guild_id %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-chart-line me-1"></i>
+                                                View Stats
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-chart-bar fa-4x text-muted"></i>
+                            </div>
+                            <h5 class="text-muted">No Statistics Data Available</h5>
+                            <p class="text-muted mb-4">
+                                No message statistics have been collected yet for any of your Discord servers.
+                            </p>
+
+                            <div class="card bg-light border-0 p-4 mx-auto" style="max-width: 500px;">
+                                <h6 class="fw-bold mb-3">
+                                    <i class="fas fa-robot me-2"></i>
+                                    How to Collect Statistics
+                                </h6>
+                                <div class="text-start">
+                                    <p class="mb-2"><strong>1. Use Discord Bot Commands:</strong></p>
+                                    <ul class="list-unstyled ps-3">
+                                        <li class="mb-1"><code>/collect_user_stats</code> - Collect stats for all users</li>
+                                        <li class="mb-1"><code>/collect_user_stats user:@someone</code> - Collect for specific user</li>
+                                        <li class="mb-1"><code>/collect_user_stats days_back:30</code> - Collect last 30 days</li>
+                                        <li class="mb-1"><code>/stats_progress job_id</code> - Check collection progress</li>
+                                    </ul>
+                                    <p class="mb-2 mt-3"><strong>2. Wait for Collection:</strong></p>
+                                    <p class="text-muted small ps-3">Large servers may take several minutes to process.</p>
+                                    <p class="mb-2 mt-3"><strong>3. View Results:</strong></p>
+                                    <p class="text-muted small ps-3">Statistics will appear here once collection is complete.</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -464,3 +464,4 @@ uv run python manage.py setup_discord_oauth --config-path ~/.config/weakauras-bo
 - ✅ Discord tokens (stored in `~/.config/weakauras-bot/token.yml`)
 - ✅ Server macro data (stored in `~/weakauras-bot-data/`)
 - ❌ Django database (gets recreated automatically by migrations)
+- when you restart the services, always use `bin/dev-start-all` so that both services are always running at the same time

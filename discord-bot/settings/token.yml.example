@@ -58,3 +58,9 @@ django:
 
   # Legacy single secret key (deprecated - use secret_keys above)
   # secret_key: "your_secret_key_here"
+
+  # Feature flags for web interface
+  features:
+    # Enable/disable Discord preview in macro creation form
+    # Shows a real-time preview with Discord formatting, timestamps, etc.
+    macro_preview: true

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeakAuras Bot Dashboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         .server-card {
             transition: transform 0.2s;
@@ -24,7 +25,11 @@
             <a class="navbar-brand" href="{% url 'servers:dashboard' %}">
                 <strong>WeakAuras Bot</strong> Dashboard
             </a>
-            <div class="navbar-nav ms-auto">
+            <div class="navbar-nav ms-auto d-flex align-items-center">
+                <a class="nav-link text-white me-3" href="{% url 'user_stats:dashboard' %}">
+                    <i class="fas fa-chart-bar me-1"></i>
+                    User Statistics
+                </a>
                 <span class="navbar-text me-3">Welcome, {{ user.username }}!</span>
                 <a class="btn btn-outline-light btn-sm" href="{% url 'account_logout' %}">Logout</a>
             </div>
@@ -54,7 +59,7 @@
                     <div class="row">
                         {% for server in available_servers %}
                             <div class="col-md-6 col-lg-4 mb-4">
-                                <div class="card server-card h-100" onclick="location.href='{% url 'servers:server_detail' server.guild_id %}'">
+                                <div class="card server-card h-100" onclick="location.href='{% url 'servers:server_hub' server.guild_id %}'">
                                     <div class="card-body">
                                         <h5 class="card-title">
                                             {% if server.guild_icon %}

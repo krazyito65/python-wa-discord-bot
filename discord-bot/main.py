@@ -40,6 +40,7 @@ from bot import WeakAurasBot
 from commands import setup_macro_commands
 from commands.config_commands import setup_config_commands
 from commands.ping_commands import setup_ping_commands
+from commands.stats_commands import setup_stats_commands
 from commands.wiki_commands import setup_wiki_commands
 from events import setup_temperature_event
 from utils.logging import get_logger, setup_logging
@@ -209,6 +210,9 @@ def main() -> None:
 
     setup_wiki_commands(bot)
     logger.info("Wiki commands registered")
+
+    setup_stats_commands(bot)
+    logger.info("User statistics commands registered")
 
     # Setup events
     setup_temperature_event(bot)

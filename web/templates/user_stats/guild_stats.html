@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ guild.name }} - User Statistics - WeakAuras{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #9f4af3, #7c3aed); color: white;">
+                    <div>
+                        <h2 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            {{ guild.name }} - User Statistics
+                        </h2>
+                        <p class="mb-0 mt-1 opacity-75">Message activity by user and channel</p>
+                    </div>
+                    <a href="{% url 'user_stats:dashboard' %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ total_messages|floatformat:0 }}</h3>
+                    <small>Total Messages</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ total_users }}</h3>
+                    <small>Active Users</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-hashtag fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ total_channels }}</h3>
+                    <small>Channels</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-chart-line fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ avg_messages_per_user|floatformat:0 }}</h3>
+                    <small>Avg per User</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>
+                        Filters
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" id="filterForm">
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Time Range</label>
+                                <select name="time_range" class="form-select" onchange="document.getElementById('filterForm').submit();">
+                                    <option value="all" {% if time_range == 'all' %}selected{% endif %}>All Time</option>
+                                    <option value="7d" {% if time_range == '7d' %}selected{% endif %}>Last 7 Days</option>
+                                    <option value="30d" {% if time_range == '30d' %}selected{% endif %}>Last 30 Days</option>
+                                    <option value="90d" {% if time_range == '90d' %}selected{% endif %}>Last 90 Days</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">User</label>
+                                <select name="user" class="form-select" onchange="document.getElementById('filterForm').submit();">
+                                    <option value="">All Users</option>
+                                    {% for user in available_users %}
+                                    <option value="{{ user.user_id }}" {% if selected_user_id == user.user_id %}selected{% endif %}>
+                                        {{ user.display_name|default:user.username }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Channel</label>
+                                <select name="channel" class="form-select" onchange="document.getElementById('filterForm').submit();">
+                                    <option value="">All Channels</option>
+                                    {% for channel in available_channels %}
+                                    <option value="{{ channel.channel_id }}" {% if selected_channel_id == channel.channel_id %}selected{% endif %}>
+                                        #{{ channel.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-3 d-flex align-items-end">
+                                <a href="{% url 'user_stats:guild_stats' guild.guild_id %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i>
+                                    Clear Filters
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if user_stats %}
+    <!-- User Statistics Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        User Rankings
+                        {% if time_range != 'all' %}
+                        <small class="text-muted">
+                            - {% if time_range == '7d' %}Last 7 Days{% elif time_range == '30d' %}Last 30 Days{% elif time_range == '90d' %}Last 90 Days{% endif %}
+                        </small>
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>User</th>
+                                    <th>Total Messages</th>
+                                    <th>Channels Active</th>
+                                    <th>Top Channel</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user_id, stats in user_stats %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">#{{ forloop.counter }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            {% if stats.user.avatar_url %}
+                                            <img src="{{ stats.user.avatar_url }}" alt="{{ stats.user.username }}" class="rounded-circle me-2" style="width: 32px; height: 32px;">
+                                            {% else %}
+                                            <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
+                                                <i class="fas fa-user text-white" style="font-size: 14px;"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div>
+                                                <div class="fw-bold">{{ stats.user.display_name|default:stats.user.username }}</div>
+                                                {% if stats.user.display_name != stats.user.username %}
+                                                <small class="text-muted">{{ stats.user.username }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-primary">{{ stats.total_messages|floatformat:0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">{{ stats.channels|length }}</span>
+                                    </td>
+                                    <td>
+                                        {% for channel_id, channel_info in stats.channels.items %}
+                                            {% if forloop.first %}
+                                                <div class="d-flex align-items-center">
+                                                    <span class="me-2">#{{ channel_info.channel.name }}</span>
+                                                    <small class="text-muted">({{ channel_info.message_count }} msgs)</small>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'user_stats:user_detail' guild.guild_id stats.user.user_id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Data Found</h5>
+                    <p class="text-muted">
+                        {% if selected_user_id or selected_channel_id or time_range != 'all' %}
+                            No statistics match the current filters. Try adjusting your filters or clearing them.
+                        {% else %}
+                            No user statistics available for this server. Use the Discord bot to collect statistics first.
+                        {% endif %}
+                    </p>
+                    {% if not selected_user_id and not selected_channel_id and time_range == 'all' %}
+                    <div class="mt-4">
+                        <h6 class="fw-bold">How to collect statistics:</h6>
+                        <p class="text-muted mb-2">Use these Discord bot commands in your server:</p>
+                        <code>/collect_user_stats</code> - Collect stats for all users<br>
+                        <code>/stats_progress job_id</code> - Check collection progress
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if recent_jobs %}
+    <!-- Recent Collection Jobs -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Recent Collection Jobs
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Job ID</th>
+                                    <th>Target</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Completed</th>
+                                    <th>Results</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in recent_jobs %}
+                                <tr>
+                                    <td><code>{{ job.id }}</code></td>
+                                    <td>
+                                        {% if job.target_user %}
+                                            {{ job.target_user.username }}
+                                        {% else %}
+                                            All users
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge
+                                            {% if job.status == 'completed' %}bg-success
+                                            {% elif job.status == 'failed' %}bg-danger
+                                            {% elif job.status == 'running' %}bg-primary
+                                            {% else %}bg-secondary
+                                            {% endif %}">
+                                            {{ job.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ job.created_at|timesince }} ago</td>
+                                    <td>
+                                        {% if job.completed_at %}
+                                            {{ job.completed_at|timesince }} ago
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.status == 'completed' %}
+                                            <small class="text-muted">
+                                                {{ job.messages_processed|floatformat:0 }} messages,
+                                                {{ job.users_updated }} users
+                                            </small>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.live-update-indicator {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    z-index: 1000;
+    display: none;
+}
+
+.stats-updating {
+    background: linear-gradient(45deg, #9f4af3, #7c3aed);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const guildId = {{ guild.guild_id }};
+    const liveUpdateUrl = "{% url 'user_stats:live_stats_update' guild.guild_id %}";
+    let lastStatsCount = {{ user_rankings|length }};
+    let lastTotalMessages = {{ total_messages|default:0 }};
+    let updateInterval;
+
+    // Create live update indicator
+    const indicator = document.createElement('div');
+    indicator.className = 'live-update-indicator alert alert-info';
+    indicator.innerHTML = `
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span>Checking for updates...</span>
+        </div>
+    `;
+    document.body.appendChild(indicator);
+
+    function checkForUpdates() {
+        fetch(liveUpdateUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error('Error checking updates:', data.error);
+                    return;
+                }
+
+                // Check if stats have been updated
+                const hasNewStats = data.stats_count > lastStatsCount || data.total_messages > lastTotalMessages;
+
+                if (hasNewStats) {
+                    // Show update notification
+                    showUpdateNotification(data);
+
+                    // Update displayed counts
+                    updateDisplayedCounts(data);
+
+                    // Update last known values
+                    lastStatsCount = data.stats_count;
+                    lastTotalMessages = data.total_messages;
+                }
+
+                // Update job progress if available
+                if (data.job_progress) {
+                    updateJobProgress(data.job_progress);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching updates:', error);
+            });
+    }
+
+    function showUpdateNotification(data) {
+        // Show live update indicator
+        indicator.style.display = 'block';
+        indicator.className = 'live-update-indicator alert alert-success';
+        indicator.innerHTML = `
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <strong>Stats Updated!</strong><br>
+                    <small>${data.total_messages.toLocaleString()} total messages from ${data.user_count} users</small>
+                </div>
+                <button class="btn btn-sm btn-outline-success" onclick="window.location.reload()">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh Page
+                </button>
+            </div>
+        `;
+
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            indicator.style.display = 'none';
+        }, 10000);
+    }
+
+    function updateDisplayedCounts(data) {
+        // Update summary cards if they exist
+        const totalMessagesElement = document.querySelector('.total-messages-count');
+        if (totalMessagesElement) {
+            totalMessagesElement.textContent = data.total_messages.toLocaleString();
+        }
+
+        const userCountElement = document.querySelector('.user-count');
+        if (userCountElement) {
+            userCountElement.textContent = data.user_count;
+        }
+
+        const channelCountElement = document.querySelector('.channel-count');
+        if (channelCountElement) {
+            channelCountElement.textContent = data.channel_count;
+        }
+    }
+
+    function updateJobProgress(jobProgress) {
+        // Add progress indicator to page if collection is running
+        if (jobProgress.status === 'running' || jobProgress.status === 'pending') {
+            let progressBar = document.querySelector('.collection-progress');
+            if (!progressBar && jobProgress.progress_total > 0) {
+                // Create progress bar
+                const progressContainer = document.createElement('div');
+                progressContainer.className = 'alert alert-info collection-progress';
+                progressContainer.innerHTML = `
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                        <strong>Collection in Progress</strong>
+                    </div>
+                    <div class="progress mb-2">
+                        <div class="progress-bar stats-updating" role="progressbar"
+                             style="width: ${jobProgress.progress_percentage}%">
+                            ${jobProgress.progress_percentage.toFixed(1)}%
+                        </div>
+                    </div>
+                    <small>Processing channel ${jobProgress.progress_current} of ${jobProgress.progress_total}</small>
+                `;
+
+                // Insert at the top of the main content
+                const mainContent = document.querySelector('.container-fluid');
+                if (mainContent && mainContent.firstChild) {
+                    mainContent.insertBefore(progressContainer, mainContent.firstChild);
+                }
+            } else if (progressBar) {
+                // Update existing progress bar
+                const progressBarElement = progressBar.querySelector('.progress-bar');
+                if (progressBarElement) {
+                    progressBarElement.style.width = `${jobProgress.progress_percentage}%`;
+                    progressBarElement.textContent = `${jobProgress.progress_percentage.toFixed(1)}%`;
+                }
+
+                const statusText = progressBar.querySelector('small');
+                if (statusText) {
+                    statusText.textContent = `Processing channel ${jobProgress.progress_current} of ${jobProgress.progress_total}`;
+                }
+            }
+        } else if (jobProgress.status === 'completed') {
+            // Remove progress bar and show completion
+            const progressBar = document.querySelector('.collection-progress');
+            if (progressBar) {
+                progressBar.className = 'alert alert-success';
+                progressBar.innerHTML = `
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Collection Complete!</strong>
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="window.location.reload()">
+                            <i class="fas fa-sync-alt me-1"></i>View Results
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // Start checking for updates every 5 seconds
+    updateInterval = setInterval(checkForUpdates, 5000);
+
+    // Initial check after 2 seconds
+    setTimeout(checkForUpdates, 2000);
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (updateInterval) {
+            clearInterval(updateInterval);
+        }
+    });
+});
+</script>
+{% endblock %}
