@@ -411,17 +411,21 @@ cp discord-bot/settings/token.yml ~/.config/weakauras-bot/
 ```
 
 ### Server Data Protection
-Configure `token.yml` to store server data outside the repository:
+Configure `token.yml` to store server data and database outside the repository:
 ```yaml
 storage:
   data_directory: "~/weakauras-bot-data"  # External storage (safe)
   # data_directory: "server_data"         # Repository storage (unsafe)
+
+django:
+  database_url: "sqlite:///~/weakauras-bot-data/statistics.db"  # External database (safe)
+  # database_url: "sqlite:///web/db.sqlite3"                   # Repository database (unsafe)
 ```
 
 ### Benefits
-- **Safe from `git clean -dffx`**: Both config and data stored outside repository
-- **Persistent across resets**: Configuration and server macros survive repository cleanup
-- **Easy backups**: Single directories contain all sensitive data
+- **Safe from `git clean -dffx`**: Config, server data, and statistics database stored outside repository
+- **Persistent across resets**: Configuration, server macros, and user statistics survive repository cleanup
+- **Easy backups**: Single directories contain all sensitive data and user statistics
 - **Production ready**: External storage is standard for production deployments
 - **Automatic fallback**: Bot automatically finds config in multiple locations
 - **Auto-recovery**: Django migration automatically restores Discord OAuth from external config
@@ -463,5 +467,6 @@ uv run python manage.py setup_discord_oauth --config-path ~/.config/weakauras-bo
 **What Survives `git clean -dffx`:**
 - ✅ Discord tokens (stored in `~/.config/weakauras-bot/token.yml`)
 - ✅ Server macro data (stored in `~/weakauras-bot-data/`)
-- ❌ Django database (gets recreated automatically by migrations)
+- ✅ User statistics database (stored in `~/weakauras-bot-data/statistics.db`)
+- ❌ Repository database (if using `web/db.sqlite3` path - recreated by migrations)
 - when you restart the services, always use `bin/dev-start-all` so that both services are always running at the same time

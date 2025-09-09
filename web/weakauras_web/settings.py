@@ -165,12 +165,48 @@ WSGI_APPLICATION = "weakauras_web.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Check for database configuration in bot config
+_database_url = _bot_config.get("django", {}).get("database_url")
+
+if _database_url:
+    # Use configured database URL (supports SQLite, PostgreSQL, MySQL, etc.)
+    import os
+    from pathlib import Path as PathLib
+
+    if _database_url.startswith("sqlite:///~/"):
+        # Expand ~ to home directory for SQLite paths
+        sqlite_path = _database_url.replace("sqlite:///~/", "")
+        expanded_path = os.path.expanduser(f"~/{sqlite_path}")
+        # Ensure directory exists
+        PathLib(expanded_path).parent.mkdir(parents=True, exist_ok=True)
+        _database_url = f"sqlite:///{expanded_path}"
+
+    # Parse database URL (requires dj-database-url for complex URLs)
+    if _database_url.startswith("sqlite:///"):
+        db_path = _database_url.replace("sqlite:///", "")
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": db_path,
+            }
+        }
+    else:
+        # For PostgreSQL, MySQL, etc. - would need dj-database-url
+        # For now, fall back to default
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / "db.sqlite3",
+            }
+        }
+else:
+    # Use default SQLite database in repository (unsafe - deleted by git clean)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
 
 
 # Password validation
