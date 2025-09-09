@@ -46,7 +46,7 @@ fi
 
 # Start Django server in background
 echo "Starting Django server in background..."
-nohup uv run python web/manage.py runserver 8000 > logs/django.log 2>&1 &
+nohup uv run python manage.py runserver 0.0.0.0:8000 > logs/django.log 2>&1 &
 DJANGO_PID=$!
 
 # Start Discord bot in background

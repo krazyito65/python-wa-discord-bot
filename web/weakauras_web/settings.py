@@ -102,9 +102,12 @@ def get_secret_key():
 SECRET_KEY = get_secret_key()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Set DEBUG based on environment - False for production
+DEBUG = ENVIRONMENT == "dev"
 
-ALLOWED_HOSTS = []
+# Allow all hosts for internet access - configure your domain/IP here
+# For production, replace with your actual domain name
+ALLOWED_HOSTS = ["*"]  # Allow all hosts - change to specific domain in production
 
 
 # Application definition
@@ -141,6 +144,27 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
 ]
+
+# Security settings for internet deployment
+if not DEBUG:
+    # Force HTTPS
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Secure cookies
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
+    # Prevent clickjacking
+    X_FRAME_OPTIONS = "DENY"
+
+    # Content type sniffing protection
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    # XSS protection
+    SECURE_BROWSER_XSS_FILTER = True
 
 ROOT_URLCONF = "weakauras_web.urls"
 
@@ -274,7 +298,8 @@ ACCOUNT_SIGNUP_FIELDS = []  # No signup fields needed - Discord OAuth only
 
 # Use custom social account adapter but keep default account adapter
 SOCIALACCOUNT_ADAPTER = "authentication.adapters.DiscordOnlySocialAccountAdapter"
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
+# Use HTTPS in production, HTTP in development
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https" if ENVIRONMENT == "prod" else "http"
 
 # Force Discord OAuth only - disable regular signup/login
 ACCOUNT_SIGNUP_REDIRECT_URL = "/dashboard/"
@@ -302,6 +327,13 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [
     BASE_DIR / "static",
 ]
+
+# Serve static files in production (only for development/simple deployments)
+# For production with high traffic, use nginx or similar
+if not DEBUG:
+    # Add WhiteNoise middleware for static file serving
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Discord OAuth credentials are configured in the database via SocialApp model
 # No need to load from YAML - this was causing conflicts
