@@ -128,6 +128,7 @@ INSTALLED_APPS = [
     "macros",
     "servers",
     "shared",
+    "user_stats",
 ]
 
 MIDDLEWARE = [
@@ -281,6 +282,18 @@ MESSAGE_TAGS = {
 
 # Ensure messages persist across redirects using session storage
 MESSAGE_STORAGE = "django.contrib.messages.storage.session.SessionStorage"
+
+
+# Feature flags configuration
+def load_feature_flags():
+    """Load feature flags from configuration with defaults."""
+    features = _bot_config.get("django", {}).get("features", {})
+    return {
+        "macro_preview": features.get("macro_preview", True),  # Default: enabled
+    }
+
+
+FEATURE_FLAGS = load_feature_flags()
 
 # Logging configuration to show debug statements
 LOGGING = {

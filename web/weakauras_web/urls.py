@@ -27,6 +27,7 @@ urlpatterns = [
     path("", RedirectView.as_view(url="/dashboard/", permanent=False), name="home"),
     path("dashboard/", include("servers.urls")),
     path("macros/", include("macros.urls")),
+    path("stats/", include("user_stats.urls")),
     # API URLs
     path("api/", include("macros.api_urls")),
 ]

@@ -7,6 +7,7 @@ for specific Discord servers through the web interface.
 
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
@@ -93,6 +94,7 @@ def macro_add(request, guild_id):  # noqa: PLR0911
                         "name": macro_name,
                         "message": macro_message,
                     },
+                    "feature_flags": settings.FEATURE_FLAGS,
                 }
 
                 return render(request, "macros/macro_add.html", context)
@@ -135,6 +137,7 @@ def macro_add(request, guild_id):  # noqa: PLR0911
                     "name": macro_name,
                     "message": macro_message,
                 },
+                "feature_flags": settings.FEATURE_FLAGS,
             }
 
             return render(request, "macros/macro_add.html", context)
@@ -153,6 +156,7 @@ def macro_add(request, guild_id):  # noqa: PLR0911
         context = {
             "guild": guild_info,
             "guild_id": guild_id,
+            "feature_flags": settings.FEATURE_FLAGS,
         }
 
         return render(request, "macros/macro_add.html", context)

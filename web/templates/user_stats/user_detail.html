@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ target_user.display_name|default:target_user.username }} - {{ guild.name }} - User Statistics{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #9f4af3, #7c3aed); color: white;">
+                    <div class="d-flex align-items-center">
+                        {% if target_user.avatar_url %}
+                        <img src="{{ target_user.avatar_url }}" alt="{{ target_user.username }}" class="rounded-circle me-3" style="width: 56px; height: 56px;">
+                        {% else %}
+                        <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center me-3" style="width: 56px; height: 56px;">
+                            <i class="fas fa-user text-white fa-lg"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <h2 class="mb-0">{{ target_user.display_name|default:target_user.username }}</h2>
+                            <p class="mb-0 opacity-75">
+                                {% if target_user.display_name != target_user.username %}
+                                    {{ target_user.username }} -
+                                {% endif %}
+                                User Statistics in {{ guild.name }}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{% url 'user_stats:guild_stats' guild.guild_id %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        Back to Server Stats
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-comments fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ total_messages|floatformat:0 }}</h3>
+                    <small>Total Messages</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-week fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ messages_7d|floatformat:0 }}</h3>
+                    <small>Last 7 Days</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-alt fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ messages_30d|floatformat:0 }}</h3>
+                    <small>Last 30 Days</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <i class="fas fa-hashtag fa-2x mb-2"></i>
+                    <h3 class="mb-0">{{ user_stats.count }}</h3>
+                    <small>Active Channels</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Messages by Channel
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="channelChart" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Channel Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="pieChart" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Time-based Comparison Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Activity Over Time
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="timeChart" height="300"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Channel Statistics -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>
+                        Channel Breakdown
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Channel</th>
+                                    <th>Total Messages</th>
+                                    <th>Last 7 Days</th>
+                                    <th>Last 30 Days</th>
+                                    <th>Last 90 Days</th>
+                                    <th>Last Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for stat in user_stats %}
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-primary">#{{ forloop.counter }}</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-hashtag text-muted me-2"></i>
+                                            <span class="fw-bold">{{ stat.channel.name }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-primary">{{ stat.total_messages|floatformat:0 }}</span>
+                                        <div class="progress mt-1" style="height: 4px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                 style="width: {% widthratio stat.total_messages total_messages 100 %}%"></div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-success">{{ stat.messages_last_7_days|floatformat:0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-info">{{ stat.messages_last_30_days|floatformat:0 }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-warning">{{ stat.messages_last_90_days|floatformat:0 }}</span>
+                                    </td>
+                                    <td>
+                                        {% if stat.last_message_date %}
+                                            <span class="text-muted" title="{{ stat.last_message_date }}">
+                                                {{ stat.last_message_date|timesince }} ago
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chartData = {{ chart_data|safe }};
+
+    // Channel Bar Chart
+    const channelCtx = document.getElementById('channelChart').getContext('2d');
+    new Chart(channelCtx, {
+        type: 'bar',
+        data: {
+            labels: chartData.channels,
+            datasets: [{
+                label: 'Total Messages',
+                data: chartData.messages,
+                backgroundColor: 'rgba(159, 74, 243, 0.8)',
+                borderColor: 'rgba(159, 74, 243, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
+                    }
+                }
+            }
+        }
+    });
+
+    // Pie Chart
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'doughnut',
+        data: {
+            labels: chartData.channels,
+            datasets: [{
+                data: chartData.messages,
+                backgroundColor: [
+                    'rgba(159, 74, 243, 0.8)',
+                    'rgba(124, 58, 237, 0.8)',
+                    'rgba(99, 102, 241, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(16, 185, 129, 0.8)',
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(132, 204, 22, 0.8)',
+                    'rgba(234, 179, 8, 0.8)',
+                    'rgba(251, 146, 60, 0.8)',
+                    'rgba(249, 115, 22, 0.8)',
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            }
+        }
+    });
+
+    // Time-based Line Chart
+    const timeCtx = document.getElementById('timeChart').getContext('2d');
+    new Chart(timeCtx, {
+        type: 'line',
+        data: {
+            labels: chartData.channels,
+            datasets: [
+                {
+                    label: 'Last 7 Days',
+                    data: chartData.messages_7d,
+                    borderColor: 'rgba(34, 197, 94, 1)',
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Last 30 Days',
+                    data: chartData.messages_30d,
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'Last 90 Days',
+                    data: chartData.messages_90d,
+                    borderColor: 'rgba(251, 146, 60, 1)',
+                    backgroundColor: 'rgba(251, 146, 60, 0.1)',
+                    tension: 0.4
+                },
+                {
+                    label: 'All Time',
+                    data: chartData.messages,
+                    borderColor: 'rgba(159, 74, 243, 1)',
+                    backgroundColor: 'rgba(159, 74, 243, 0.1)',
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        precision: 0
+                    }
+                },
+                x: {
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 0
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.progress {
+    background-color: rgba(159, 74, 243, 0.1);
+}
+
+.progress-bar {
+    background-color: rgba(159, 74, 243, 0.8);
+}
+
+.badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+</style>
+{% endblock %}

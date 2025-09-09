@@ -1,41 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ guild_name }} - WeakAuras Bot Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .brand-purple { background-color: #9f4af3; }
-        .macro-card { transition: transform 0.2s; }
-        .macro-card:hover { transform: translateY(-1px); }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark brand-purple">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'servers:dashboard' %}">
-                <strong>WeakAuras Bot</strong> Dashboard
-            </a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">{{ user.username }}</span>
-                <a class="btn btn-outline-light btn-sm" href="{% url 'account_logout' %}">Logout</a>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container mt-4">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                    <strong>{{ message.tags|capfirst|default:'Info' }}:</strong> {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% else %}
-            <!-- Debug: No messages found -->
-            <div class="alert alert-warning" style="display: none;">No messages to display</div>
-        {% endif %}
+{% block title %}{{ guild_name }} - Macro Management{% endblock %}
+
+{% block extra_css %}
+<style>
+    .macro-card {
+        transition: transform 0.2s;
+    }
+    .macro-card:hover {
+        transform: translateY(-1px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
 
         <!-- Server Header -->
         <div class="row mb-4">
@@ -46,11 +25,11 @@
                         <p class="text-muted">Server ID: {{ guild_id }} | {{ macro_count }} macros</p>
                     </div>
                     <div>
-                        <a href="{% url 'servers:dashboard' %}" class="btn btn-outline-secondary me-2">
-                            ← Back to Servers
+                        <a href="{% url 'servers:server_hub' guild_id %}" class="btn btn-outline-secondary me-2">
+                            <i class="fas fa-arrow-left me-1"></i>Back to Server Hub
                         </a>
                         <a href="{% url 'macros:macro_add' guild_id=guild_id %}" class="btn btn-success">
-                            + Add Macro
+                            <i class="fas fa-plus me-1"></i>Add Macro
                         </a>
                     </div>
                 </div>
@@ -206,8 +185,10 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
         function showMacroModal(name, content) {
             document.getElementById('macroModalTitle').textContent = name;
             document.getElementById('macroContent').value = content;
@@ -440,6 +421,5 @@
             errorDiv.classList.add('d-none');
             // Form will submit normally - no preventDefault() or AJAX
         });
-    </script>
-</body>
-</html>
+</script>
+{% endblock %}
