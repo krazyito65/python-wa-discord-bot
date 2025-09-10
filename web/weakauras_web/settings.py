@@ -233,6 +233,24 @@ else:
     }
 
 
+# Caching configuration for Discord API rate limiting
+# https://docs.djangoproject.com/en/5.2/topics/cache/
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "weakauras-cache",
+        "TIMEOUT": 300,  # Default 5 minutes
+        "OPTIONS": {
+            "MAX_ENTRIES": 1000,
+        },
+    }
+}
+
+# Discord API cache timeout settings (in seconds)
+DISCORD_GUILD_CACHE_TIMEOUT = 300  # 5 minutes for guild data
+DISCORD_USER_CACHE_TIMEOUT = 300  # 5 minutes for user data
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 

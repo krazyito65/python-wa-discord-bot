@@ -7,6 +7,8 @@ specifically for fetching user guild information for server selection.
 
 import requests
 from allauth.socialaccount.models import SocialToken
+from django.conf import settings
+from django.core.cache import cache
 
 
 class DiscordAPIError(Exception):
@@ -34,6 +36,9 @@ def get_user_discord_token(user) -> str | None:
 def get_user_guilds(user) -> list[dict]:
     """Fetch the list of Discord guilds/servers the user belongs to.
 
+    Uses caching to avoid hitting Discord API rate limits. Cache duration
+    can be configured via DISCORD_GUILD_CACHE_TIMEOUT setting (default: 300 seconds).
+
     Args:
         user: Django user object with Discord OAuth token.
 
@@ -44,6 +49,13 @@ def get_user_guilds(user) -> list[dict]:
     Raises:
         DiscordAPIError: If Discord API request fails.
     """
+    # Check cache first to avoid rate limiting
+    cache_key = f"discord_guilds_{user.id}"
+    cached_guilds = cache.get(cache_key)
+
+    if cached_guilds is not None:
+        return cached_guilds
+
     token = get_user_discord_token(user)
     if not token:
         msg = "No Discord token available for user"
@@ -56,7 +68,14 @@ def get_user_guilds(user) -> list[dict]:
             "https://discord.com/api/v10/users/@me/guilds", headers=headers, timeout=10
         )
         response.raise_for_status()
-        return response.json()
+        guilds = response.json()
+
+        # Cache the result to avoid rate limiting
+        # Default cache timeout is 5 minutes, configurable via settings
+        cache_timeout = getattr(settings, "DISCORD_GUILD_CACHE_TIMEOUT", 300)
+        cache.set(cache_key, guilds, cache_timeout)
+
+        return guilds
 
     except requests.RequestException as e:
         msg = f"Failed to fetch user guilds: {e}"
@@ -66,12 +85,22 @@ def get_user_guilds(user) -> list[dict]:
 def get_user_info(user) -> dict | None:
     """Fetch Discord user information.
 
+    Uses caching to avoid hitting Discord API rate limits. Cache duration
+    can be configured via DISCORD_USER_CACHE_TIMEOUT setting (default: 300 seconds).
+
     Args:
         user: Django user object with Discord OAuth token.
 
     Returns:
         Optional[Dict]: User information from Discord API, None if request fails.
     """
+    # Check cache first to avoid rate limiting
+    cache_key = f"discord_user_{user.id}"
+    cached_user_info = cache.get(cache_key)
+
+    if cached_user_info is not None:
+        return cached_user_info
+
     token = get_user_discord_token(user)
     if not token:
         return None
@@ -83,7 +112,14 @@ def get_user_info(user) -> dict | None:
             "https://discord.com/api/v10/users/@me", headers=headers, timeout=10
         )
         response.raise_for_status()
-        return response.json()
+        user_info = response.json()
+
+        # Cache the result to avoid rate limiting
+        # Default cache timeout is 5 minutes, configurable via settings
+        cache_timeout = getattr(settings, "DISCORD_USER_CACHE_TIMEOUT", 300)
+        cache.set(cache_key, user_info, cache_timeout)
+
+        return user_info
 
     except requests.RequestException:
         return None
@@ -132,3 +168,28 @@ def filter_available_servers(
     available_servers.sort(key=lambda x: x["guild_name"].lower())
 
     return available_servers
+
+
+def clear_user_discord_cache(user) -> None:
+    """Clear cached Discord data for a specific user.
+
+    Useful when user's Discord server membership changes or when
+    debugging rate limit issues.
+
+    Args:
+        user: Django user object to clear cache for.
+    """
+    cache.delete(f"discord_guilds_{user.id}")
+    cache.delete(f"discord_user_{user.id}")
+
+
+def clear_all_discord_cache() -> None:
+    """Clear all Discord API cache data.
+
+    This is a more aggressive cache clearing that removes all Discord-related
+    cached data. Use sparingly as it will cause all users to hit the API again.
+    """
+    # Django's cache.clear() clears all cache, which might be too broad
+    # For production, you might want to implement a more targeted approach
+    # using cache key patterns if your cache backend supports it
+    cache.clear()
