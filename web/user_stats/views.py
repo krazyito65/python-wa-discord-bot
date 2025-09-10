@@ -154,7 +154,7 @@ def guild_user_stats(request, guild_id):
         # Get channel statistics using database aggregation
         channel_stats_qs = (
             base_queryset.values(
-                "channel__channel_id", "channel__name", "channel__type"
+                "channel__channel_id", "channel__name", "channel__channel_type"
             )
             .annotate(
                 total_messages=Sum(message_field),
@@ -210,7 +210,7 @@ def guild_user_stats(request, guild_id):
                     "channel": {
                         "channel_id": ch["channel__channel_id"],
                         "name": ch["channel__name"],
-                        "type": ch["channel__type"],
+                        "type": ch["channel__channel_type"],
                     },
                     "total_messages": ch["total_messages"],
                     "user_count": ch["user_count"],
