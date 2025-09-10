@@ -72,8 +72,136 @@ def user_stats_dashboard(request):
         return redirect("servers:dashboard")
 
 
+def _get_message_field_for_time_range(time_range: str) -> str:
+    """Get the appropriate message field name for the given time range."""
+    time_range_fields = {
+        "7d": "messages_last_7_days",
+        "30d": "messages_last_30_days",
+        "90d": "messages_last_90_days",
+    }
+    return time_range_fields.get(time_range, "total_messages")
+
+
+def _build_base_queryset(
+    guild, message_field: str, selected_user_id=None, selected_channel_id=None
+):
+    """Build the base queryset for message statistics with filters applied."""
+    base_queryset = MessageStatistics.objects.select_related("user", "channel").filter(
+        channel__guild=guild,
+        **{
+            f"{message_field}__gt": 0
+        },  # Only include records with messages in time range
+    )
+
+    # Apply filters
+    if selected_user_id:
+        base_queryset = base_queryset.filter(user__user_id=selected_user_id)
+    if selected_channel_id:
+        base_queryset = base_queryset.filter(channel__channel_id=selected_channel_id)
+
+    return base_queryset
+
+
+def _get_user_statistics(base_queryset, message_field: str):
+    """Get user statistics with efficient aggregation."""
+    # Get total counts
+    totals = base_queryset.aggregate(
+        total_messages=Sum(message_field),
+        total_users=Count("user", distinct=True),
+        total_channels=Count("channel", distinct=True),
+    )
+
+    # Get user statistics with efficient aggregation (no per-user channel breakdown)
+    user_stats_qs = (
+        base_queryset.values(
+            "user__user_id",
+            "user__username",
+            "user__display_name",
+            "user__avatar_url",
+        )
+        .annotate(
+            total_messages=Sum(message_field),
+            channel_count=Count("channel", distinct=True),
+        )
+        .order_by("-total_messages")[:50]  # Limit to top 50 users for performance
+    )
+
+    # Get top channel for each user efficiently
+    user_ids = [user_stat["user__user_id"] for user_stat in user_stats_qs]
+    top_channels_qs = (
+        base_queryset.filter(user__user_id__in=user_ids)
+        .values("user__user_id", "channel__name")
+        .annotate(messages=Sum(message_field))
+        .order_by("user__user_id", "-messages")
+    )
+
+    # Group top channels by user
+    top_channels_by_user = {}
+    for tc in top_channels_qs:
+        user_id = tc["user__user_id"]
+        if user_id not in top_channels_by_user:
+            top_channels_by_user[user_id] = {
+                "name": tc["channel__name"],
+                "messages": tc["messages"],
+            }
+
+    # Convert to format expected by template
+    user_stats_list = []
+    for user_stat in user_stats_qs:
+        user_id = user_stat["user__user_id"]
+        top_channel = top_channels_by_user.get(user_id, {"name": "N/A", "messages": 0})
+
+        user_stats_list.append(
+            (
+                user_id,
+                {
+                    "user": {
+                        "user_id": user_id,
+                        "username": user_stat["user__username"],
+                        "display_name": user_stat["user__display_name"]
+                        or user_stat["user__username"],
+                        "avatar_url": user_stat["user__avatar_url"],
+                    },
+                    "total_messages": user_stat["total_messages"],
+                    "channel_count": user_stat["channel_count"],
+                    "top_channel": top_channel,
+                    "channels": {},  # Empty for now to avoid N+1 queries
+                },
+            )
+        )
+
+    return totals, user_stats_list
+
+
+def _get_channel_statistics(base_queryset, message_field: str):
+    """Get channel statistics efficiently."""
+    channel_stats_qs = (
+        base_queryset.values("channel__channel_id", "channel__name")
+        .annotate(
+            total_messages=Sum(message_field),
+            user_count=Count("user", distinct=True),
+        )
+        .order_by("-total_messages")[:20]  # Limit to top 20 channels for performance
+    )
+
+    return [
+        (
+            ch["channel__channel_id"],
+            {
+                "channel": {
+                    "channel_id": ch["channel__channel_id"],
+                    "name": ch["channel__name"],
+                },
+                "total_messages": ch["total_messages"],
+                "user_count": ch["user_count"],
+            },
+        )
+        for ch in channel_stats_qs
+    ]
+
+
 @login_required
-def guild_user_stats(request, guild_id):  # noqa: PLR0915
+def guild_user_stats(request, guild_id):
     """Display user statistics for a specific guild with optimized database queries."""
     logger = logging.getLogger(__name__)
     start_time = time.time()
@@ -121,130 +249,15 @@ def guild_user_stats(request, guild_id):  # noqa: PLR0915
         selected_channel_id = filter_params["channel"]
         time_range = filter_params["time_range"]
 
-        # Determine message field based on time range
-        if time_range == "7d":
-            message_field = "messages_last_7_days"
-        elif time_range == "30d":
-            message_field = "messages_last_30_days"
-        elif time_range == "90d":
-            message_field = "messages_last_90_days"
-        else:
-            message_field = "total_messages"
-
-        # Build base queryset with proper select_related for performance
-        base_queryset = MessageStatistics.objects.select_related(
-            "user", "channel"
-        ).filter(
-            channel__guild=guild,
-            **{
-                f"{message_field}__gt": 0
-            },  # Only include records with messages in time range
+        # Determine message field and build base queryset
+        message_field = _get_message_field_for_time_range(time_range)
+        base_queryset = _build_base_queryset(
+            guild, message_field, selected_user_id, selected_channel_id
         )
 
-        # Apply filters
-        if selected_user_id:
-            base_queryset = base_queryset.filter(user__user_id=selected_user_id)
-        if selected_channel_id:
-            base_queryset = base_queryset.filter(
-                channel__channel_id=selected_channel_id
-            )
-
-        # Optimized approach - get user data efficiently without N+1 queries
-
-        # Get total counts
-        totals = base_queryset.aggregate(
-            total_messages=Sum(message_field),
-            total_users=Count("user", distinct=True),
-            total_channels=Count("channel", distinct=True),
-        )
-
-        # Get user statistics with efficient aggregation (no per-user channel breakdown)
-        user_stats_qs = (
-            base_queryset.values(
-                "user__user_id",
-                "user__username",
-                "user__display_name",
-                "user__avatar_url",
-            )
-            .annotate(
-                total_messages=Sum(message_field),
-                channel_count=Count("channel", distinct=True),
-            )
-            .order_by("-total_messages")[:50]  # Limit to top 50 users for performance
-        )
-
-        # Get top channel for each user efficiently
-        user_ids = [user_stat["user__user_id"] for user_stat in user_stats_qs]
-        top_channels_qs = (
-            base_queryset.filter(user__user_id__in=user_ids)
-            .values("user__user_id", "channel__name")
-            .annotate(messages=Sum(message_field))
-            .order_by("user__user_id", "-messages")
-        )
-
-        # Group top channels by user
-        top_channels_by_user = {}
-        for tc in top_channels_qs:
-            user_id = tc["user__user_id"]
-            if user_id not in top_channels_by_user:
-                top_channels_by_user[user_id] = {
-                    "name": tc["channel__name"],
-                    "messages": tc["messages"],
-                }
-
-        # Convert to format expected by template
-        user_stats_list = []
-        for user_stat in user_stats_qs:
-            user_id = user_stat["user__user_id"]
-            top_channel = top_channels_by_user.get(
-                user_id, {"name": "N/A", "messages": 0}
-            )
-
-            user_stats_list.append(
-                (
-                    user_id,
-                    {
-                        "user": {
-                            "user_id": user_id,
-                            "username": user_stat["user__username"],
-                            "display_name": user_stat["user__display_name"]
-                            or user_stat["user__username"],
-                            "avatar_url": user_stat["user__avatar_url"],
-                        },
-                        "total_messages": user_stat["total_messages"],
-                        "channel_count": user_stat["channel_count"],
-                        "top_channel": top_channel,
-                        "channels": {},  # Empty for now to avoid N+1 queries
-                    },
-                )
-            )
-
-        # Get channel statistics efficiently
-        channel_stats_qs = (
-            base_queryset.values("channel__channel_id", "channel__name")
-            .annotate(
-                total_messages=Sum(message_field),
-                user_count=Count("user", distinct=True),
-            )
-            .order_by("-total_messages")[
-                :20
-            ]  # Limit to top 20 channels for performance
-        )
-
-        channel_stats_list = [
-            (
-                ch["channel__channel_id"],
-                {
-                    "channel": {
-                        "channel_id": ch["channel__channel_id"],
-                        "name": ch["channel__name"],
-                    },
-                    "total_messages": ch["total_messages"],
-                    "user_count": ch["user_count"],
-                },
-            )
-            for ch in channel_stats_qs
-        ]
+        # Get statistics using helper functions
+        totals, user_stats_list = _get_user_statistics(base_queryset, message_field)
+        channel_stats_list = _get_channel_statistics(base_queryset, message_field)
 
         # Keep these minimal for now
         available_users = []
