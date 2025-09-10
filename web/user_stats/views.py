@@ -84,7 +84,7 @@ def _get_message_field_for_time_range(time_range: str) -> str:
 
 
 def _build_base_queryset(
-    guild, message_field: str, selected_user_id=None, selected_channel_id=None
+    guild, message_field: str, selected_user_ids=None, selected_channel_ids=None
 ):
     """Build the base queryset for message statistics with filters applied."""
     base_queryset = MessageStatistics.objects.select_related("user", "channel").filter(
@@ -94,11 +94,16 @@ def _build_base_queryset(
         },  # Only include records with messages in time range
     )
 
-    # Apply filters
-    if selected_user_id:
-        base_queryset = base_queryset.filter(user__user_id=selected_user_id)
-    if selected_channel_id:
-        base_queryset = base_queryset.filter(channel__channel_id=selected_channel_id)
+    # Apply filters for multiple users and channels
+    if selected_user_ids:
+        user_ids = [uid for uid in selected_user_ids if uid]  # Remove empty values
+        if user_ids:
+            base_queryset = base_queryset.filter(user__user_id__in=user_ids)
+    
+    if selected_channel_ids:
+        channel_ids = [cid for cid in selected_channel_ids if cid]  # Remove empty values
+        if channel_ids:
+            base_queryset = base_queryset.filter(channel__channel_id__in=channel_ids)
 
     return base_queryset
 
@@ -238,8 +243,8 @@ def guild_user_stats(request, guild_id):
         # Check cache first for performance
         cache_key = f"guild_stats_{guild_id}_{request.user.id}"
         filter_params = {
-            "user": request.GET.get("user"),
-            "channel": request.GET.get("channel"),
+            "user": request.GET.getlist("user"),  # Handle multiple users
+            "channel": request.GET.getlist("channel"),  # Handle multiple channels  
             "time_range": request.GET.get("time_range", "all"),
         }
 
@@ -272,14 +277,14 @@ def guild_user_stats(request, guild_id):
         guild = get_object_or_404(DiscordGuild, guild_id=str(guild_id))
 
         # Get filter parameters
-        selected_user_id = filter_params["user"]
-        selected_channel_id = filter_params["channel"]
+        selected_user_ids = filter_params["user"]  # Now a list
+        selected_channel_ids = filter_params["channel"]  # Now a list
         time_range = filter_params["time_range"]
 
         # Determine message field and build base queryset
         message_field = _get_message_field_for_time_range(time_range)
         base_queryset = _build_base_queryset(
-            guild, message_field, selected_user_id, selected_channel_id
+            guild, message_field, selected_user_ids, selected_channel_ids
         )
 
         # Get statistics using helper functions
@@ -308,8 +313,8 @@ def guild_user_stats(request, guild_id):
             "avg_messages_per_user": avg_messages_per_user,
             "available_users": available_users,
             "available_channels": available_channels,
-            "selected_user_id": selected_user_id,
-            "selected_channel_id": selected_channel_id,
+            "selected_user_ids": selected_user_ids,
+            "selected_channel_ids": selected_channel_ids,
             "time_range": time_range,
             "recent_jobs": recent_jobs,
         }
