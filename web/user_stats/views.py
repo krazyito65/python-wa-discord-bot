@@ -99,13 +99,124 @@ def _build_base_queryset(
         user_ids = [uid for uid in selected_user_ids if uid]  # Remove empty values
         if user_ids:
             base_queryset = base_queryset.filter(user__user_id__in=user_ids)
-    
+
     if selected_channel_ids:
         channel_ids = [cid for cid in selected_channel_ids if cid]  # Remove empty values
         if channel_ids:
             base_queryset = base_queryset.filter(channel__channel_id__in=channel_ids)
 
     return base_queryset
+
+
+def _get_period_field(period):
+    """Get the database field name for a given time period."""
+    period_fields = {
+        "7d": "messages_last_7_days",
+        "30d": "messages_last_30_days",
+        "90d": "messages_last_90_days",
+        "all": "total_messages",
+    }
+    return period_fields.get(period, "messages_last_7_days")
+
+
+def _determine_activity_level(user_stats, _sort_period):
+    """Determine user activity level based on recent message counts."""
+    if user_stats.get("messages_7d", 0) > 0:
+        return "active_7d"
+    if user_stats.get("messages_30d", 0) > 0:
+        return "active_30d"
+    if user_stats.get("messages_90d", 0) > 0:
+        return "active_90d"
+    return "inactive"
+
+
+def _get_multi_user_channel_data(guild, selected_user_ids, sort_period, show_channels, activity_filter):
+    """Get optimized channel statistics for multiple users."""
+    users_data = {}
+
+    # Single optimized query for all users and their channels
+    base_queryset = MessageStatistics.objects.select_related(
+        "user", "channel"
+    ).filter(
+        user__user_id__in=selected_user_ids,
+        channel__guild=guild
+    )
+
+    # Group data by user for efficient processing
+    for stat in base_queryset:
+        user_id = stat.user.user_id
+
+        if user_id not in users_data:
+            users_data[user_id] = {
+                "user": stat.user,
+                "channels": [],
+                "total_stats": {
+                    "total_messages": 0,
+                    "messages_7d": 0,
+                    "messages_30d": 0,
+                    "messages_90d": 0,
+                    "channel_count": 0,
+                },
+                "activity_level": "inactive",
+            }
+
+        # Add channel data
+        users_data[user_id]["channels"].append({
+            "channel": stat.channel,
+            "total_messages": stat.total_messages,
+            "messages_7d": stat.messages_last_7_days,
+            "messages_30d": stat.messages_last_30_days,
+            "messages_90d": stat.messages_last_90_days,
+            "last_message_date": stat.last_message_date,
+        })
+
+        # Accumulate totals
+        totals = users_data[user_id]["total_stats"]
+        totals["total_messages"] += stat.total_messages
+        totals["messages_7d"] += stat.messages_last_7_days
+        totals["messages_30d"] += stat.messages_last_30_days
+        totals["messages_90d"] += stat.messages_last_90_days
+        totals["channel_count"] += 1
+
+    # Sort channels and determine activity levels for each user
+    for _user_id, data in users_data.items():
+        # Sort channels by the selected period
+        period_field = f"messages_{sort_period}" if sort_period != "all" else "total_messages"
+        data["channels"].sort(key=lambda x: x[period_field], reverse=True)
+
+        # Limit channels if requested
+        if show_channels == "top5":
+            data["channels"] = data["channels"][:5]
+        elif show_channels == "top10":
+            data["channels"] = data["channels"][:10]
+
+        # Determine activity level
+        data["activity_level"] = _determine_activity_level(data["total_stats"], sort_period)
+
+    # Apply activity filter
+    if activity_filter != "all":
+        users_data = {
+            user_id: data for user_id, data in users_data.items()
+            if (activity_filter == "recent" and data["activity_level"] in ["active_7d", "active_30d"])
+            or (activity_filter == "active_7d" and data["activity_level"] == "active_7d")
+            or (activity_filter == "active_30d" and data["activity_level"] in ["active_7d", "active_30d"])
+        }
+
+    return users_data
+
+
+def _sort_users_by_activity(users_data, sort_period):
+    """Sort users by their activity in the selected period."""
+    period_field = f"messages_{sort_period}" if sort_period != "all" else "total_messages"
+
+    sorted_items = sorted(
+        users_data.items(),
+        key=lambda item: item[1]["total_stats"][period_field],
+        reverse=True
+    )
+
+    # Convert back to OrderedDict-like structure for template
+    return dict(sorted_items)
 
 
 def _get_user_statistics(base_queryset, message_field: str):
@@ -244,7 +355,7 @@ def guild_user_stats(request, guild_id):
         cache_key = f"guild_stats_{guild_id}_{request.user.id}"
         filter_params = {
             "user": request.GET.getlist("user"),  # Handle multiple users
-            "channel": request.GET.getlist("channel"),  # Handle multiple channels  
+            "channel": request.GET.getlist("channel"),  # Handle multiple channels
             "time_range": request.GET.get("time_range", "all"),
         }
 
@@ -406,6 +517,98 @@ def user_detail_stats(request, guild_id, user_id):
         cache.set(cache_key, context, cache_timeout)
 
         return render(request, "user_stats/user_detail.html", context)
+
+    except DiscordAPIError as e:
+        messages.error(request, f"Error accessing Discord data: {e}")
+        return redirect("user_stats:dashboard")
+
+
+@login_required
+def multi_user_channel_stats(request, guild_id):
+    """Display detailed channel statistics for multiple selected users with activity sorting."""
+    try:
+        # Check cache first
+        selected_user_ids = request.GET.getlist("user")
+        sort_period = request.GET.get("sort_period", "7d")
+        show_channels = request.GET.get("show_channels", "top5")
+        activity_filter = request.GET.get("activity_filter", "all")
+
+        cache_key = f"multi_user_stats_{guild_id}_{'-'.join(selected_user_ids)}_{sort_period}_{show_channels}_{activity_filter}_{request.user.id}"
+        cached_data = cache.get(cache_key)
+
+        if cached_data:
+            return render(request, "user_stats/multi_user_stats.html", cached_data)
+
+        # Verify access
+        user_guilds = get_user_guilds(request.user)
+        user_guild_ids = [int(guild["id"]) for guild in user_guilds]
+
+        if guild_id not in user_guild_ids:
+            raise Http404("Access denied")
+
+        guild = get_object_or_404(DiscordGuild, guild_id=str(guild_id))
+
+        # Get all available users for the dropdown (reuse existing logic)
+        available_users = (
+            DiscordUser.objects.filter(
+                message_stats__channel__guild=guild
+            ).distinct().order_by("display_name", "username")
+        )
+
+        # If no users selected, default to top 10 most active users in selected period
+        if not selected_user_ids or not any(uid for uid in selected_user_ids if uid):
+            period_field = _get_period_field(sort_period)
+            top_users = (
+                MessageStatistics.objects
+                .filter(channel__guild=guild)
+                .values("user__user_id")
+                .annotate(total_period_messages=Sum(period_field))
+                .filter(total_period_messages__gt=0)
+                .order_by("-total_period_messages")[:10]
+            )
+            selected_user_ids = [str(user["user__user_id"]) for user in top_users]
+
+        # Remove empty values from selected users
+        selected_user_ids = [uid for uid in selected_user_ids if uid]
+
+        if not selected_user_ids:
+            # No valid users selected, show empty state
+            context = {
+                "guild": guild,
+                "available_users": available_users,
+                "selected_user_ids": [],
+                "users_data": {},
+                "sort_period": sort_period,
+                "show_channels": show_channels,
+                "activity_filter": activity_filter,
+                "total_users": 0,
+            }
+            return render(request, "user_stats/multi_user_stats.html", context)
+
+        # Get multi-user channel statistics with optimized query
+        users_data = _get_multi_user_channel_data(
+            guild, selected_user_ids, sort_period, show_channels, activity_filter
+        )
+
+        # Sort users by activity in the selected period
+        sorted_users_data = _sort_users_by_activity(users_data, sort_period)
+
+        context = {
+            "guild": guild,
+            "available_users": available_users,
+            "selected_user_ids": selected_user_ids,
+            "users_data": sorted_users_data,
+            "sort_period": sort_period,
+            "show_channels": show_channels,
+            "activity_filter": activity_filter,
+            "total_users": len(sorted_users_data),
+        }
+
+        # Cache the results
+        cache_timeout = getattr(settings, "USER_STATS_CACHE_TIMEOUT", 300)
+        cache.set(cache_key, context, cache_timeout)
+
+        return render(request, "user_stats/multi_user_stats.html", context)
 
     except DiscordAPIError as e:
         messages.error(request, f"Error accessing Discord data: {e}")
