@@ -24,10 +24,16 @@
                         </h2>
                         <p class="mb-0 mt-1 opacity-75">Message activity by user and channel</p>
                     </div>
-                    <a href="{% url 'user_stats:dashboard' %}" class="btn btn-light btn-sm">
-                        <i class="fas fa-arrow-left me-1"></i>
-                        Back to Dashboard
-                    </a>
+                    <div>
+                        <a href="{% url 'user_stats:multi_user_stats' guild.guild_id %}" class="btn btn-light btn-sm me-2">
+                            <i class="fas fa-users me-1"></i>
+                            Multi-User Analysis
+                        </a>
+                        <a href="{% url 'user_stats:dashboard' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-1"></i>
+                            Back to Dashboard
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

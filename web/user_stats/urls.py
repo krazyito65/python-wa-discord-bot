@@ -21,6 +21,12 @@ urlpatterns = [
         views.user_detail_stats,
         name="user_detail",
     ),
+    # Multi-user overview - detailed view for multiple selected users
+    path(
+        "<int:guild_id>/multi-user/",
+        views.multi_user_channel_stats,
+        name="multi_user_stats",
+    ),
     # API endpoint for JSON data
     path("api/<int:guild_id>/", views.api_guild_stats_json, name="api_guild_stats"),
     # Live updates endpoint for real-time progress
