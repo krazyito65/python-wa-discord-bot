@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
-{% block title %}{{ target_user.display_name|default:target_user.username }} - {{ guild.name }} - User Statistics{% endblock %}
+{% block title %}{% if target_user.display_name == 'Deleted User' or target_user.username == 'Deleted User' %}Deleted User #{{ target_user.user_id|slice:"-4:" }}{% else %}{{ target_user.display_name|default:target_user.username }}{% endif %} - {{ guild.name }} - User Statistics{% endblock %}
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -23,6 +24,10 @@
                         </div>
                         {% endif %}
                         <div>
+                            {% if target_user.display_name == 'Deleted User' or target_user.username == 'Deleted User' %}
+                            <h2 class="mb-0">Deleted User #{{ target_user.user_id|slice:"-4:" }}</h2>
+                            <p class="mb-0 opacity-75">User ID: {{ target_user.user_id }} - User Statistics in {{ guild.name }}</p>
+                            {% else %}
                             <h2 class="mb-0">{{ target_user.display_name|default:target_user.username }}</h2>
                             <p class="mb-0 opacity-75">
                                 {% if target_user.display_name != target_user.username %}
@@ -30,6 +35,7 @@
                                 {% endif %}
                                 User Statistics in {{ guild.name }}
                             </p>
+                            {% endif %}
                         </div>
                     </div>
                     <a href="{% url 'user_stats:guild_stats' guild.guild_id %}" class="btn btn-light btn-sm">
@@ -47,7 +53,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body text-center">
                     <i class="fas fa-comments fa-2x mb-2"></i>
-                    <h3 class="mb-0">{{ total_messages|floatformat:0 }}</h3>
+                    <h3 class="mb-0">{{ total_messages|intcomma }}</h3>
                     <small>Total Messages</small>
                 </div>
             </div>
@@ -56,7 +62,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body text-center">
                     <i class="fas fa-calendar-week fa-2x mb-2"></i>
-                    <h3 class="mb-0">{{ messages_7d|floatformat:0 }}</h3>
+                    <h3 class="mb-0">{{ messages_7d|intcomma }}</h3>
                     <small>Last 7 Days</small>
                 </div>
             </div>
@@ -65,7 +71,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body text-center">
                     <i class="fas fa-calendar-alt fa-2x mb-2"></i>
-                    <h3 class="mb-0">{{ messages_30d|floatformat:0 }}</h3>
+                    <h3 class="mb-0">{{ messages_30d|intcomma }}</h3>
                     <small>Last 30 Days</small>
                 </div>
             </div>
@@ -165,20 +171,20 @@
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="fw-bold text-primary">{{ stat.total_messages|floatformat:0 }}</span>
+                                        <span class="fw-bold text-primary">{{ stat.total_messages|intcomma }}</span>
                                         <div class="progress mt-1" style="height: 4px;">
                                             <div class="progress-bar" role="progressbar"
                                                  style="width: {% widthratio stat.total_messages total_messages 100 %}%"></div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="text-success">{{ stat.messages_last_7_days|floatformat:0 }}</span>
+                                        <span class="text-success">{{ stat.messages_last_7_days|intcomma }}</span>
                                     </td>
                                     <td>
-                                        <span class="text-info">{{ stat.messages_last_30_days|floatformat:0 }}</span>
+                                        <span class="text-info">{{ stat.messages_last_30_days|intcomma }}</span>
                                     </td>
                                     <td>
-                                        <span class="text-warning">{{ stat.messages_last_90_days|floatformat:0 }}</span>
+                                        <span class="text-warning">{{ stat.messages_last_90_days|intcomma }}</span>
                                     </td>
                                     <td>
                                         {% if stat.last_message_date %}
