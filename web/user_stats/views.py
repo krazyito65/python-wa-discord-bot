@@ -203,23 +203,27 @@ def _get_channel_statistics(base_queryset, message_field: str):
 
 def _get_available_users(guild):
     """Get list of users with message statistics for filter dropdown."""
+    # Get users ordered by total message count for better relevance
     return (
         DiscordUser.objects.filter(message_stats__channel__guild=guild)
         .distinct()
-        .order_by("display_name", "username")
+        .annotate(total_message_count=Sum("message_stats__total_messages"))
+        .order_by("-total_message_count", "display_name", "username")
         .only("user_id", "username", "display_name")
-        # No limit - include all users with message stats for comprehensive search
+        # Order by activity level - most active users first for better UX
     )
 
 
 def _get_available_channels(guild):
     """Get list of channels with message statistics for filter dropdown."""
+    # Order channels by total message count for better relevance
     return (
         DiscordChannel.objects.filter(guild=guild, message_stats__isnull=False)
         .distinct()
-        .order_by("name")
+        .annotate(total_message_count=Sum("message_stats__total_messages"))
+        .order_by("-total_message_count", "name")
         .only("channel_id", "name")
-        # No limit - include all channels with message stats for comprehensive search
+        # Order by activity level - most active channels first for better UX
     )
 
 
