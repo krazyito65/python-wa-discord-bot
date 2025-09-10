@@ -20,6 +20,7 @@ from django.test import TestCase
 from shared.bot_interface import BotDataInterface, MacroData, MacroUpdateData
 from shared.discord_api import (
     DiscordAPIError,
+    clear_user_discord_cache,
     filter_available_servers,
     get_user_discord_token,
     get_user_guilds,
@@ -481,6 +482,45 @@ class TestDiscordAPI(TestCase):
             result = get_user_info(self.user)
 
             assert result is None
+
+    @patch("shared.discord_api.requests.get")
+    def test_guild_caching(self, mock_get):
+        """Test that guild data is cached to avoid rate limiting."""
+        # Clear any existing cache first
+        clear_user_discord_cache(self.user)
+
+        mock_response = Mock()
+        mock_response.json.return_value = [
+            {"id": "123456789", "name": "Test Server", "icon": None}
+        ]
+        mock_response.raise_for_status.return_value = None
+        mock_get.return_value = mock_response
+
+        with patch(
+            "shared.discord_api.get_user_discord_token", return_value="test_token"
+        ):
+            # Reset call count
+            mock_get.reset_mock()
+
+            # First call should hit the API
+            result1 = get_user_guilds(self.user)
+
+            # Second call should use cache (no additional API call)
+            result2 = get_user_guilds(self.user)
+
+            # Both results should be identical
+            assert result1 == result2
+
+            # API should only be called once due to caching
+            assert mock_get.call_count == 1
+
+            # Clear cache and call again - should hit API again
+            clear_user_discord_cache(self.user)
+            result3 = get_user_guilds(self.user)
+
+            # Now API should be called twice total
+            assert mock_get.call_count == 2
+            assert result3 == result1
 
     def test_filter_available_servers(self):
         """Test filtering available servers."""
