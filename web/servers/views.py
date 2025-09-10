@@ -228,6 +228,19 @@ def server_detail(request, guild_id):
                 }
             macros.append(macro_info)
 
+        # Apply search filter if provided
+        search_query = request.GET.get("search", "").strip()
+        if search_query:
+            search_lower = search_query.lower()
+            macros = [
+                macro
+                for macro in macros
+                if (
+                    search_lower in macro["name"].lower()
+                    or search_lower in macro["message"].lower()
+                )
+            ]
+
         # Sort macros by name for better user experience
         macros.sort(key=lambda macro: macro["name"].lower())
 
@@ -243,6 +256,8 @@ def server_detail(request, guild_id):
             "server_info": server_info,
             "macros": macros,
             "macro_count": len(macros),
+            "search_query": search_query,
+            "total_macros": len(macros_dict),  # Total before filtering
         }
 
         return render(request, "servers/server_detail.html", context)
