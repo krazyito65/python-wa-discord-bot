@@ -403,7 +403,13 @@
 }
 
 .ts-dropdown .option:hover {
-    background-color: #f8f9fa !important;
+    background-color: #e7d9f7 !important;
+    color: #6f2c91 !important;
+}
+
+.ts-dropdown .option.active:hover {
+    background-color: #8b3ee6 !important;
+    color: white !important;
 }
 
 .ts-control .item {
@@ -609,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder: 'Search for a user...',
                 searchField: ['text'],
                 sortField: 'text',
-                maxOptions: 100,
+                maxOptions: null, // Remove client-side limit to show all users
                 onChange: function() {
                     showLoadingAndSubmit();
                 }
@@ -621,7 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder: 'Search for a channel...',
                 searchField: ['text'],
                 sortField: 'text',
-                maxOptions: 50,
+                maxOptions: null, // Remove client-side limit to show all channels
                 onChange: function() {
                     showLoadingAndSubmit();
                 }
