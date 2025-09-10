@@ -376,11 +376,12 @@
     line-height: 1.5 !important;
     color: #212529 !important;
     background-color: #fff !important;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 6 7 7 7-7'/%3e%3c/svg%3e") !important;
-    background-repeat: no-repeat !important;
-    background-position: right 0.75rem center !important;
-    background-size: 16px 12px !important;
+    background-image: none !important; /* Remove duplicate arrow */
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.ts-control.single .ts-control-input {
+    padding-right: 2rem !important; /* Make room for Tom Select's own arrow */
 }
 
 .ts-control.focus {
@@ -615,7 +616,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder: 'Search for a user...',
                 searchField: ['text'],
                 sortField: 'text',
-                maxOptions: null, // Remove client-side limit to show all users
+                maxOptions: 50, // Show max 50 results at once for performance
+                render: {
+                    option: function(data, escape) {
+                        return '<div>' + escape(data.text) + '</div>';
+                    }
+                },
+                onType: function(str) {
+                    // Only search after 2+ characters for performance
+                    if (str.length < 2) {
+                        this.clearOptions();
+                        return;
+                    }
+                },
+                load: function(query, callback) {
+                    // For very large datasets, this could be enhanced with server-side search
+                    callback();
+                },
                 onChange: function() {
                     showLoadingAndSubmit();
                 }
@@ -627,7 +644,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholder: 'Search for a channel...',
                 searchField: ['text'],
                 sortField: 'text',
-                maxOptions: null, // Remove client-side limit to show all channels
+                maxOptions: 25, // Show max 25 channels at once for performance
+                render: {
+                    option: function(data, escape) {
+                        return '<div>' + escape(data.text) + '</div>';
+                    }
+                },
+                onType: function(str) {
+                    // Only search after 2+ characters for performance
+                    if (str.length < 2) {
+                        this.clearOptions();
+                        return;
+                    }
+                },
                 onChange: function() {
                     showLoadingAndSubmit();
                 }
