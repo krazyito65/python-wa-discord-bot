@@ -207,9 +207,8 @@ def _get_available_users(guild):
         DiscordUser.objects.filter(message_stats__channel__guild=guild)
         .distinct()
         .order_by("display_name", "username")
-        .only("user_id", "username", "display_name")[
-            :100
-        ]  # Limit for performance - show top 100 active users
+        .only("user_id", "username", "display_name")
+        # No limit - include all users with message stats for comprehensive search
     )
 
 
@@ -219,7 +218,8 @@ def _get_available_channels(guild):
         DiscordChannel.objects.filter(guild=guild, message_stats__isnull=False)
         .distinct()
         .order_by("name")
-        .only("channel_id", "name")[:50]  # Limit for performance - show top 50 channels
+        .only("channel_id", "name")
+        # No limit - include all channels with message stats for comprehensive search
     )
 
 
