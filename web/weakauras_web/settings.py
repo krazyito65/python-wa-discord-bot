@@ -250,6 +250,9 @@ CACHES = {
 DISCORD_GUILD_CACHE_TIMEOUT = 300  # 5 minutes for guild data
 DISCORD_USER_CACHE_TIMEOUT = 300  # 5 minutes for user data
 
+# Statistics cache timeout settings (in seconds)
+USER_STATS_CACHE_TIMEOUT = 300  # 5 minutes for user statistics data
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
