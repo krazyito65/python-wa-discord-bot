@@ -95,7 +95,11 @@
                                     <option value="">All Users</option>
                                     {% for user in available_users %}
                                     <option value="{{ user.user_id }}" {% if selected_user_id == user.user_id %}selected{% endif %}>
-                                        {{ user.display_name|default:user.username }}
+                                        {% if user.display_name == 'Deleted User' or user.username == 'Deleted User' %}
+                                            Deleted User #{{ user.user_id|slice:"-4:" }}
+                                        {% else %}
+                                            {{ user.display_name|default:user.username }}
+                                        {% endif %}
                                     </option>
                                     {% endfor %}
                                 </select>
@@ -528,6 +532,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial check after 2 seconds
     setTimeout(checkForUpdates, 2000);
+
+    // Filter form enhancements
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        const filterSelects = filterForm.querySelectorAll('select');
+
+        filterSelects.forEach(select => {
+            select.addEventListener('change', function() {
+                // Show loading indicator
+                const loadingDiv = document.createElement('div');
+                loadingDiv.className = 'alert alert-info mt-3';
+                loadingDiv.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span>Applying filters...</span>
+                    </div>
+                `;
+
+                // Insert loading indicator after the form
+                filterForm.parentNode.insertBefore(loadingDiv, filterForm.nextSibling);
+
+                // Disable all form controls
+                filterSelects.forEach(s => s.disabled = true);
+            });
+        });
+    }
 
     // Cleanup on page unload
     window.addEventListener('beforeunload', function() {

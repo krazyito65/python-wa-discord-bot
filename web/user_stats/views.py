@@ -20,6 +20,7 @@ from django.utils import timezone
 from shared.discord_api import DiscordAPIError, get_user_guilds
 
 from .models import (
+    DiscordChannel,
     DiscordGuild,
     DiscordUser,
     MessageStatistics,
@@ -200,6 +201,28 @@ def _get_channel_statistics(base_queryset, message_field: str):
     ]
 
 
+def _get_available_users(guild):
+    """Get list of users with message statistics for filter dropdown."""
+    return (
+        DiscordUser.objects.filter(message_stats__channel__guild=guild)
+        .distinct()
+        .order_by("display_name", "username")
+        .only("user_id", "username", "display_name")[
+            :100
+        ]  # Limit for performance - show top 100 active users
+    )
+
+
+def _get_available_channels(guild):
+    """Get list of channels with message statistics for filter dropdown."""
+    return (
+        DiscordChannel.objects.filter(guild=guild, message_stats__isnull=False)
+        .distinct()
+        .order_by("name")
+        .only("channel_id", "name")[:50]  # Limit for performance - show top 50 channels
+    )
+
+
 @login_required
 def guild_user_stats(request, guild_id):
     """Display user statistics for a specific guild with optimized database queries."""
@@ -259,10 +282,10 @@ def guild_user_stats(request, guild_id):
         totals, user_stats_list = _get_user_statistics(base_queryset, message_field)
         channel_stats_list = _get_channel_statistics(base_queryset, message_field)
 
-        # Keep these minimal for now
-        available_users = []
-        available_channels = []
-        recent_jobs = []
+        # Get filter dropdown data
+        available_users = _get_available_users(guild)
+        available_channels = _get_available_channels(guild)
+        recent_jobs = []  # Keep minimal for now
 
         # Calculate average messages per user
         total_messages = totals["total_messages"] or 0
