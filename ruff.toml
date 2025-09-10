@@ -36,11 +36,21 @@ exclude = [
 select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "ICN", "PIE", "PYI", "PT", "RET", "SIM", "TID", "ARG", "ERA", "PL", "TRY", "FLY", "PERF"]
 
 # Exclude certain rules that might be too strict for this project
-ignore = ["E501"]  # Line too long (we'll let the formatter handle this)
+ignore = [
+    "E501",     # Line too long (we'll let the formatter handle this)
+    "PLR0913",  # Too many arguments in function definition (sometimes necessary)
+]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
+
+# Adjust complexity limits to be more reasonable
+[lint.pylint]
+max-args = 8                    # Default: 5, increased for Django views
+max-branches = 15               # Default: 12, reasonable for complex logic
+max-returns = 8                 # Default: 6, reasonable for complex functions
+max-statements = 60             # Default: 50, increased for Django views with multiple queries
 
 [format]
 # Like Black, use double quotes for strings.
