@@ -6,19 +6,20 @@ collected from various channels within Discord servers.
 """
 
 import json
+import logging
+import time
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.cache import cache
-from django.db.models import Count, Max, Sum
+from django.db.models import Count, Sum
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from shared.discord_api import DiscordAPIError, get_user_guilds
 
 from .models import (
-    DiscordChannel,
     DiscordGuild,
     DiscordUser,
     MessageStatistics,
@@ -72,9 +73,13 @@ def user_stats_dashboard(request):
 
 
 @login_required
-def guild_user_stats(request, guild_id):
+def guild_user_stats(request, guild_id):  # noqa: PLR0915
     """Display user statistics for a specific guild with optimized database queries."""
+    logger = logging.getLogger(__name__)
+    start_time = time.time()
+
     try:
+        logger.debug(f"Starting guild_user_stats for guild_id: {guild_id}")
         # Check cache first for performance
         cache_key = f"guild_stats_{guild_id}_{request.user.id}"
         filter_params = {
@@ -90,11 +95,20 @@ def guild_user_stats(request, guild_id):
         cached_data = cache.get(cache_key_with_filters)
 
         if cached_data:
+            logger.debug("Cache hit for guild_stats - returning cached data")
             return render(request, "user_stats/guild_stats.html", cached_data)
 
+        logger.debug(
+            f"Cache miss - starting fresh query. Time elapsed: {time.time() - start_time:.3f}s"
+        )
+
         # Verify user has access to this guild
+        discord_start = time.time()
         user_guilds = get_user_guilds(request.user)
         user_guild_ids = [int(guild["id"]) for guild in user_guilds]
+        logger.debug(
+            f"Discord API call completed in: {time.time() - discord_start:.3f}s"
+        )
 
         if guild_id not in user_guild_ids:
             raise Http404("Access denied")  # noqa: TRY003
@@ -135,7 +149,16 @@ def guild_user_stats(request, guild_id):
                 channel__channel_id=selected_channel_id
             )
 
-        # Get user statistics using database aggregation (much faster)
+        # Optimized approach - get user data efficiently without N+1 queries
+
+        # Get total counts
+        totals = base_queryset.aggregate(
+            total_messages=Sum(message_field),
+            total_users=Count("user", distinct=True),
+            total_channels=Count("channel", distinct=True),
+        )
+
+        # Get user statistics with efficient aggregation (no per-user channel breakdown)
         user_stats_qs = (
             base_queryset.values(
                 "user__user_id",
@@ -146,62 +169,67 @@ def guild_user_stats(request, guild_id):
             .annotate(
                 total_messages=Sum(message_field),
                 channel_count=Count("channel", distinct=True),
-                latest_message=Max("last_message_date"),
             )
-            .order_by("-total_messages")
+            .order_by("-total_messages")[:50]  # Limit to top 50 users for performance
         )
 
-        # Get channel statistics using database aggregation
-        channel_stats_qs = (
-            base_queryset.values(
-                "channel__channel_id", "channel__name", "channel__channel_type"
+        # Get top channel for each user efficiently
+        user_ids = [user_stat["user__user_id"] for user_stat in user_stats_qs]
+        top_channels_qs = (
+            base_queryset.filter(user__user_id__in=user_ids)
+            .values("user__user_id", "channel__name")
+            .annotate(messages=Sum(message_field))
+            .order_by("user__user_id", "-messages")
+        )
+
+        # Group top channels by user
+        top_channels_by_user = {}
+        for tc in top_channels_qs:
+            user_id = tc["user__user_id"]
+            if user_id not in top_channels_by_user:
+                top_channels_by_user[user_id] = {
+                    "name": tc["channel__name"],
+                    "messages": tc["messages"],
+                }
+
+        # Convert to format expected by template
+        user_stats_list = []
+        for user_stat in user_stats_qs:
+            user_id = user_stat["user__user_id"]
+            top_channel = top_channels_by_user.get(
+                user_id, {"name": "N/A", "messages": 0}
             )
+
+            user_stats_list.append(
+                (
+                    user_id,
+                    {
+                        "user": {
+                            "user_id": user_id,
+                            "username": user_stat["user__username"],
+                            "display_name": user_stat["user__display_name"]
+                            or user_stat["user__username"],
+                            "avatar_url": user_stat["user__avatar_url"],
+                        },
+                        "total_messages": user_stat["total_messages"],
+                        "channel_count": user_stat["channel_count"],
+                        "top_channel": top_channel,
+                        "channels": {},  # Empty for now to avoid N+1 queries
+                    },
+                )
+            )
+
+        # Get channel statistics efficiently
+        channel_stats_qs = (
+            base_queryset.values("channel__channel_id", "channel__name")
             .annotate(
                 total_messages=Sum(message_field),
                 user_count=Count("user", distinct=True),
             )
-            .order_by("-total_messages")
+            .order_by("-total_messages")[
+                :20
+            ]  # Limit to top 20 channels for performance
         )
-
-        # Get overall totals using database aggregation
-        totals = base_queryset.aggregate(
-            total_messages=Sum(message_field),
-            total_users=Count("user", distinct=True),
-            total_channels=Count("channel", distinct=True),
-        )
-
-        # Convert querysets to lists for template (and calculate additional data)
-        user_stats_list = []
-        for user_stat in user_stats_qs:
-            # Get detailed channel breakdown for each user
-            user_channels = (
-                base_queryset.filter(user__user_id=user_stat["user__user_id"])
-                .values("channel__channel_id", "channel__name", "last_message_date")
-                .annotate(message_count=Sum(message_field))
-                .filter(message_count__gt=0)
-            )
-
-            user_stat["channels"] = {
-                ch["channel__channel_id"]: {
-                    "channel": {
-                        "channel_id": ch["channel__channel_id"],
-                        "name": ch["channel__name"],
-                    },
-                    "message_count": ch["message_count"],
-                    "last_message_date": ch["last_message_date"],
-                }
-                for ch in user_channels
-            }
-
-            # Create user object for template compatibility
-            user_stat["user"] = {
-                "user_id": user_stat["user__user_id"],
-                "username": user_stat["user__username"],
-                "display_name": user_stat["user__display_name"],
-                "avatar_url": user_stat["user__avatar_url"],
-            }
-
-            user_stats_list.append((user_stat["user__user_id"], user_stat))
 
         channel_stats_list = [
             (
@@ -210,7 +238,6 @@ def guild_user_stats(request, guild_id):
                     "channel": {
                         "channel_id": ch["channel__channel_id"],
                         "name": ch["channel__name"],
-                        "type": ch["channel__channel_type"],
                     },
                     "total_messages": ch["total_messages"],
                     "user_count": ch["user_count"],
@@ -219,25 +246,10 @@ def guild_user_stats(request, guild_id):
             for ch in channel_stats_qs
         ]
 
-        # Get available users and channels for filters (with better queries)
-        available_users = (
-            DiscordUser.objects.filter(message_stats__channel__guild=guild)
-            .distinct()
-            .order_by("username")
-            .only("user_id", "username")
-        )
-
-        available_channels = (
-            DiscordChannel.objects.filter(guild=guild, message_stats__isnull=False)
-            .distinct()
-            .order_by("name")
-            .only("channel_id", "name")
-        )
-
-        # Get recent collection jobs
-        recent_jobs = StatisticsCollectionJob.objects.filter(guild=guild).order_by(
-            "-created_at"
-        )[:5]
+        # Keep these minimal for now
+        available_users = []
+        available_channels = []
+        recent_jobs = []
 
         # Calculate average messages per user
         total_messages = totals["total_messages"] or 0
@@ -265,6 +277,9 @@ def guild_user_stats(request, guild_id):
         # Cache the results using configurable timeout to improve performance
         cache_timeout = getattr(settings, "USER_STATS_CACHE_TIMEOUT", 300)
         cache.set(cache_key_with_filters, context, cache_timeout)
+
+        total_time = time.time() - start_time
+        logger.debug(f"guild_user_stats completed in: {total_time:.3f}s")
 
         return render(request, "user_stats/guild_stats.html", context)
 

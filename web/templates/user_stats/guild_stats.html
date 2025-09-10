@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 
 {% block title %}{{ guild.name }} - User Statistics - WeakAuras{% endblock %}
 
@@ -32,7 +33,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body text-center">
                     <i class="fas fa-comments fa-2x mb-2"></i>
-                    <h3 class="mb-0">{{ total_messages|floatformat:0 }}</h3>
+                    <h3 class="mb-0">{{ total_messages|intcomma }}</h3>
                     <small>Total Messages</small>
                 </div>
             </div>
@@ -59,7 +60,7 @@
             <div class="card bg-warning text-white">
                 <div class="card-body text-center">
                     <i class="fas fa-chart-line fa-2x mb-2"></i>
-                    <h3 class="mb-0">{{ avg_messages_per_user|floatformat:0 }}</h3>
+                    <h3 class="mb-0">{{ avg_messages_per_user|intcomma }}</h3>
                     <small>Avg per User</small>
                 </div>
             </div>
@@ -168,28 +169,33 @@
                                             </div>
                                             {% endif %}
                                             <div>
+                                                {% if stats.user.display_name == 'Deleted User' or stats.user.username == 'Deleted User' %}
+                                                <div class="fw-bold">Deleted User #{{ stats.user.user_id|slice:"-4:" }}</div>
+                                                <small class="text-muted">User ID: {{ stats.user.user_id }}</small>
+                                                {% else %}
                                                 <div class="fw-bold">{{ stats.user.display_name|default:stats.user.username }}</div>
                                                 {% if stats.user.display_name != stats.user.username %}
                                                 <small class="text-muted">{{ stats.user.username }}</small>
+                                                {% endif %}
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </td>
                                     <td>
-                                        <span class="fw-bold text-primary">{{ stats.total_messages|floatformat:0 }}</span>
+                                        <span class="fw-bold text-primary">{{ stats.total_messages|intcomma }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge bg-info">{{ stats.channels|length }}</span>
+                                        <span class="badge bg-info">{{ stats.channel_count|default:0 }}</span>
                                     </td>
                                     <td>
-                                        {% for channel_id, channel_info in stats.channels.items %}
-                                            {% if forloop.first %}
-                                                <div class="d-flex align-items-center">
-                                                    <span class="me-2">#{{ channel_info.channel.name }}</span>
-                                                    <small class="text-muted">({{ channel_info.message_count }} msgs)</small>
-                                                </div>
-                                            {% endif %}
-                                        {% endfor %}
+                                        {% if stats.top_channel and stats.top_channel.name != 'N/A' %}
+                                            <div class="d-flex align-items-center">
+                                                <span class="me-2">#{{ stats.top_channel.name }}</span>
+                                                <small class="text-muted">({{ stats.top_channel.messages|intcomma }} msgs)</small>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <a href="{% url 'user_stats:user_detail' guild.guild_id stats.user.user_id %}" class="btn btn-sm btn-outline-primary">
@@ -264,7 +270,11 @@
                                     <td><code>{{ job.id }}</code></td>
                                     <td>
                                         {% if job.target_user %}
-                                            {{ job.target_user.username }}
+                                            {% if job.target_user.display_name == 'Deleted User' or job.target_user.username == 'Deleted User' %}
+                                                Deleted User #{{ job.target_user.user_id|slice:"-4:" }}
+                                            {% else %}
+                                                {{ job.target_user.display_name|default:job.target_user.username }}
+                                            {% endif %}
                                         {% else %}
                                             All users
                                         {% endif %}
@@ -290,7 +300,7 @@
                                     <td>
                                         {% if job.status == 'completed' %}
                                             <small class="text-muted">
-                                                {{ job.messages_processed|floatformat:0 }} messages,
+                                                {{ job.messages_processed|intcomma }} messages,
                                                 {{ job.users_updated }} users
                                             </small>
                                         {% else %}
@@ -351,9 +361,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     const guildId = {{ guild.guild_id }};
     const liveUpdateUrl = "{% url 'user_stats:live_stats_update' guild.guild_id %}";
-    let lastStatsCount = {{ user_rankings|length }};
+    let lastStatsCount = {{ user_stats|length }};
     let lastTotalMessages = {{ total_messages|default:0 }};
     let updateInterval;
+    let hasShownNotification = false;
+    let isFirstCheck = true;
 
     // Create live update indicator
     const indicator = document.createElement('div');
@@ -377,12 +389,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                // Check if stats have been updated
+                // Check if stats have been updated since last check (not since page load)
                 const hasNewStats = data.stats_count > lastStatsCount || data.total_messages > lastTotalMessages;
 
                 if (hasNewStats) {
-                    // Show update notification
-                    showUpdateNotification(data);
+                    // Only show notification if this isn't the first check after page load
+                    // and there's an actual increase from the last API response
+                    if (!isFirstCheck && !hasShownNotification) {
+                        showUpdateNotification(data);
+                        hasShownNotification = true;
+                    }
 
                     // Update displayed counts
                     updateDisplayedCounts(data);
@@ -390,6 +406,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Update last known values
                     lastStatsCount = data.stats_count;
                     lastTotalMessages = data.total_messages;
+                }
+
+                // Mark first check as complete
+                if (isFirstCheck) {
+                    isFirstCheck = false;
                 }
 
                 // Update job progress if available

@@ -120,6 +120,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    "django.contrib.humanize",
     # Third party apps
     "allauth",
     "allauth.account",
@@ -423,6 +424,16 @@ LOGGING = {
         "django": {
             "handlers": ["console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "DEBUG",
+            "propagate": False,
+        },
+        "user_stats": {
+            "handlers": ["console"],
+            "level": "DEBUG",
             "propagate": False,
         },
     },
