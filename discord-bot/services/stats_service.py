@@ -362,6 +362,156 @@ class StatsService:
         else:
             return result
 
+    def save_message_statistics_streaming(
+        self,
+        guild_id: int,
+        guild_name: str,
+        channel_id: int,
+        channel_name: str,
+        user_id: int,
+        username: str,
+        avatar_url: str = "",
+        message_timestamp: datetime = None,
+    ) -> bool:
+        """
+        Save a single message's statistics incrementally to reduce memory usage.
+
+        Args:
+            guild_id: Discord guild ID
+            guild_name: Guild name
+            channel_id: Discord channel ID
+            channel_name: Channel name
+            user_id: Discord user ID
+            username: User's display name
+            avatar_url: User's avatar URL
+            message_timestamp: When the message was created
+
+        Returns:
+            bool: True if saved successfully
+        """
+        if not self.django_available:
+            return False
+
+        try:
+            # Get or create guild
+            guild, _ = DiscordGuild.objects.get_or_create(
+                guild_id=str(guild_id), defaults={"name": guild_name}
+            )
+
+            # Update guild name if changed
+            if guild.name != guild_name:
+                guild.name = guild_name
+                guild.save()
+
+            # Get or create channel
+            channel, _ = DiscordChannel.objects.get_or_create(
+                channel_id=str(channel_id),
+                defaults={"guild": guild, "name": channel_name, "channel_type": "text"},
+            )
+
+            # Update channel name if changed
+            if channel.name != channel_name:
+                channel.name = channel_name
+                channel.save()
+
+            # Get or create user
+            user, _ = DiscordUser.objects.get_or_create(
+                user_id=str(user_id),
+                defaults={
+                    "username": username,
+                    "display_name": username,
+                    "avatar_url": avatar_url,
+                },
+            )
+
+            # Update user info if changed
+            if user.username != username:
+                user.username = username
+                user.display_name = username
+                user.save()
+
+            # Get or create message statistics record
+            stats, created = MessageStatistics.objects.get_or_create(
+                user=user,
+                channel=channel,
+                defaults={
+                    "total_messages": 0,
+                    "messages_last_7_days": 0,
+                    "messages_last_30_days": 0,
+                    "messages_last_90_days": 0,
+                    "first_message_date": message_timestamp or timezone.now(),
+                    "last_message_date": message_timestamp or timezone.now(),
+                    "collection_method": "streaming",
+                },
+            )
+
+            # Increment message count
+            stats.total_messages += 1
+
+            # Update time-based counts if we have a timestamp
+            if message_timestamp:
+                now = timezone.now()
+                # Make timestamp timezone-aware if needed
+                if message_timestamp.tzinfo is None:
+                    message_timestamp = timezone.make_aware(message_timestamp)
+
+                # Calculate cutoffs
+                cutoff_7_days = now - timedelta(days=7)
+                cutoff_30_days = now - timedelta(days=30)
+                cutoff_90_days = now - timedelta(days=90)
+
+                # Increment time-based counts
+                if message_timestamp >= cutoff_7_days:
+                    stats.messages_last_7_days += 1
+                if message_timestamp >= cutoff_30_days:
+                    stats.messages_last_30_days += 1
+                if message_timestamp >= cutoff_90_days:
+                    stats.messages_last_90_days += 1
+
+                # Update first/last message dates
+                if created or message_timestamp < stats.first_message_date:
+                    stats.first_message_date = message_timestamp
+                if created or message_timestamp > stats.last_message_date:
+                    stats.last_message_date = message_timestamp
+
+            stats.last_collected = timezone.now()
+            stats.save()
+
+        except Exception as e:
+            print(f"Error saving streaming statistics: {e}")
+            return False
+        else:
+            return True
+
+    async def save_message_statistics_streaming_async(
+        self,
+        guild_id: int,
+        guild_name: str,
+        channel_id: int,
+        channel_name: str,
+        user_id: int,
+        username: str,
+        avatar_url: str = "",
+        message_timestamp: datetime = None,
+    ) -> bool:
+        """Async version of save_message_statistics_streaming."""
+        if not self.django_available:
+            return False
+
+        sync_save = sync_to_async(
+            self.save_message_statistics_streaming, thread_sensitive=True
+        )
+        return await sync_save(
+            guild_id,
+            guild_name,
+            channel_id,
+            channel_name,
+            user_id,
+            username,
+            avatar_url,
+            message_timestamp,
+        )
+
     def get_available_guilds(self) -> list:
         """Get list of available guilds with statistics data."""
         if not self.django_available:

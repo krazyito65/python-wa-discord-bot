@@ -283,6 +283,166 @@ class StatsCollector:
                 return {"job_id": job_id, **job_data}
         return None
 
+    async def collect_user_stats_streaming(  # noqa: PLR0912, PLR0915
+        self,
+        guild: discord.Guild,
+        target_user: discord.Member = None,
+        channels: list[discord.TextChannel] = None,
+        days_back: int = None,
+        job_id: str = None,
+    ) -> dict:
+        """
+        Collect message statistics using streaming approach to minimize memory usage.
+
+        This method processes messages one by one and writes statistics to the database
+        immediately, avoiding accumulation of large amounts of data in memory.
+
+        Args:
+            guild: Discord guild to scan
+            target_user: Specific user to collect stats for (None = all users)
+            channels: List of channels to scan (None = all text channels)
+            days_back: Number of days to look back (None = all time)
+            job_id: Unique job identifier for progress tracking
+
+        Returns:
+            dict: Collection summary (minimal data kept in memory)
+        """
+        try:
+            # Mark job as running
+            if job_id:
+                self.active_jobs[job_id] = {
+                    "status": "running",
+                    "progress": 0,
+                    "total": 0,
+                    "started_at": datetime.now(),
+                    "messages_processed": 0,
+                    "users_found": set(),
+                    "guild_id": guild.id,
+                }
+
+            # Get channels to scan
+            if channels is None:
+                channels = [
+                    ch
+                    for ch in guild.text_channels
+                    if ch.permissions_for(guild.me).read_message_history
+                ]
+
+            # Calculate cutoff date
+            cutoff_date = None
+            if days_back is not None:
+                cutoff_date = datetime.now() - timedelta(days=days_back)
+
+            # Initialize minimal result structure (no timestamp storage)
+            results = {
+                "guild_id": guild.id,
+                "guild_name": guild.name,
+                "channels_scanned": len(channels),
+                "total_messages": 0,
+                "unique_users": set(),
+                "collection_start": datetime.now(),
+                "streaming_mode": True,
+            }
+
+            # Update job progress
+            if job_id:
+                self.active_jobs[job_id]["total"] = len(channels)
+
+            logger.info(
+                f"Starting streaming statistics collection for {guild.name} ({len(channels)} channels)"
+            )
+
+            # Scan each channel with streaming writes
+            for channel_idx, channel in enumerate(channels):
+                try:
+                    logger.info(
+                        f"Streaming channel #{channel.name} ({channel_idx + 1}/{len(channels)})"
+                    )
+
+                    channel_message_count = 0
+
+                    # Process messages with immediate database writes
+                    async for message in channel.history(
+                        limit=None, after=cutoff_date, oldest_first=False
+                    ):
+                        # Skip if targeting specific user and this isn't them
+                        if target_user and message.author.id != target_user.id:
+                            continue
+
+                        # Skip bot messages
+                        if message.author.bot:
+                            continue
+
+                        user_id = message.author.id
+                        message_datetime = message.created_at.replace(tzinfo=None)
+                        channel_message_count += 1
+
+                        # Stream to database immediately
+                        if STATS_SERVICE_AVAILABLE:
+                            try:
+                                await stats_service.save_message_statistics_streaming_async(
+                                    guild_id=guild.id,
+                                    guild_name=guild.name,
+                                    channel_id=channel.id,
+                                    channel_name=channel.name,
+                                    user_id=user_id,
+                                    username=message.author.display_name,
+                                    avatar_url=str(message.author.avatar.url)
+                                    if message.author.avatar
+                                    else "",
+                                    message_timestamp=message_datetime,
+                                )
+                            except Exception:
+                                logger.exception("Error streaming message statistics")
+
+                        # Track minimal data for summary
+                        results["unique_users"].add(user_id)
+
+                        # Update job progress
+                        if job_id:
+                            self.active_jobs[job_id]["messages_processed"] += 1
+                            self.active_jobs[job_id]["users_found"].add(user_id)
+
+                    results["total_messages"] += channel_message_count
+
+                    logger.info(
+                        f"Channel #{channel.name}: {channel_message_count} messages streamed to database"
+                    )
+
+                except discord.Forbidden:
+                    logger.warning(f"No permission to read history in #{channel.name}")
+                except Exception:
+                    logger.exception(f"Error scanning channel #{channel.name}")
+
+                # Update job progress
+                if job_id:
+                    self.active_jobs[job_id]["progress"] = channel_idx + 1
+
+            results["collection_end"] = datetime.now()
+            results["collection_duration"] = (
+                results["collection_end"] - results["collection_start"]
+            )
+            results["unique_users"] = len(results["unique_users"])
+
+            # Mark job as completed
+            if job_id:
+                self.active_jobs[job_id]["status"] = "completed"
+                self.active_jobs[job_id]["completed_at"] = datetime.now()
+
+            logger.info(
+                f"Streaming collection complete: {results['total_messages']} messages from "
+                f"{results['unique_users']} users across {results['channels_scanned']} channels"
+            )
+
+        except Exception as e:
+            logger.exception("Error during streaming statistics collection")
+            if job_id:
+                self.active_jobs[job_id]["status"] = "failed"
+                self.active_jobs[job_id]["error"] = str(e)
+            raise
+        else:
+            return results
+
 
 def setup_stats_commands(bot: WeakAurasBot):  # noqa: PLR0915
     """Setup all user statistics slash commands."""
@@ -385,9 +545,9 @@ def setup_stats_commands(bot: WeakAurasBot):  # noqa: PLR0915
             # Generate job ID
             job_id = f"{interaction.guild.id}_{interaction.user.id}_{int(datetime.now().timestamp())}"
 
-            # Start collection (this will run in background)
+            # Start collection using streaming approach (this will run in background)
             asyncio.create_task(
-                stats_collector.collect_user_stats(
+                stats_collector.collect_user_stats_streaming(
                     guild=interaction.guild,
                     target_user=user,
                     channels=target_channels,
