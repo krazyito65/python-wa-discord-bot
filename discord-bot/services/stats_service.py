@@ -7,6 +7,7 @@ It provides an interface between the Discord bot and the Django web application.
 
 import os
 import sys
+from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -27,6 +28,7 @@ try:
     from django.db import models, transaction
     from django.utils import timezone
     from user_stats.models import (
+        DailyMessageStatistics,
         DiscordChannel,
         DiscordGuild,
         DiscordUser,
@@ -196,6 +198,28 @@ class StatsService:
                                 stats.save()
 
                             stats_updated += 1
+
+                            # Process daily message statistics
+                            # Group messages by date and save daily counts
+                            daily_counts = defaultdict(int)
+
+                            for ts in tz_aware_timestamps:
+                                date_key = ts.date()
+                                daily_counts[date_key] += 1
+
+                            # Save daily statistics
+                            for date_key, count in daily_counts.items():
+                                daily_stat, created = DailyMessageStatistics.objects.get_or_create(
+                                    user=user,
+                                    channel=channel,
+                                    date=date_key,
+                                    defaults={"message_count": count}
+                                )
+
+                                if not created and daily_stat.message_count != count:
+                                    # Update if count changed
+                                    daily_stat.message_count = count
+                                    daily_stat.save()
 
                 # Update collection job if provided
                 if job_id:

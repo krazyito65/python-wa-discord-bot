@@ -389,6 +389,52 @@ See `.vscode/README.md` for detailed usage instructions.
 - New logging has been added to all slash commands and events at INFO level using the `logging_config.py` module - use the `@log_command` and `@log_event` decorators for future commands and events to maintain consistency.
 - use absolute paths when using cd to ensure you always know where you're going.
 
+## Database Schema and Data Collection
+
+### Message Statistics Data Structure
+
+The system collects Discord message statistics at multiple levels of granularity:
+
+**1. Aggregated Statistics (`MessageStatistics` model)**:
+- Stores per-user per-channel aggregated counts
+- Fields: `total_messages`, `messages_last_7_days`, `messages_last_30_days`, `messages_last_90_days`
+- Used for summary statistics and overview charts
+- Location: `web/user_stats/models.py:101`
+
+**2. Daily Statistics (`DailyMessageStatistics` model)**:
+- Stores exact daily message counts per user per channel per date
+- Fields: `user`, `channel`, `date`, `message_count`
+- Used for detailed daily activity graphs showing real message counts
+- Added in: User detail page time-based graphs
+- Location: `web/user_stats/models.py:156`
+
+### Data Collection Process
+
+**Collection (`discord-bot/commands/stats_commands.py:35`)**:
+- Scans Discord channel history and collects individual message timestamps
+- Stores message timestamps in memory during collection: `message_timestamps` array
+- Processes both individual timestamps and aggregated counts
+
+**Storage (`discord-bot/services/stats_service.py:51`)**:
+- Saves aggregated statistics to `MessageStatistics` table
+- Processes individual timestamps to create daily breakdowns
+- Saves daily counts to `DailyMessageStatistics` table (lines 202-222)
+- Daily data enables accurate daily graphs without estimates
+
+**Key Implementation Details**:
+- Message timestamps are collected during Discord API scanning
+- Daily statistics are calculated by grouping timestamps by date
+- Both aggregated and daily data are stored for different use cases
+- Daily data is only available for newly collected statistics (post-implementation)
+
+### Graph Data Sources
+
+**User Detail Time Charts**:
+- **Past 7 days**: Uses real daily data from `DailyMessageStatistics` (exact counts)
+- **Older periods**: Uses aggregated data from `MessageStatistics` (estimated distribution)
+- Shows actual message counts per day (integers, not averages)
+- Location: `web/user_stats/views.py:516` (daily data query)
+
 ## Data Protection
 
 To prevent accidental loss of server data and configuration during development:
@@ -470,3 +516,4 @@ uv run python manage.py setup_discord_oauth --config-path ~/.config/weakauras-bo
 - ✅ User statistics database (stored in `~/weakauras-bot-data/statistics.db`)
 - ❌ Repository database (if using `web/db.sqlite3` path - recreated by migrations)
 - when you restart the services, always use `bin/dev-start-all` so that both services are always running at the same time
+- make sure to always update the CLAUDE.md to remind yourself about information that you may forget, like how the data is stored in the database.
