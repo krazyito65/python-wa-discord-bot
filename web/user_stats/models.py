@@ -153,6 +153,41 @@ class MessageStatistics(models.Model):
         return f"{self.user.username} in {self.channel.name}: {self.total_messages} messages"
 
 
+class DailyMessageStatistics(models.Model):
+    """Daily message statistics per user per channel."""
+
+    user = models.ForeignKey(
+        DiscordUser, on_delete=models.CASCADE, related_name="daily_message_stats"
+    )
+    channel = models.ForeignKey(
+        DiscordChannel, on_delete=models.CASCADE, related_name="daily_message_stats"
+    )
+    date = models.DateField(help_text="Date for these statistics")
+    message_count = models.PositiveIntegerField(
+        default=0, help_text="Number of messages sent on this date"
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(
+        default=timezone.now, help_text="When this record was created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="When this record was last updated"
+    )
+
+    class Meta:
+        unique_together = ["user", "channel", "date"]
+        ordering = ["-date"]
+        indexes = [
+            models.Index(fields=["user", "channel", "date"]),
+            models.Index(fields=["date"]),
+            models.Index(fields=["channel", "date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} in {self.channel.name} on {self.date}: {self.message_count} messages"
+
+
 class StatisticsCollectionJob(models.Model):
     """Track statistics collection jobs."""
 

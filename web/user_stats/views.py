@@ -8,6 +8,7 @@ collected from various channels within Discord servers.
 import json
 import logging
 import time
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib import messages
@@ -20,6 +21,7 @@ from django.utils import timezone
 from shared.discord_api import DiscordAPIError, get_user_guilds
 
 from .models import (
+    DailyMessageStatistics,
     DiscordChannel,
     DiscordGuild,
     DiscordUser,
@@ -489,6 +491,55 @@ def user_detail_stats(request, guild_id, user_id):
             "messages_last_90_days",
         )
 
+        # Create time-based chart data with dates on x-axis
+        now = timezone.now()
+
+        # Create daily labels for the past 7 days
+        time_labels = []
+        dates = []
+        for days_ago in range(6, -1, -1):  # 6 days ago to today
+            date = now - timedelta(days=days_ago)
+            time_labels.append(date.strftime('%m/%d'))  # Format as MM/DD
+            dates.append(date.date())
+
+        # Get all channels that have activity in the last 7 days
+        active_channels = (
+            user_stats.filter(messages_last_7_days__gt=0)
+            .values_list('channel', flat=True)
+        )
+
+        # Create datasets for each channel using real daily data
+        channel_datasets = []
+
+        # Get daily statistics for this user in active channels for the past 7 days
+        daily_stats = DailyMessageStatistics.objects.filter(
+            user=user,
+            channel__in=active_channels,
+            date__in=dates
+        ).select_related('channel')
+
+        # Group daily stats by channel
+        channel_daily_data = {}
+        for daily_stat in daily_stats:
+            channel_name = f"#{daily_stat.channel.name}"
+            if channel_name not in channel_daily_data:
+                channel_daily_data[channel_name] = {}
+            channel_daily_data[channel_name][daily_stat.date] = daily_stat.message_count
+
+        # Create datasets with actual daily data
+        for channel_name, daily_data in channel_daily_data.items():
+            daily_counts = []
+            for date in dates:
+                count = daily_data.get(date, 0)
+                daily_counts.append(count)
+
+            # Only include channels that have some activity
+            if sum(daily_counts) > 0:
+                channel_datasets.append({
+                    "channel": channel_name,
+                    "data": daily_counts
+                })
+
         chart_data = {
             "channels": [f"#{stat['channel__name']}" for stat in chart_data_query],
             "messages": [stat["total_messages"] for stat in chart_data_query],
@@ -499,6 +550,8 @@ def user_detail_stats(request, guild_id, user_id):
             "messages_90d": [
                 stat["messages_last_90_days"] for stat in chart_data_query
             ],
+            "time_labels": time_labels,
+            "channel_datasets": channel_datasets,
         }
 
         context = {
