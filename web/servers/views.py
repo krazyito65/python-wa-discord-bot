@@ -11,6 +11,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import redirect, render
+
+from admin_panel.models import ServerPermissionConfig
 from shared.bot_interface import bot_interface
 from shared.discord_api import (
     DiscordAPIError,
@@ -151,6 +153,56 @@ def server_hub(request, guild_id):
         return redirect("servers:dashboard")
 
 
+def _check_admin_panel_access(request, guild_id: int, user_guilds: list) -> bool:
+    """
+    Check if user has access to the admin panel for the specified server.
+
+    Args:
+        request: Django HTTP request with authenticated user
+        guild_id: Discord guild ID to check admin panel access for
+        user_guilds: List of user's Discord guilds from API
+
+    Returns:
+        bool: True if user has admin panel access, False otherwise
+    """
+    try:
+        # Get guild info
+        guild_info = next(
+            (guild for guild in user_guilds if int(guild["id"]) == guild_id),
+            None,
+        )
+
+        if not guild_info:
+            return False
+
+        guild_name = guild_info["name"]
+        is_server_owner = guild_info.get("owner", False)
+        guild_permissions = int(guild_info.get("permissions", 0))
+
+        # Get or create server permission configuration
+        server_config, created = ServerPermissionConfig.objects.get_or_create(
+            guild_id=str(guild_id),
+            defaults={
+                'guild_name': guild_name,
+                'updated_by': str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else '',
+                'updated_by_name': request.user.username,
+            }
+        )
+
+        # For newly created configs, default to basic admin permission check
+        if created:
+            # For new configs, use basic admin permission check (Discord administrator/owner)
+            return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
+        else:
+            # Use the configured permission system
+            user_roles = []  # We'll need to implement role fetching from Discord API in the future
+            return server_config.has_permission(user_roles, 'admin_panel_access', guild_permissions, is_server_owner)
+
+    except Exception as e:
+        logger.error(f"Error checking admin panel access: {e}")
+        return False
+
+
 @login_required
 def server_detail(request, guild_id):
     """Server detail view showing macro management interface for a specific server.
@@ -250,6 +302,9 @@ def server_detail(request, guild_id):
                 request, "Test message: Message display is working correctly!"
             )
 
+        # Check if user has admin panel access
+        has_admin_panel_access = _check_admin_panel_access(request, guild_id, user_guilds)
+
         context = {
             "guild_id": guild_id,
             "guild_name": guild_name,
@@ -258,6 +313,7 @@ def server_detail(request, guild_id):
             "macro_count": len(macros),
             "search_query": search_query,
             "total_macros": len(macros_dict),  # Total before filtering
+            "has_admin_panel_access": has_admin_panel_access,
         }
 
         return render(request, "servers/server_detail.html", context)
