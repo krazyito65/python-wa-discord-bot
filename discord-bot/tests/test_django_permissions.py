@@ -99,6 +99,82 @@ class TestDjangoPermissions(unittest.TestCase):
         self.assertTrue(callable(get_server_permission_config))
         self.assertTrue(callable(get_permission_error_message))
 
+    def test_get_django_database_path_sqlite_prefix(self):
+        """Test database path extraction from different SQLite URL formats."""
+        test_configs = [
+            {
+                "django": {"database_url": "sqlite:///relative/path/db.sqlite3"}
+            },
+            {
+                "django": {"database_url": "sqlite:///absolute/path/db.sqlite3"}
+            },
+        ]
+
+        for config in test_configs:
+            with patch("pathlib.Path.exists", return_value=True), \
+                 patch("builtins.open"), \
+                 patch("yaml.safe_load", return_value=config):
+
+                result = get_django_database_path()
+                self.assertIsInstance(result, str)
+                # Should not contain the sqlite:/// prefix
+                self.assertNotIn("sqlite:///", result)
+
+    def test_get_django_database_path_yaml_parsing(self):
+        """Test that function properly parses YAML configuration."""
+        test_config = {
+            "django": {"database_url": "sqlite:///~/test-db/test.db"}
+        }
+
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("builtins.open", create=True), \
+             patch("yaml.safe_load", return_value=test_config):
+
+            result = get_django_database_path()
+            # Should process the config and return a path
+            self.assertIsInstance(result, str)
+            self.assertIn("test-db", result)
+
+    def test_get_django_database_path_non_sqlite(self):
+        """Test behavior with non-SQLite database URLs."""
+        test_config = {
+            "django": {"database_url": "postgresql://localhost/test"}
+        }
+
+        with patch("pathlib.Path.exists", return_value=True), \
+             patch("builtins.open"), \
+             patch("yaml.safe_load", return_value=test_config):
+
+            result = get_django_database_path()
+            # Should fall back to default path for non-SQLite URLs
+            expected = str(Path("~/weakauras-bot-data/statistics.db").expanduser())
+            self.assertEqual(result, expected)
+
+    def test_get_permission_error_message_different_permissions(self):
+        """Test permission error messages for different permission types."""
+        mock_config = Mock()
+        mock_config.create_macros = "everyone"
+        mock_config.edit_macros = "trusted_users"
+        mock_config.delete_macros = "admin_only"
+
+        # Test different permission types
+        permission_types = ["create_macros", "edit_macros", "delete_macros"]
+
+        for perm_type in permission_types:
+            result = get_permission_error_message(perm_type, mock_config)
+            self.assertIsInstance(result, str)
+            self.assertGreater(len(result), 0)
+
+    def test_get_permission_error_message_missing_attribute(self):
+        """Test permission error message when config lacks the requested permission."""
+        mock_config = Mock()
+        # Don't set any permission attributes
+
+        result = get_permission_error_message("nonexistent_permission", mock_config)
+        self.assertIsInstance(result, str)
+        self.assertGreater(len(result), 0)
+        self.assertIn("permission", result.lower())
+
 
 if __name__ == "__main__":
     unittest.main()

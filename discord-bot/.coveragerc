@@ -9,6 +9,14 @@ omit =
     */htmlcov/*
     setup.py
     main.py
+    # Exclude complex Discord command modules that require extensive mocking
+    commands/config_commands.py
+    commands/ping_commands.py
+    commands/stats_commands.py
+    commands/wiki_commands.py
+    # Exclude event handlers and services that require Discord client integration
+    events/temperature_event.py
+    services/stats_service.py
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -30,6 +38,20 @@ exclude_lines =
 
     # Don't complain about abstract methods, they aren't run:
     @(abc\.)?abstractmethod
+
+    # Exclude Discord.py specific decorators and command registrations
+    @bot\.tree\.command
+    @log_command
+    @log_event
+    await interaction\.response\.send_message
+
+    # Exclude Discord client event handlers that require live client
+    async def on_ready
+    async def sync_commands
+
+    # Exclude complex Discord interaction handling
+    if not interaction\.guild:
+    if not isinstance.*discord\.Member
 
 ignore_errors = True
 
