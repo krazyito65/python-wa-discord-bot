@@ -8,7 +8,7 @@ system, allowing the web interface to read and write macro data for servers.
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -242,7 +242,7 @@ class BotDataInterface:
             "message": macro_data.message,
             "created_by": macro_data.created_by,
             "created_by_name": macro_data.created_by_name,
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
 
         macros[macro_data.name] = macro_dict
@@ -273,7 +273,7 @@ class BotDataInterface:
             return False, f"A macro named '{update_data.new_name}' already exists"
 
         current_macro = macros[update_data.old_name]
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         # Update the macro data while preserving metadata
         if isinstance(current_macro, dict):
