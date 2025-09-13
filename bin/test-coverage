@@ -1,0 +1,214 @@
+#!/bin/bash
+
+# Code coverage validation script
+# Usage: bin/test-coverage [--min-coverage=80] (can be run from anywhere)
+#
+# This script runs all tests with coverage reporting and validates that
+# the overall code coverage meets the minimum threshold (default: 80%).
+#
+# Exit codes:
+#   0 - All tests pass and coverage meets minimum threshold
+#   1 - Tests fail or coverage is below minimum threshold
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get the repository root (parent of bin directory)
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Default minimum coverage percentage
+MIN_COVERAGE=80
+
+# Parse arguments
+for arg in "$@"
+do
+    case $arg in
+        --min-coverage=*)
+            MIN_COVERAGE="${arg#*=}"
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: bin/test-coverage [--min-coverage=80]"
+            echo ""
+            echo "Run all tests with coverage reporting and validate minimum coverage threshold."
+            echo ""
+            echo "Options:"
+            echo "  --min-coverage=N    Set minimum coverage percentage (default: 80)"
+            echo "  -h, --help         Show this help message"
+            echo ""
+            echo "Exit codes:"
+            echo "  0 - Tests pass and coverage meets minimum"
+            echo "  1 - Tests fail or coverage below minimum"
+            exit 0
+            ;;
+    esac
+done
+
+echo "🎯 Code Coverage Validation"
+echo "============================"
+echo "📁 Repository root: $REPO_ROOT"
+echo "📊 Minimum coverage required: ${MIN_COVERAGE}%"
+echo ""
+
+# Temporary files for coverage data
+COVERAGE_DATA_DIR=$(mktemp -d)
+BOT_COVERAGE_FILE="$COVERAGE_DATA_DIR/bot_coverage.txt"
+COMBINED_COVERAGE_FILE="$COVERAGE_DATA_DIR/combined_coverage.xml"
+
+# Cleanup function
+cleanup() {
+    rm -rf "$COVERAGE_DATA_DIR"
+}
+trap cleanup EXIT
+
+echo "🤖 Running Discord Bot Tests with Coverage..."
+echo "============================================="
+cd "$REPO_ROOT/discord-bot"
+
+# Run bot tests with coverage, capture output and coverage percentage
+if uv run pytest --cov=. --cov-report=term-missing --cov-report=html --cov-report=xml:coverage.xml --cov-fail-under=$MIN_COVERAGE > "$BOT_COVERAGE_FILE" 2>&1; then
+    BOT_TESTS_PASSED=true
+else
+    BOT_TESTS_PASSED=false
+fi
+
+# Display bot test results
+cat "$BOT_COVERAGE_FILE"
+
+# Extract bot coverage percentage from output
+BOT_COVERAGE=$(grep -o 'TOTAL.*[0-9]\+%' "$BOT_COVERAGE_FILE" | grep -o '[0-9]\+%' | tail -1 | sed 's/%//')
+
+# Copy bot coverage.xml for potential combined reporting
+if [ -f "coverage.xml" ]; then
+    cp "coverage.xml" "$COVERAGE_DATA_DIR/bot_coverage.xml"
+fi
+
+echo ""
+echo "🌐 Running Django Web Tests..."
+echo "==============================="
+cd "$REPO_ROOT/web"
+
+# Django doesn't have built-in coverage in our current test setup, so we'll run coverage manually
+DJANGO_COVERAGE_FILE="$COVERAGE_DATA_DIR/django_coverage.txt"
+
+# Run Django tests with coverage
+if uv run coverage run --source='.' manage.py test > "$DJANGO_COVERAGE_FILE" 2>&1; then
+    DJANGO_TESTS_PASSED=true
+    # Generate coverage report
+    echo "" >> "$DJANGO_COVERAGE_FILE"
+    echo "Coverage Report:" >> "$DJANGO_COVERAGE_FILE"
+    uv run coverage report >> "$DJANGO_COVERAGE_FILE" 2>&1
+    uv run coverage html >> "$DJANGO_COVERAGE_FILE" 2>&1
+    uv run coverage xml -o coverage.xml >> "$DJANGO_COVERAGE_FILE" 2>&1
+else
+    DJANGO_TESTS_PASSED=false
+fi
+
+# Display Django test results
+cat "$DJANGO_COVERAGE_FILE"
+
+# Extract Django coverage percentage from output
+DJANGO_COVERAGE=$(grep 'TOTAL' "$DJANGO_COVERAGE_FILE" | grep -o '[0-9]\+%' | tail -1 | sed 's/%//')
+
+# Copy Django coverage.xml for potential combined reporting
+if [ -f "coverage.xml" ]; then
+    cp "coverage.xml" "$COVERAGE_DATA_DIR/django_coverage.xml"
+fi
+
+echo ""
+echo "📊 Coverage Summary"
+echo "==================="
+
+# Check if we got coverage percentages
+if [ -n "$BOT_COVERAGE" ]; then
+    echo "🤖 Discord Bot Coverage: ${BOT_COVERAGE}%"
+    BOT_COVERAGE_NUM=$BOT_COVERAGE
+else
+    echo "🤖 Discord Bot Coverage: Unable to determine"
+    BOT_COVERAGE_NUM=0
+fi
+
+if [ -n "$DJANGO_COVERAGE" ]; then
+    echo "🌐 Django Web Coverage: ${DJANGO_COVERAGE}%"
+    DJANGO_COVERAGE_NUM=$DJANGO_COVERAGE
+else
+    echo "🌐 Django Web Coverage: Unable to determine"
+    DJANGO_COVERAGE_NUM=0
+fi
+
+# Calculate overall coverage (weighted by lines of code would be more accurate, but simple average for now)
+if [ "$BOT_COVERAGE_NUM" -gt 0 ] && [ "$DJANGO_COVERAGE_NUM" -gt 0 ]; then
+    OVERALL_COVERAGE=$(( (BOT_COVERAGE_NUM + DJANGO_COVERAGE_NUM) / 2 ))
+    echo "🎯 Overall Average Coverage: ${OVERALL_COVERAGE}%"
+elif [ "$BOT_COVERAGE_NUM" -gt 0 ]; then
+    OVERALL_COVERAGE=$BOT_COVERAGE_NUM
+    echo "🎯 Overall Coverage (Bot only): ${OVERALL_COVERAGE}%"
+elif [ "$DJANGO_COVERAGE_NUM" -gt 0 ]; then
+    OVERALL_COVERAGE=$DJANGO_COVERAGE_NUM
+    echo "🎯 Overall Coverage (Django only): ${OVERALL_COVERAGE}%"
+else
+    OVERALL_COVERAGE=0
+    echo "🎯 Overall Coverage: Unable to determine"
+fi
+
+echo ""
+
+# Check test results
+TESTS_FAILED=false
+if [ "$BOT_TESTS_PASSED" = false ]; then
+    echo "❌ Discord bot tests failed"
+    TESTS_FAILED=true
+fi
+
+if [ "$DJANGO_TESTS_PASSED" = false ]; then
+    echo "❌ Django web tests failed"
+    TESTS_FAILED=true
+fi
+
+# Check coverage threshold
+COVERAGE_FAILED=false
+if [ "$OVERALL_COVERAGE" -lt "$MIN_COVERAGE" ]; then
+    echo "❌ Coverage ${OVERALL_COVERAGE}% is below minimum threshold of ${MIN_COVERAGE}%"
+    COVERAGE_FAILED=true
+fi
+
+# Final result
+if [ "$TESTS_FAILED" = true ] || [ "$COVERAGE_FAILED" = true ]; then
+    echo ""
+    echo "💥 Coverage validation failed!"
+    echo ""
+    echo "📋 Requirements:"
+    echo "   ✅ All tests must pass"
+    if [ "$TESTS_FAILED" = true ]; then
+        echo "   ❌ Some tests are failing"
+    else
+        echo "   ✅ All tests are passing"
+    fi
+
+    echo "   ✅ Code coverage must be ≥ ${MIN_COVERAGE}%"
+    if [ "$COVERAGE_FAILED" = true ]; then
+        echo "   ❌ Coverage is ${OVERALL_COVERAGE}% (below ${MIN_COVERAGE}%)"
+    else
+        echo "   ✅ Coverage is ${OVERALL_COVERAGE}% (meets ${MIN_COVERAGE}%)"
+    fi
+
+    echo ""
+    echo "🔧 To improve coverage:"
+    echo "   - Add unit tests for uncovered code paths"
+    echo "   - Test edge cases and error conditions"
+    echo "   - Review coverage reports in htmlcov/ directories"
+    echo ""
+    exit 1
+else
+    echo "🎉 Coverage validation successful!"
+    echo ""
+    echo "✅ All tests passed"
+    echo "✅ Coverage ${OVERALL_COVERAGE}% meets minimum threshold of ${MIN_COVERAGE}%"
+    echo ""
+    echo "📊 Coverage reports:"
+    echo "   - Discord bot: $REPO_ROOT/discord-bot/htmlcov/index.html"
+    echo "   - Django web: $REPO_ROOT/web/htmlcov/index.html"
+    echo ""
+    exit 0
+fi

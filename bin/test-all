@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Test runner script for all tests (Discord bot + Django web)
-# Usage: bin/test-all [--coverage] [--verbose] (can be run from anywhere)
+# Usage: bin/test-all [--coverage] [--verbose] [--validate-coverage] (can be run from anywhere)
 
 set -e
 
@@ -12,6 +12,7 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 COVERAGE=false
 VERBOSE=false
+VALIDATE_COVERAGE=false
 
 # Parse arguments
 for arg in "$@"
@@ -23,6 +24,10 @@ do
             ;;
         --verbose)
             VERBOSE=true
+            shift
+            ;;
+        --validate-coverage)
+            VALIDATE_COVERAGE=true
             shift
             ;;
     esac
@@ -56,4 +61,11 @@ if [ "$COVERAGE" = true ]; then
     echo ""
     echo "📊 Coverage reports available:"
     echo "   - Discord bot: $REPO_ROOT/discord-bot/htmlcov/index.html"
+fi
+
+# Run coverage validation if requested
+if [ "$VALIDATE_COVERAGE" = true ]; then
+    echo ""
+    echo "🎯 Running coverage validation..."
+    "$SCRIPT_DIR/test-coverage"
 fi

@@ -191,11 +191,14 @@ The project has comprehensive unit test coverage for both Discord bot and Django
 bin/test-bot              # Run Discord bot tests
 bin/test-web              # Run Django web tests
 bin/test-all              # Run all tests
+bin/test-coverage         # Run tests with coverage validation (80% minimum)
 
 # With additional options
 bin/test-bot --coverage   # Run bot tests with coverage report
 bin/test-web --verbose    # Run web tests with verbose output
 bin/test-all --coverage --verbose  # Run all tests with options
+bin/test-all --validate-coverage    # Run all tests + coverage validation
+bin/test-coverage --min-coverage=90  # Custom coverage threshold
 
 # Examples from different directories
 ./bin/test-web            # From project root
@@ -221,6 +224,40 @@ cd web && uv run python manage.py test
 - Add new test cases for any new functions, methods, or command handlers you create
 - Mock external dependencies (Discord API, file system, database) in tests
 - Use proper test isolation with temporary directories and cleanup
+
+### Code Coverage Requirements
+
+The project enforces a minimum **80% code coverage** requirement to ensure comprehensive testing:
+
+```bash
+# Check current coverage levels
+bin/test-coverage
+
+# Run with custom threshold
+bin/test-coverage --min-coverage=85
+
+# View detailed coverage reports (after running coverage tests)
+open discord-bot/htmlcov/index.html    # Discord bot coverage
+open web/htmlcov/index.html             # Django web coverage
+```
+
+**Coverage Validation:**
+- **Automated**: CI/CD pipeline validates coverage on every pull request
+- **Local Testing**: Run `bin/test-coverage` before committing changes
+- **Threshold**: 80% minimum overall coverage (configurable)
+- **Reporting**: HTML reports show line-by-line coverage details
+- **Integration**: Both Discord bot and Django web components included
+
+**Current Coverage Status:**
+- Discord Bot: ~13% (needs improvement)
+- Django Web: ~61% (approaching target)
+- Overall: ~37% (below 80% target)
+
+**To improve coverage:**
+1. Add unit tests for uncovered functions and methods
+2. Test error conditions and edge cases
+3. Mock external dependencies properly
+4. Review coverage reports to identify gaps
 
 ### Pre-commit Hooks
 Pre-commit hooks automatically run code quality checks before each commit:
