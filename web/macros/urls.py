@@ -25,4 +25,9 @@ urlpatterns = [
         views.check_macro_name,
         name="check_name",
     ),
+    path(
+        "<int:guild_id>/debug-permissions/",
+        views.debug_permissions,
+        name="debug_permissions",
+    ),
 ]

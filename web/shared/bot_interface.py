@@ -372,26 +372,39 @@ class BotDataInterface:
         Returns:
             bool: True if user has admin access, False otherwise.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         config = self.load_bot_config()
         permissions_config = config.get("bot", {}).get("permissions", {})
+        
+        logger.info(f"Bot config loaded: {permissions_config}")
 
         # Check role names (case-insensitive)
         admin_roles = permissions_config.get("admin_roles", ["admin"])
         user_role_names = [role.lower() for role in user_roles]
+        
+        logger.info(f"Admin roles: {admin_roles}, User roles: {user_role_names}")
 
         for admin_role in admin_roles:
             if admin_role.lower() in user_role_names:
+                logger.info(f"User has admin role: {admin_role}")
                 return True
 
         # Check Discord permissions
         admin_permissions = permissions_config.get("admin_permissions", ["administrator"])
+        
+        logger.info(f"Admin permissions: {admin_permissions}, User guild permissions: {guild_permissions} (0x{guild_permissions:x})")
 
         for permission_name in admin_permissions:
             # Convert permission name to Discord permission bit
             permission_bit = self._get_permission_bit(permission_name)
+            logger.info(f"Checking permission '{permission_name}' (bit: 0x{permission_bit:x})")
             if permission_bit and (guild_permissions & permission_bit) == permission_bit:
+                logger.info(f"User has admin permission: {permission_name}")
                 return True
 
+        logger.info("User does not have admin access")
         return False
 
     def _get_permission_bit(self, permission_name: str) -> int:

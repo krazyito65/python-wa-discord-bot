@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from shared.bot_interface import MacroData, MacroUpdateData, bot_interface
-from shared.discord_api import DiscordAPIError, get_user_guild_member, get_user_guilds
+from shared.discord_api import DiscordAPIError, get_user_guilds
 
 logger = logging.getLogger(__name__)
 
@@ -198,21 +198,8 @@ def _validate_admin_permissions(request, guild_id):
         bool: True if user has admin permissions, False otherwise.
     """
     try:
-        # Get user's member information for this specific guild
-        member_data = get_user_guild_member(request.user, guild_id)
-
-        if not member_data:
-            logger.warning(f"User {request.user.username} is not a member of guild {guild_id}")
-            return False
-
-        # Extract roles and permissions from member data
-        role_names = []
-        if "roles" in member_data:
-            # Note: This gives us role IDs, not names. For now, we'll use guild permissions
-            # In a production system, you'd want to fetch role details from Discord
-            pass
-
-        # Get guild permissions from the user's guilds data
+        # Simplified approach: Use guild permissions from the user's guilds data
+        # The Discord API endpoint for member data may not be available with user tokens
         user_guilds = get_user_guilds(request.user)
         guild_permissions = 0
 
@@ -220,10 +207,20 @@ def _validate_admin_permissions(request, guild_id):
             if int(guild["id"]) == guild_id:
                 guild_permissions = int(guild.get("permissions", 0))
                 break
+        
+        if guild_permissions == 0:
+            logger.warning(f"No permissions found for user {request.user.username} in guild {guild_id}")
+            return False
+
+        logger.info(f"User {request.user.username} has permissions {guild_permissions} in guild {guild_id}")
 
         # For now, use permissions-based checking since role names require additional API calls
         # Check if user has admin permissions using bot configuration
-        return bot_interface.check_admin_access(role_names, guild_permissions)
+        role_names = []  # Empty for now since we can't easily get role names with user tokens
+        has_admin = bot_interface.check_admin_access(role_names, guild_permissions)
+        
+        logger.info(f"Admin access check result for user {request.user.username}: {has_admin}")
+        return has_admin
 
     except DiscordAPIError as e:
         logger.error(f"Error checking admin permissions for user {request.user.username} in guild {guild_id}: {e}")
@@ -407,6 +404,57 @@ def macro_get(request, guild_id, macro_name):
 
 
 @login_required
+def debug_permissions(request, guild_id):
+    """Debug endpoint to show user's permissions for troubleshooting."""
+    try:
+        guild_name = _validate_server_access(request, guild_id)
+        
+        # Get guild permissions
+        user_guilds = get_user_guilds(request.user)
+        guild_permissions = 0
+        guild_info = None
+        
+        for guild in user_guilds:
+            if int(guild["id"]) == guild_id:
+                guild_permissions = int(guild.get("permissions", 0))
+                guild_info = guild
+                break
+        
+        # Get bot config
+        config = bot_interface.load_bot_config()
+        permissions_config = config.get("bot", {}).get("permissions", {})
+        
+        # Check admin access
+        admin_access = _validate_admin_permissions(request, guild_id)
+        
+        # Create debug info
+        debug_info = {
+            "guild_id": guild_id,
+            "guild_name": guild_name,
+            "guild_info": guild_info,
+            "user_permissions": guild_permissions,
+            "user_permissions_hex": f"0x{guild_permissions:x}",
+            "bot_config": permissions_config,
+            "admin_access": admin_access,
+            "permission_bits": {
+                "administrator": 0x8,
+                "manage_channels": 0x10,
+                "manage_guild": 0x20,
+                "manage_messages": 0x2000,
+                "manage_roles": 0x10000000,
+                "manage_webhooks": 0x20000000,
+                "kick_members": 0x2,
+                "ban_members": 0x4,
+            }
+        }
+        
+        return JsonResponse(debug_info, json_dumps_params={"indent": 2})
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
 def macro_delete(request, guild_id, macro_name):
     """Delete an existing macro from a specific server.
 
@@ -472,3 +520,54 @@ def check_macro_name(request, guild_id, macro_name):
 
     except DiscordAPIError as e:
         return JsonResponse({"error": f"Error accessing server: {e}"}, status=500)
+
+
+@login_required
+def debug_permissions(request, guild_id):
+    """Debug endpoint to show user's permissions for troubleshooting."""
+    try:
+        guild_name = _validate_server_access(request, guild_id)
+        
+        # Get guild permissions
+        user_guilds = get_user_guilds(request.user)
+        guild_permissions = 0
+        guild_info = None
+        
+        for guild in user_guilds:
+            if int(guild["id"]) == guild_id:
+                guild_permissions = int(guild.get("permissions", 0))
+                guild_info = guild
+                break
+        
+        # Get bot config
+        config = bot_interface.load_bot_config()
+        permissions_config = config.get("bot", {}).get("permissions", {})
+        
+        # Check admin access
+        admin_access = _validate_admin_permissions(request, guild_id)
+        
+        # Create debug info
+        debug_info = {
+            "guild_id": guild_id,
+            "guild_name": guild_name,
+            "guild_info": guild_info,
+            "user_permissions": guild_permissions,
+            "user_permissions_hex": f"0x{guild_permissions:x}",
+            "bot_config": permissions_config,
+            "admin_access": admin_access,
+            "permission_bits": {
+                "administrator": 0x8,
+                "manage_channels": 0x10,
+                "manage_guild": 0x20,
+                "manage_messages": 0x2000,
+                "manage_roles": 0x10000000,
+                "manage_webhooks": 0x20000000,
+                "kick_members": 0x2,
+                "ban_members": 0x4,
+            }
+        }
+        
+        return JsonResponse(debug_info, json_dumps_params={"indent": 2})
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
