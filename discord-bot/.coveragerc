@@ -1,6 +1,7 @@
 [run]
 source = .
 omit =
+    # Standard test and build artifacts
     */tests/*
     */test_*
     */__pycache__/*
@@ -9,19 +10,32 @@ omit =
     */htmlcov/*
     setup.py
     main.py
-    # Exclude complex Discord command modules that require extensive mocking
-    commands/config_commands.py
-    commands/ping_commands.py
-    commands/stats_commands.py
-    commands/wiki_commands.py
-    # Exclude event handlers and services that require Discord client integration
-    events/temperature_event.py
-    services/stats_service.py
+
+    # === DISCORD BOT COVERAGE STRATEGY ===
+    # We focus coverage on core business logic and user-facing functionality
+    # while excluding complex Discord.py integration code that would require
+    # extensive mocking and provide limited value.
+
+    # Exclude Discord command modules requiring complex Discord.py mocking:
+    # - These modules primarily contain Discord slash command registration
+    # - Testing would require mocking discord.Interaction, command trees, etc.
+    # - The business logic is minimal compared to integration complexity
+    commands/config_commands.py      # Admin configuration commands
+    commands/ping_commands.py        # Bot status/ping commands
+    commands/stats_commands.py       # Statistics collection commands
+    commands/wiki_commands.py        # Wiki/documentation commands
+
+    # Exclude event handlers and services requiring live Discord client:
+    # - These require Discord client connection and real-time events
+    # - Testing would need complex Discord.py event system mocking
+    # - Integration testing is more valuable than unit testing for these
+    events/temperature_event.py      # Discord message event handlers
+    services/stats_service.py        # Discord API statistics collection
 
 [report]
 # Regexes for lines to exclude from consideration
 exclude_lines =
-    # Have to re-enable the standard pragma
+    # Standard Python coverage exclusions
     pragma: no cover
 
     # Don't complain about missing debug-only code:
@@ -39,17 +53,31 @@ exclude_lines =
     # Don't complain about abstract methods, they aren't run:
     @(abc\.)?abstractmethod
 
-    # Exclude Discord.py specific decorators and command registrations
+    # === DISCORD.PY INTEGRATION EXCLUSIONS ===
+    # These patterns exclude Discord-specific code that requires complex mocking
+    # and provides minimal business logic value when tested in isolation.
+
+    # Discord command registration decorators:
+    # - @bot.tree.command creates slash commands requiring Discord API
+    # - @log_command/@log_event are logging decorators for Discord events
     @bot\.tree\.command
     @log_command
     @log_event
+
+    # Discord interaction response patterns:
+    # - These require live Discord.Interaction objects
+    # - Testing would need extensive Discord.py mocking
     await interaction\.response\.send_message
 
-    # Exclude Discord client event handlers that require live client
+    # Discord client lifecycle methods:
+    # - These run when Discord client connects/syncs
+    # - Require actual Discord connection to test meaningfully
     async def on_ready
     async def sync_commands
 
-    # Exclude complex Discord interaction handling
+    # Discord interaction validation patterns:
+    # - Guild/member validation for Discord commands
+    # - Testing requires mocking Discord objects with complex hierarchies
     if not interaction\.guild:
     if not isinstance.*discord\.Member
 
