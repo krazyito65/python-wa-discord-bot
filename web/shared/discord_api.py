@@ -170,6 +170,64 @@ def filter_available_servers(
     return available_servers
 
 
+def get_user_guild_member(user, guild_id: int) -> dict | None:
+    """Fetch user's member information for a specific guild/server.
+    
+    This includes roles, permissions, and other server-specific data.
+    Uses caching to avoid hitting Discord API rate limits.
+    
+    Args:
+        user: Django user object with Discord OAuth token.
+        guild_id: Discord guild ID to get member info for.
+        
+    Returns:
+        Optional[Dict]: Member information from Discord API, None if request fails.
+                       Contains roles, permissions, nick, joined_at, etc.
+        
+    Raises:
+        DiscordAPIError: If Discord API request fails.
+    """
+    token = get_user_discord_token(user)
+    if not token:
+        raise DiscordAPIError("No Discord token available")
+
+    user_id = user.socialaccount_set.first().uid
+    cache_key = f"discord_member_{user_id}_{guild_id}"
+
+    # Check cache first
+    cached_member = cache.get(cache_key)
+    if cached_member is not None:
+        return cached_member
+
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Get guild member information
+        response = requests.get(
+            f"https://discord.com/api/v10/users/@me/guilds/{guild_id}/member",
+            headers=headers,
+            timeout=10
+        )
+
+        if response.status_code == 404:
+            # User is not a member of this guild
+            cache.set(cache_key, None, 300)  # Cache negative result briefly
+            return None
+
+        response.raise_for_status()
+        member_data = response.json()
+
+        # Cache the result
+        cache_timeout = getattr(settings, "DISCORD_MEMBER_CACHE_TIMEOUT", 300)
+        cache.set(cache_key, member_data, cache_timeout)
+
+        return member_data
+
+    except requests.RequestException as e:
+        msg = f"Failed to fetch guild member info: {e}"
+        raise DiscordAPIError(msg) from e
+
+
 def clear_user_discord_cache(user) -> None:
     """Clear cached Discord data for a specific user.
 
@@ -179,8 +237,20 @@ def clear_user_discord_cache(user) -> None:
     Args:
         user: Django user object to clear cache for.
     """
-    cache.delete(f"discord_guilds_{user.id}")
-    cache.delete(f"discord_user_{user.id}")
+    user_id = user.socialaccount_set.first().uid if user.socialaccount_set.first() else None
+
+    if user_id:
+        cache.delete(f"discord_guilds_{user.id}")
+        cache.delete(f"discord_user_{user.id}")
+
+        # Clear member cache for all guilds (basic approach)
+        # In production, you might want more sophisticated pattern-based cache clearing
+        try:
+            # Try to clear member cache keys - this is cache backend dependent
+            for i in range(100000000000000000, 999999999999999999, 1000000000):  # Common Discord ID range
+                cache.delete(f"discord_member_{user_id}_{i}")
+        except Exception:
+            pass  # Cache clearing is best effort
 
 
 def clear_all_discord_cache() -> None:

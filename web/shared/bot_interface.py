@@ -12,6 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import yaml
 from django.conf import settings
 
 
@@ -329,6 +330,91 @@ class BotDataInterface:
 
         del macros[name]
         return self.save_server_macros(guild_id, guild_name, macros)
+
+    def load_bot_config(self) -> dict:
+        """Load bot configuration from token.yml file.
+        
+        Returns:
+            dict: Bot configuration dictionary, or default config if file not found.
+        """
+        # Try multiple locations for bot configuration
+        config_paths = [
+            Path("~/.config/weakauras-bot/token.yml").expanduser(),
+            Path("~/weakauras-bot-config/token.yml").expanduser(),
+            Path(settings.BASE_DIR).parent / "discord-bot" / "settings" / "token.yml",
+        ]
+
+        for config_path in config_paths:
+            if config_path.exists():
+                try:
+                    with open(config_path, encoding='utf-8') as f:
+                        return yaml.safe_load(f) or {}
+                except (yaml.YAMLError, OSError):
+                    continue
+
+        # Return default configuration if no file found
+        return {
+            "bot": {
+                "permissions": {
+                    "admin_roles": ["admin"],
+                    "admin_permissions": ["administrator"]
+                }
+            }
+        }
+
+    def check_admin_access(self, user_roles: list[str], guild_permissions: int = 0) -> bool:
+        """Check if user has admin access based on roles or Discord permissions.
+        
+        Args:
+            user_roles: List of role names the user has in the server.
+            guild_permissions: User's Discord permissions in the server (as integer).
+            
+        Returns:
+            bool: True if user has admin access, False otherwise.
+        """
+        config = self.load_bot_config()
+        permissions_config = config.get("bot", {}).get("permissions", {})
+
+        # Check role names (case-insensitive)
+        admin_roles = permissions_config.get("admin_roles", ["admin"])
+        user_role_names = [role.lower() for role in user_roles]
+
+        for admin_role in admin_roles:
+            if admin_role.lower() in user_role_names:
+                return True
+
+        # Check Discord permissions
+        admin_permissions = permissions_config.get("admin_permissions", ["administrator"])
+
+        for permission_name in admin_permissions:
+            # Convert permission name to Discord permission bit
+            permission_bit = self._get_permission_bit(permission_name)
+            if permission_bit and (guild_permissions & permission_bit) == permission_bit:
+                return True
+
+        return False
+
+    def _get_permission_bit(self, permission_name: str) -> int:
+        """Get Discord permission bit value for a permission name.
+        
+        Args:
+            permission_name: Name of the Discord permission.
+            
+        Returns:
+            int: Permission bit value, or 0 if permission not found.
+        """
+        permission_bits = {
+            "administrator": 0x8,
+            "manage_channels": 0x10,
+            "manage_guild": 0x20,
+            "manage_messages": 0x2000,
+            "manage_roles": 0x10000000,
+            "manage_webhooks": 0x20000000,
+            "kick_members": 0x2,
+            "ban_members": 0x4,
+        }
+
+        return permission_bits.get(permission_name.lower(), 0)
 
 
 # Singleton instance for use throughout the web application

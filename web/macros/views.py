@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from shared.bot_interface import MacroData, MacroUpdateData, bot_interface
-from shared.discord_api import DiscordAPIError, get_user_guilds
+from shared.discord_api import DiscordAPIError, get_user_guild_member, get_user_guilds
 
 logger = logging.getLogger(__name__)
 
@@ -187,6 +187,52 @@ def _validate_server_access(request, guild_id):
     return guild_name
 
 
+def _validate_admin_permissions(request, guild_id):
+    """Validate that user has admin permissions for the given server.
+    
+    Args:
+        request: Django HTTP request with authenticated user.
+        guild_id: Discord guild ID to check permissions for.
+        
+    Returns:
+        bool: True if user has admin permissions, False otherwise.
+    """
+    try:
+        # Get user's member information for this specific guild
+        member_data = get_user_guild_member(request.user, guild_id)
+
+        if not member_data:
+            logger.warning(f"User {request.user.username} is not a member of guild {guild_id}")
+            return False
+
+        # Extract roles and permissions from member data
+        role_names = []
+        if "roles" in member_data:
+            # Note: This gives us role IDs, not names. For now, we'll use guild permissions
+            # In a production system, you'd want to fetch role details from Discord
+            pass
+
+        # Get guild permissions from the user's guilds data
+        user_guilds = get_user_guilds(request.user)
+        guild_permissions = 0
+
+        for guild in user_guilds:
+            if int(guild["id"]) == guild_id:
+                guild_permissions = int(guild.get("permissions", 0))
+                break
+
+        # For now, use permissions-based checking since role names require additional API calls
+        # Check if user has admin permissions using bot configuration
+        return bot_interface.check_admin_access(role_names, guild_permissions)
+
+    except DiscordAPIError as e:
+        logger.error(f"Error checking admin permissions for user {request.user.username} in guild {guild_id}: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected error checking admin permissions: {e}")
+        return False
+
+
 def _validate_macro_edit_inputs(request, macro_name, guild_id, guild_name):
     """Validate macro edit inputs and check if macro exists."""
     macros_dict = bot_interface.load_server_macros(guild_id, guild_name)
@@ -223,6 +269,11 @@ def macro_edit(request, guild_id, macro_name):
     """
     try:
         guild_name = _validate_server_access(request, guild_id)
+
+        # Check admin permissions for editing macros
+        if not _validate_admin_permissions(request, guild_id):
+            messages.error(request, "You don't have permission to edit macros in this server")
+            return redirect("servers:server_detail", guild_id=guild_id)
 
         if request.method == "POST":
             # Debug logging
@@ -309,24 +360,14 @@ def macro_get(request, guild_id, macro_name):
         JsonResponse: Macro data in JSON format or error response.
     """
     try:
-        # Get user's Discord guilds to verify access
-        user_guilds = get_user_guilds(request.user)
-        user_guild_ids = [int(guild["id"]) for guild in user_guilds]
+        guild_name = _validate_server_access(request, guild_id)
 
-        if guild_id not in user_guild_ids:
+        # Check admin permissions for editing macros
+        if not _validate_admin_permissions(request, guild_id):
             return JsonResponse(
-                {"error": "You don't have access to this server"}, status=403
+                {"error": "You don't have permission to edit macros in this server"},
+                status=403
             )
-
-        # Find guild name
-        guild_name = None
-        for guild in user_guilds:
-            if int(guild["id"]) == guild_id:
-                guild_name = guild["name"]
-                break
-
-        if not guild_name:
-            return JsonResponse({"error": "Server not found"}, status=404)
 
         # Load current macros
         macros_dict = bot_interface.load_server_macros(guild_id, guild_name)
@@ -378,24 +419,12 @@ def macro_delete(request, guild_id, macro_name):
         HttpResponse: Redirect to server detail page after deletion.
     """
     try:
-        # Get user's Discord guilds to verify access
-        user_guilds = get_user_guilds(request.user)
-        user_guild_ids = [int(guild["id"]) for guild in user_guilds]
+        guild_name = _validate_server_access(request, guild_id)
 
-        if guild_id not in user_guild_ids:
-            msg = "You don't have access to this server"
-            raise Http404(msg)
-
-        # Find guild name
-        guild_name = None
-        for guild in user_guilds:
-            if int(guild["id"]) == guild_id:
-                guild_name = guild["name"]
-                break
-
-        if not guild_name:
-            msg = "Server not found"
-            raise Http404(msg)
+        # Check admin permissions for deleting macros
+        if not _validate_admin_permissions(request, guild_id):
+            messages.error(request, "You don't have permission to delete macros in this server")
+            return redirect("servers:server_detail", guild_id=guild_id)
 
         # Attempt to delete macro
         if bot_interface.delete_macro(guild_id, guild_name, macro_name):
@@ -424,24 +453,7 @@ def check_macro_name(request, guild_id, macro_name):
         JsonResponse: Availability status and message.
     """
     try:
-        # Get user's Discord guilds to verify access
-        user_guilds = get_user_guilds(request.user)
-        user_guild_ids = [int(guild["id"]) for guild in user_guilds]
-
-        if guild_id not in user_guild_ids:
-            return JsonResponse(
-                {"error": "You don't have access to this server"}, status=403
-            )
-
-        # Find guild name
-        guild_name = None
-        for guild in user_guilds:
-            if int(guild["id"]) == guild_id:
-                guild_name = guild["name"]
-                break
-
-        if not guild_name:
-            return JsonResponse({"error": "Server not found"}, status=404)
+        guild_name = _validate_server_access(request, guild_id)
 
         # Load current macros
         macros_dict = bot_interface.load_server_macros(guild_id, guild_name)
