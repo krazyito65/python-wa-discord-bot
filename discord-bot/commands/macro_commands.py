@@ -1,6 +1,7 @@
 import discord
 from bot.weakauras_bot import WeakAurasBot
 from discord import app_commands
+from utils.django_permissions import check_server_permission, get_permission_error_message, get_server_permission_config
 from utils.logging import get_logger, log_command
 
 logger = get_logger(__name__)
@@ -56,6 +57,22 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
 
         guild_id = interaction.guild.id
         guild_name = interaction.guild.name
+
+        # Check if user has permission to create macros
+        if not isinstance(interaction.user, discord.Member) or not check_server_permission(
+            interaction.user, guild_id, 'create_macros'
+        ):
+            config = get_server_permission_config(guild_id)
+            error_message = get_permission_error_message('create_macros', config)
+
+            embed, logo_file = bot.create_embed(
+                title="❌ Permission Denied",
+                description=error_message,
+                footer_text=f"Server: {guild_name}",
+            )
+            await send_embed_response(interaction, embed, logo_file)
+            logger.warning("create_macro command denied - insufficient permissions")
+            return
 
         # Load server-specific macros
         macros = bot.load_server_macros(guild_id, guild_name)
@@ -145,24 +162,16 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
             )
             return
 
-        # Check if user has admin access (ensure user is a member)
-        if not isinstance(interaction.user, discord.Member) or not bot.has_admin_access(
-            interaction.user
+        # Check if user has permission to delete macros
+        if not isinstance(interaction.user, discord.Member) or not check_server_permission(
+            interaction.user, interaction.guild.id, 'delete_macros'
         ):
-            permissions_config = bot.config.get("bot", {}).get("permissions", {})
-            admin_roles = permissions_config.get("admin_roles", ["admin"])
-            admin_permissions = permissions_config.get("admin_permissions", [])
-
-            roles_text = ", ".join(f"'{role}'" for role in admin_roles)
-            perms_text = ", ".join(admin_permissions)
-
-            description = (
-                f"You need either:\n• Role: {roles_text}\n• Permission: {perms_text}"
-            )
+            config = get_server_permission_config(interaction.guild.id)
+            error_message = get_permission_error_message('delete_macros', config)
 
             embed, logo_file = bot.create_embed(
                 title="❌ Permission Denied",
-                description=description,
+                description=error_message,
                 footer_text=f"Server: {interaction.guild.name}",
             )
             await send_embed_response(interaction, embed, logo_file)

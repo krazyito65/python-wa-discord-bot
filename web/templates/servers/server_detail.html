@@ -271,7 +271,16 @@
                         {% else %}
                             <h4>No macros found</h4>
                             <p>This server doesn't have any WeakAuras macros yet.</p>
-                            <button class="btn btn-success" onclick="showAddMacroModal()">Create your first macro</button>
+                            {% if has_create_macros_access %}
+                                <a href="{% url 'macros:macro_add' guild_id=guild_id %}" class="btn btn-success">
+                                    <i class="fas fa-plus me-1"></i>Create your first macro
+                                </a>
+                            {% else %}
+                                <p class="text-muted">
+                                    <i class="fas fa-lock me-1"></i>
+                                    You don't have permission to create macros. Contact a server administrator for access.
+                                </p>
+                            {% endif %}
                         {% endif %}
                     </div>
                 {% endif %}
@@ -301,26 +310,6 @@
         </div>
     </div>
 
-    <!-- Add Macro Modal -->
-    <div class="modal fade" id="addMacroModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New Macro</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="alert alert-info">
-                        <strong>Coming Soon!</strong> Macro creation through the web interface will be available in a future update.
-                        <br>For now, you can create macros using the Discord bot with <code>/create_macro</code>.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Edit Macro Modal -->
     <div class="modal fade" id="editMacroModal" tabindex="-1">
@@ -377,9 +366,6 @@
             new bootstrap.Modal(document.getElementById('macroModal')).show();
         }
 
-        function showAddMacroModal() {
-            new bootstrap.Modal(document.getElementById('addMacroModal')).show();
-        }
 
         function editMacro(name) {
             // Fetch macro data and show edit modal
