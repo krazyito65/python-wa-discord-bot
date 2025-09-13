@@ -66,3 +66,14 @@ repos:
         files: ^web/
         pass_filenames: false
         stages: [pre-commit]
+
+      # Code coverage validation (optional - can be slow)
+      - id: test-coverage
+        name: Code Coverage Validation (80% minimum)
+        entry: bin/test-coverage
+        language: system
+        types: [python]
+        pass_filenames: false
+        stages: [manual]  # Only runs when explicitly requested
+        # Run manually with: pre-commit run test-coverage
+        # Or enable for all commits by changing stages to [pre-commit]

@@ -274,6 +274,9 @@ uv run pre-commit run --files <file1> <file2>
 
 # Skip pre-commit hooks for a specific commit (use sparingly)
 git commit --no-verify -m "commit message"
+
+# Run coverage validation manually (not part of standard commit hooks)
+uv run pre-commit run --hook-stage manual test-coverage --all-files
 ```
 
 **Automated Checks on Every Commit:**
@@ -287,6 +290,10 @@ git commit --no-verify -m "commit message"
 - Python syntax validation
 - **Discord bot tests** (runs when discord-bot/ files are modified)
 - **Django web tests** (runs when web/ files are modified)
+
+**Manual Quality Checks:**
+- **Code coverage validation** (80% minimum) - Run with: `uv run pre-commit run --hook-stage manual test-coverage --all-files`
+- Can also be run directly: `bin/test-coverage` or `bin/test-coverage --min-coverage=90`
 
 ## Architecture
 
