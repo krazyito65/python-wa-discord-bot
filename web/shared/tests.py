@@ -15,12 +15,12 @@ import pytest
 import requests
 from allauth.socialaccount.models import SocialToken
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.test import TestCase
 
 from shared.bot_interface import BotDataInterface, MacroData, MacroUpdateData
 from shared.discord_api import (
     DiscordAPIError,
-    clear_user_discord_cache,
     filter_available_servers,
     get_user_discord_token,
     get_user_guilds,
@@ -486,7 +486,6 @@ class TestDiscordAPI(TestCase):
     @patch("shared.discord_api.requests.get")
     def test_guild_caching(self, mock_get):
         """Test that guild data is cached to avoid rate limiting."""
-        from django.core.cache import cache
 
         # Clear any existing cache first
         cache.clear()  # Clear entire cache to ensure clean state
@@ -507,7 +506,9 @@ class TestDiscordAPI(TestCase):
             # First call should hit the API
             result1 = get_user_guilds(self.user)
             first_call_count = mock_get.call_count
-            assert first_call_count >= 1, "Expected at least one API call on first request"
+            assert first_call_count >= 1, (
+                "Expected at least one API call on first request"
+            )
 
             # Second call should use cache (no additional API call)
             result2 = get_user_guilds(self.user)
@@ -517,7 +518,9 @@ class TestDiscordAPI(TestCase):
             assert result1 == result2
 
             # API should not be called again for the second request (cached)
-            assert second_call_count == first_call_count, f"Expected no additional calls, but got {second_call_count - first_call_count} more calls"
+            assert second_call_count == first_call_count, (
+                f"Expected no additional calls, but got {second_call_count - first_call_count} more calls"
+            )
 
             # Verify cache is working by checking cache key directly
             cache_key = f"discord_guilds_{self.user.id}"
@@ -533,7 +536,9 @@ class TestDiscordAPI(TestCase):
             third_call_count = mock_get.call_count
 
             # Should have made one more call after cache clear
-            assert third_call_count > first_call_count, f"Expected additional call after cache clear, but call count stayed at {third_call_count}"
+            assert third_call_count > first_call_count, (
+                f"Expected additional call after cache clear, but call count stayed at {third_call_count}"
+            )
             assert result3 == result1
 
     def test_filter_available_servers(self):

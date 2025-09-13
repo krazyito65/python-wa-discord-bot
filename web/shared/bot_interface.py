@@ -6,9 +6,10 @@ system, allowing the web interface to read and write macro data for servers.
 """
 
 import json
+import logging
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -242,7 +243,7 @@ class BotDataInterface:
             "message": macro_data.message,
             "created_by": macro_data.created_by,
             "created_by_name": macro_data.created_by_name,
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         macros[macro_data.name] = macro_dict
@@ -273,7 +274,7 @@ class BotDataInterface:
             return False, f"A macro named '{update_data.new_name}' already exists"
 
         current_macro = macros[update_data.old_name]
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # Update the macro data while preserving metadata
         if isinstance(current_macro, dict):
@@ -333,7 +334,7 @@ class BotDataInterface:
 
     def load_bot_config(self) -> dict:
         """Load bot configuration from token.yml file.
-        
+
         Returns:
             dict: Bot configuration dictionary, or default config if file not found.
         """
@@ -347,7 +348,7 @@ class BotDataInterface:
         for config_path in config_paths:
             if config_path.exists():
                 try:
-                    with open(config_path, encoding='utf-8') as f:
+                    with open(config_path, encoding="utf-8") as f:
                         return yaml.safe_load(f) or {}
                 except (yaml.YAMLError, OSError):
                     continue
@@ -357,33 +358,34 @@ class BotDataInterface:
             "bot": {
                 "permissions": {
                     "admin_roles": ["admin"],
-                    "admin_permissions": ["administrator"]
+                    "admin_permissions": ["administrator"],
                 }
             }
         }
 
-    def check_admin_access(self, user_roles: list[str], guild_permissions: int = 0) -> bool:
+    def check_admin_access(
+        self, user_roles: list[str], guild_permissions: int = 0
+    ) -> bool:
         """Check if user has admin access based on roles or Discord permissions.
-        
+
         Args:
             user_roles: List of role names the user has in the server.
             guild_permissions: User's Discord permissions in the server (as integer).
-            
+
         Returns:
             bool: True if user has admin access, False otherwise.
         """
-        import logging
         logger = logging.getLogger(__name__)
-        
+
         config = self.load_bot_config()
         permissions_config = config.get("bot", {}).get("permissions", {})
-        
+
         logger.info(f"Bot config loaded: {permissions_config}")
 
         # Check role names (case-insensitive)
         admin_roles = permissions_config.get("admin_roles", ["admin"])
         user_role_names = [role.lower() for role in user_roles]
-        
+
         logger.info(f"Admin roles: {admin_roles}, User roles: {user_role_names}")
 
         for admin_role in admin_roles:
@@ -392,15 +394,24 @@ class BotDataInterface:
                 return True
 
         # Check Discord permissions
-        admin_permissions = permissions_config.get("admin_permissions", ["administrator"])
-        
-        logger.info(f"Admin permissions: {admin_permissions}, User guild permissions: {guild_permissions} (0x{guild_permissions:x})")
+        admin_permissions = permissions_config.get(
+            "admin_permissions", ["administrator"]
+        )
+
+        logger.info(
+            f"Admin permissions: {admin_permissions}, User guild permissions: {guild_permissions} (0x{guild_permissions:x})"
+        )
 
         for permission_name in admin_permissions:
             # Convert permission name to Discord permission bit
             permission_bit = self._get_permission_bit(permission_name)
-            logger.info(f"Checking permission '{permission_name}' (bit: 0x{permission_bit:x})")
-            if permission_bit and (guild_permissions & permission_bit) == permission_bit:
+            logger.info(
+                f"Checking permission '{permission_name}' (bit: 0x{permission_bit:x})"
+            )
+            if (
+                permission_bit
+                and (guild_permissions & permission_bit) == permission_bit
+            ):
                 logger.info(f"User has admin permission: {permission_name}")
                 return True
 
@@ -409,10 +420,10 @@ class BotDataInterface:
 
     def _get_permission_bit(self, permission_name: str) -> int:
         """Get Discord permission bit value for a permission name.
-        
+
         Args:
             permission_name: Name of the Discord permission.
-            
+
         Returns:
             int: Permission bit value, or 0 if permission not found.
         """

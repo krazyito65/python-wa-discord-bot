@@ -103,7 +103,9 @@ def _build_base_queryset(
             base_queryset = base_queryset.filter(user__user_id__in=user_ids)
 
     if selected_channel_ids:
-        channel_ids = [cid for cid in selected_channel_ids if cid]  # Remove empty values
+        channel_ids = [
+            cid for cid in selected_channel_ids if cid
+        ]  # Remove empty values
         if channel_ids:
             base_queryset = base_queryset.filter(channel__channel_id__in=channel_ids)
 
@@ -132,16 +134,15 @@ def _determine_activity_level(user_stats, _sort_period):
     return "inactive"
 
 
-def _get_multi_user_channel_data(guild, selected_user_ids, sort_period, show_channels, activity_filter):
+def _get_multi_user_channel_data(
+    guild, selected_user_ids, sort_period, show_channels, activity_filter
+):
     """Get optimized channel statistics for multiple users."""
     users_data = {}
 
     # Single optimized query for all users and their channels
-    base_queryset = MessageStatistics.objects.select_related(
-        "user", "channel"
-    ).filter(
-        user__user_id__in=selected_user_ids,
-        channel__guild=guild
+    base_queryset = MessageStatistics.objects.select_related("user", "channel").filter(
+        user__user_id__in=selected_user_ids, channel__guild=guild
     )
 
     # Group data by user for efficient processing
@@ -163,14 +164,16 @@ def _get_multi_user_channel_data(guild, selected_user_ids, sort_period, show_cha
             }
 
         # Add channel data
-        users_data[user_id]["channels"].append({
-            "channel": stat.channel,
-            "total_messages": stat.total_messages,
-            "messages_7d": stat.messages_last_7_days,
-            "messages_30d": stat.messages_last_30_days,
-            "messages_90d": stat.messages_last_90_days,
-            "last_message_date": stat.last_message_date,
-        })
+        users_data[user_id]["channels"].append(
+            {
+                "channel": stat.channel,
+                "total_messages": stat.total_messages,
+                "messages_7d": stat.messages_last_7_days,
+                "messages_30d": stat.messages_last_30_days,
+                "messages_90d": stat.messages_last_90_days,
+                "last_message_date": stat.last_message_date,
+            }
+        )
 
         # Accumulate totals
         totals = users_data[user_id]["total_stats"]
@@ -181,9 +184,11 @@ def _get_multi_user_channel_data(guild, selected_user_ids, sort_period, show_cha
         totals["channel_count"] += 1
 
     # Sort channels and determine activity levels for each user
-    for _user_id, data in users_data.items():
+    for data in users_data.values():
         # Sort channels by the selected period
-        period_field = f"messages_{sort_period}" if sort_period != "all" else "total_messages"
+        period_field = (
+            f"messages_{sort_period}" if sort_period != "all" else "total_messages"
+        )
         data["channels"].sort(key=lambda x: x[period_field], reverse=True)
 
         # Limit channels if requested
@@ -193,15 +198,26 @@ def _get_multi_user_channel_data(guild, selected_user_ids, sort_period, show_cha
             data["channels"] = data["channels"][:10]
 
         # Determine activity level
-        data["activity_level"] = _determine_activity_level(data["total_stats"], sort_period)
+        data["activity_level"] = _determine_activity_level(
+            data["total_stats"], sort_period
+        )
 
     # Apply activity filter
     if activity_filter != "all":
         users_data = {
-            user_id: data for user_id, data in users_data.items()
-            if (activity_filter == "recent" and data["activity_level"] in ["active_7d", "active_30d"])
-            or (activity_filter == "active_7d" and data["activity_level"] == "active_7d")
-            or (activity_filter == "active_30d" and data["activity_level"] in ["active_7d", "active_30d"])
+            user_id: data
+            for user_id, data in users_data.items()
+            if (
+                activity_filter == "recent"
+                and data["activity_level"] in ["active_7d", "active_30d"]
+            )
+            or (
+                activity_filter == "active_7d" and data["activity_level"] == "active_7d"
+            )
+            or (
+                activity_filter == "active_30d"
+                and data["activity_level"] in ["active_7d", "active_30d"]
+            )
         }
 
     return users_data
@@ -209,12 +225,14 @@ def _get_multi_user_channel_data(guild, selected_user_ids, sort_period, show_cha
 
 def _sort_users_by_activity(users_data, sort_period):
     """Sort users by their activity in the selected period."""
-    period_field = f"messages_{sort_period}" if sort_period != "all" else "total_messages"
+    period_field = (
+        f"messages_{sort_period}" if sort_period != "all" else "total_messages"
+    )
 
     sorted_items = sorted(
         users_data.items(),
         key=lambda item: item[1]["total_stats"][period_field],
-        reverse=True
+        reverse=True,
     )
 
     # Convert back to OrderedDict-like structure for template
@@ -499,13 +517,12 @@ def user_detail_stats(request, guild_id, user_id):
         dates = []
         for days_ago in range(6, -1, -1):  # 6 days ago to today
             date = now - timedelta(days=days_ago)
-            time_labels.append(date.strftime('%m/%d'))  # Format as MM/DD
+            time_labels.append(date.strftime("%m/%d"))  # Format as MM/DD
             dates.append(date.date())
 
         # Get all channels that have activity in the last 7 days
-        active_channels = (
-            user_stats.filter(messages_last_7_days__gt=0)
-            .values_list('channel', flat=True)
+        active_channels = user_stats.filter(messages_last_7_days__gt=0).values_list(
+            "channel", flat=True
         )
 
         # Create datasets for each channel using real daily data
@@ -513,10 +530,8 @@ def user_detail_stats(request, guild_id, user_id):
 
         # Get daily statistics for this user in active channels for the past 7 days
         daily_stats = DailyMessageStatistics.objects.filter(
-            user=user,
-            channel__in=active_channels,
-            date__in=dates
-        ).select_related('channel')
+            user=user, channel__in=active_channels, date__in=dates
+        ).select_related("channel")
 
         # Group daily stats by channel
         channel_daily_data = {}
@@ -535,10 +550,7 @@ def user_detail_stats(request, guild_id, user_id):
 
             # Only include channels that have some activity
             if sum(daily_counts) > 0:
-                channel_datasets.append({
-                    "channel": channel_name,
-                    "data": daily_counts
-                })
+                channel_datasets.append({"channel": channel_name, "data": daily_counts})
 
         chart_data = {
             "channels": [f"#{stat['channel__name']}" for stat in chart_data_query],
@@ -603,17 +615,16 @@ def multi_user_channel_stats(request, guild_id):
 
         # Get all available users for the dropdown (reuse existing logic)
         available_users = (
-            DiscordUser.objects.filter(
-                message_stats__channel__guild=guild
-            ).distinct().order_by("display_name", "username")
+            DiscordUser.objects.filter(message_stats__channel__guild=guild)
+            .distinct()
+            .order_by("display_name", "username")
         )
 
         # If no users selected, default to top 10 most active users in selected period
         if not selected_user_ids or not any(uid for uid in selected_user_ids if uid):
             period_field = _get_period_field(sort_period)
             top_users = (
-                MessageStatistics.objects
-                .filter(channel__guild=guild)
+                MessageStatistics.objects.filter(channel__guild=guild)
                 .values("user__user_id")
                 .annotate(total_period_messages=Sum(period_field))
                 .filter(total_period_messages__gt=0)

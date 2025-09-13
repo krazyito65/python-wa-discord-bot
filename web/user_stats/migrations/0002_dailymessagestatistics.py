@@ -6,27 +6,74 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('user_stats', '0001_initial'),
+        ("user_stats", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='DailyMessageStatistics',
+            name="DailyMessageStatistics",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('date', models.DateField(help_text='Date for these statistics')),
-                ('message_count', models.PositiveIntegerField(default=0, help_text='Number of messages sent on this date')),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now, help_text='When this record was created')),
-                ('updated_at', models.DateTimeField(auto_now=True, help_text='When this record was last updated')),
-                ('channel', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='daily_message_stats', to='user_stats.discordchannel')),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='daily_message_stats', to='user_stats.discorduser')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("date", models.DateField(help_text="Date for these statistics")),
+                (
+                    "message_count",
+                    models.PositiveIntegerField(
+                        default=0, help_text="Number of messages sent on this date"
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now,
+                        help_text="When this record was created",
+                    ),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(
+                        auto_now=True, help_text="When this record was last updated"
+                    ),
+                ),
+                (
+                    "channel",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="daily_message_stats",
+                        to="user_stats.discordchannel",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="daily_message_stats",
+                        to="user_stats.discorduser",
+                    ),
+                ),
             ],
             options={
-                'ordering': ['-date'],
-                'indexes': [models.Index(fields=['user', 'channel', 'date'], name='user_stats__user_id_60561a_idx'), models.Index(fields=['date'], name='user_stats__date_6f775f_idx'), models.Index(fields=['channel', 'date'], name='user_stats__channel_b92964_idx')],
-                'unique_together': {('user', 'channel', 'date')},
+                "ordering": ["-date"],
+                "indexes": [
+                    models.Index(
+                        fields=["user", "channel", "date"],
+                        name="user_stats__user_id_60561a_idx",
+                    ),
+                    models.Index(fields=["date"], name="user_stats__date_6f775f_idx"),
+                    models.Index(
+                        fields=["channel", "date"],
+                        name="user_stats__channel_b92964_idx",
+                    ),
+                ],
+                "unique_together": {("user", "channel", "date")},
             },
         ),
     ]

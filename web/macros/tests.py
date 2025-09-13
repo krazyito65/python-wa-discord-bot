@@ -5,6 +5,7 @@ Tests for macros app views and functionality.
 from unittest.mock import patch
 
 from allauth.socialaccount.models import SocialAccount
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -28,7 +29,6 @@ class MacroAddFeatureFlagTest(TestCase):
     @patch("macros.views.get_user_guilds")
     def test_preview_enabled_by_default(self, mock_get_guilds):
         """Test that preview respects current configuration."""
-        from django.conf import settings
 
         mock_get_guilds.return_value = [
             {"id": str(self.guild_id), "name": "Test Server"}
@@ -37,7 +37,7 @@ class MacroAddFeatureFlagTest(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("macros:macro_add", args=[self.guild_id]))
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         # Test based on actual configuration
         feature_flags = getattr(settings, "FEATURE_FLAGS", {})
@@ -63,7 +63,7 @@ class MacroAddFeatureFlagTest(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("macros:macro_add", args=[self.guild_id]))
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertNotContains(response, "Discord Preview")
         self.assertNotContains(response, "macroPreview")
         self.assertNotContains(response, "parseDiscordMarkdown")
@@ -79,7 +79,7 @@ class MacroAddFeatureFlagTest(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("macros:macro_add", args=[self.guild_id]))
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, "Discord Preview")
         self.assertContains(response, "macroPreview")
         self.assertContains(response, "parseDiscordMarkdown")

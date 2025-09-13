@@ -209,11 +209,13 @@ class StatsService:
 
                             # Save daily statistics
                             for date_key, count in daily_counts.items():
-                                daily_stat, created = DailyMessageStatistics.objects.get_or_create(
-                                    user=user,
-                                    channel=channel,
-                                    date=date_key,
-                                    defaults={"message_count": count}
+                                daily_stat, created = (
+                                    DailyMessageStatistics.objects.get_or_create(
+                                        user=user,
+                                        channel=channel,
+                                        date=date_key,
+                                        defaults={"message_count": count},
+                                    )
                                 )
 
                                 if not created and daily_stat.message_count != count:

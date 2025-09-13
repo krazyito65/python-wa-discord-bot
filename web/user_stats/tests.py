@@ -8,6 +8,7 @@ from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from shared.discord_api import DiscordAPIError
 
 from .models import (
     DiscordChannel,
@@ -40,18 +41,18 @@ class UserStatsModelsTest(TestCase):
 
     def test_guild_creation(self):
         """Test Discord guild creation."""
-        self.assertEqual(self.guild.name, "Test Server")
-        self.assertEqual(str(self.guild), "Test Server (123456789012345678)")
+        assert self.guild.name == "Test Server"
+        assert str(self.guild) == "Test Server (123456789012345678)"
 
     def test_user_creation(self):
         """Test Discord user creation."""
-        self.assertEqual(self.user_discord.username, "testuser")
-        self.assertEqual(str(self.user_discord), "Test User (987654321098765432)")
+        assert self.user_discord.username == "testuser"
+        assert str(self.user_discord) == "Test User (987654321098765432)"
 
     def test_channel_creation(self):
         """Test Discord channel creation."""
-        self.assertEqual(self.channel.name, "general")
-        self.assertEqual(str(self.channel), "#general (Test Server)")
+        assert self.channel.name == "general"
+        assert str(self.channel) == "#general (Test Server)"
 
     def test_message_statistics_creation(self):
         """Test message statistics creation."""
@@ -64,9 +65,9 @@ class UserStatsModelsTest(TestCase):
             messages_last_90_days=95,
         )
 
-        self.assertEqual(stats.total_messages, 100)
-        self.assertEqual(stats.messages_last_7_days, 20)
-        self.assertEqual(str(stats), "testuser in general: 100 messages")
+        assert stats.total_messages == 100
+        assert stats.messages_last_7_days == 20
+        assert str(stats) == "testuser in general: 100 messages"
 
     def test_collection_job_creation(self):
         """Test statistics collection job creation."""
@@ -77,9 +78,9 @@ class UserStatsModelsTest(TestCase):
             status="pending",
         )
 
-        self.assertEqual(job.status, "pending")
-        self.assertEqual(job.progress_percentage, 0)
-        self.assertIn("testuser", str(job))
+        assert job.status == "pending"
+        assert job.progress_percentage == 0
+        assert "testuser" in str(job)
 
     def test_collection_job_progress(self):
         """Test collection job progress calculation."""
@@ -87,7 +88,7 @@ class UserStatsModelsTest(TestCase):
             guild=self.guild, progress_current=25, progress_total=100
         )
 
-        self.assertEqual(job.progress_percentage, 25.0)
+        assert job.progress_percentage == 25.0
 
 
 class UserStatsViewsTest(TestCase):
@@ -132,12 +133,11 @@ class UserStatsViewsTest(TestCase):
     def test_dashboard_requires_login(self):
         """Test that dashboard requires authentication."""
         response = self.client.get(reverse("user_stats:dashboard"))
-        self.assertEqual(response.status_code, 302)  # Redirect to login
+        assert response.status_code == 302  # Redirect to login
 
     @patch("user_stats.views.get_user_guilds")
     def test_dashboard_access_with_login(self, mock_get_guilds):
         """Test dashboard access with authenticated user."""
-        from shared.discord_api import DiscordAPIError
 
         mock_get_guilds.side_effect = DiscordAPIError("No Discord token available")
 
@@ -145,14 +145,14 @@ class UserStatsViewsTest(TestCase):
 
         # This should now return a 200 but with an error message
         response = self.client.get(reverse("user_stats:dashboard"))
-        self.assertEqual(response.status_code, 302)  # Redirect to servers dashboard
+        assert response.status_code == 302  # Redirect to servers dashboard
 
     def test_api_endpoint_requires_login(self):
         """Test API endpoint requires authentication."""
         response = self.client.get(
             reverse("user_stats:api_guild_stats", args=[123456789012345678])
         )
-        self.assertEqual(response.status_code, 302)  # Redirect to login
+        assert response.status_code == 302  # Redirect to login
 
     def test_user_detail_requires_login(self):
         """Test user detail requires authentication."""
@@ -162,4 +162,4 @@ class UserStatsViewsTest(TestCase):
                 args=[123456789012345678, "987654321098765432"],
             )
         )
-        self.assertEqual(response.status_code, 302)  # Redirect to login
+        assert response.status_code == 302  # Redirect to login
