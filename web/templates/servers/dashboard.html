@@ -1,50 +1,27 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WeakAuras Bot Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .server-card {
-            transition: transform 0.2s;
-            cursor: pointer;
-        }
-        .server-card:hover {
-            transform: translateY(-2px);
-        }
-        .brand-purple {
-            background-color: #9f4af3;
-        }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark brand-purple">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'servers:dashboard' %}">
-                <strong>WeakAuras Bot</strong> Dashboard
-            </a>
-            <div class="navbar-nav ms-auto d-flex align-items-center">
-                <a class="nav-link text-white me-3" href="{% url 'user_stats:dashboard' %}">
+{% extends "base.html" %}
+
+{% block title %}WeakAuras Bot Dashboard{% endblock %}
+
+{% block extra_css %}
+    .server-card {
+        transition: transform 0.2s;
+        cursor: pointer;
+    }
+    .server-card:hover {
+        transform: translateY(-2px);
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12 text-end mb-3">
+                <a class="btn btn-outline-primary" href="{% url 'user_stats:dashboard' %}">
                     <i class="fas fa-chart-bar me-1"></i>
                     User Statistics
                 </a>
-                <span class="navbar-text me-3">Welcome, {{ user.username }}!</span>
-                <a class="btn btn-outline-light btn-sm" href="{% url 'account_logout' %}">Logout</a>
             </div>
         </div>
-    </nav>
-
-    <div class="container mt-4">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
 
         <div class="row">
             <div class="col-12">
@@ -105,7 +82,4 @@
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

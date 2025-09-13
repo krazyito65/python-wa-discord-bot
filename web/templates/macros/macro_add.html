@@ -1,155 +1,223 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Macro - {{ guild.name }} - WeakAuras Bot</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .brand-purple { background-color: #9f4af3; }
-        .form-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 8px;
-            padding: 2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .char-counter {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-        .char-counter.warning {
-            color: #fd7e14;
-        }
-        .char-counter.danger {
-            color: #dc3545;
-        }
-        .macro-preview {
-            background-color: #36393f;
-            color: #dcddde;
-            border: 1px solid #40444b;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-top: 1rem;
-            font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 1rem;
-            line-height: 1.375;
-            word-wrap: break-word;
-            min-height: 100px;
-        }
-        .macro-preview strong, .macro-preview .discord-bold {
-            font-weight: 700;
-            color: #ffffff;
-        }
-        .macro-preview em, .macro-preview .discord-italic {
-            font-style: italic;
-        }
-        .macro-preview u, .macro-preview .discord-underline {
-            text-decoration: underline;
-        }
-        .macro-preview s, .macro-preview .discord-strikethrough {
-            text-decoration: line-through;
-        }
-        .macro-preview code, .macro-preview .discord-code {
-            background-color: #2f3136;
-            border-radius: 3px;
-            padding: 0.125rem 0.25rem;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 0.875rem;
-        }
-        .macro-preview .discord-code-block {
-            background-color: #2f3136;
-            border: 1px solid #202225;
-            border-radius: 4px;
-            padding: 0.5rem;
-            margin: 0.25rem 0;
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            font-size: 0.875rem;
-            white-space: pre-wrap;
-            overflow-x: auto;
-        }
-        .macro-preview .discord-spoiler {
-            background-color: #202225;
-            color: #202225;
-            border-radius: 3px;
-            cursor: pointer;
-            transition: all 0.1s ease;
-        }
-        .macro-preview .discord-spoiler:hover {
-            background-color: transparent;
-            color: #dcddde;
-        }
-        .macro-preview .discord-mention {
-            background-color: rgba(88, 101, 242, 0.3);
-            color: #dee0fc;
-            padding: 0 2px;
-            border-radius: 3px;
-            font-weight: 500;
-        }
-        .macro-preview .discord-timestamp {
-            background-color: rgba(114, 118, 125, 0.3);
-            color: #dcddde;
-            padding: 0 2px;
-            border-radius: 3px;
-            text-decoration: underline;
-            text-decoration-style: dotted;
-            cursor: help;
-        }
-        .macro-preview a, .macro-preview .discord-link {
-            color: #00b0f4;
-            text-decoration: none;
-        }
-        .macro-preview a:hover, .macro-preview .discord-link:hover {
-            text-decoration: underline;
-        }
-        .name-available {
-            color: #198754;
-        }
-        .name-unavailable {
-            color: #dc3545;
-        }
-        .name-checking {
-            color: #6c757d;
-        }
-        .spinner {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #6c757d;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 0.5rem;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body class="bg-light">
-    <nav class="navbar navbar-expand-lg navbar-dark brand-purple">
-        <div class="container">
-            <a class="navbar-brand" href="{% url 'servers:dashboard' %}">
-                <strong>WeakAuras Bot</strong> Dashboard
-            </a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3">{{ user.username }}</span>
-                <a class="btn btn-outline-light btn-sm" href="{% url 'account_logout' %}">Logout</a>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
+{% block title %}Create Macro - {{ guild.name }} - WeakAuras Bot{% endblock %}
+
+{% block extra_css %}
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: var(--shadow);
+    }
+    .char-counter {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    .char-counter.warning {
+        color: #fd7e14;
+    }
+    .char-counter.danger {
+        color: #dc3545;
+    }
+    
+    /* Discord-style preview that adapts to theme */
+    .macro-preview {
+        background-color: #36393f;
+        color: #dcddde;
+        border: 1px solid #40444b;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 1rem;
+        font-family: 'Whitney', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 1rem;
+        line-height: 1.375;
+        word-wrap: break-word;
+        min-height: 100px;
+    }
+    
+    /* Dark mode: Use lighter Discord theme for better contrast */
+    [data-bs-theme="dark"] .macro-preview {
+        background-color: #2f3136;
+        color: #ffffff;
+        border-color: #40444b;
+    }
+    
+    /* Light mode: Use lighter Discord theme */
+    [data-bs-theme="light"] .macro-preview {
+        background-color: #f2f3f5;
+        color: #2e3338;
+        border-color: #d1d4d8;
+    }
+    
+    .macro-preview strong, .macro-preview .discord-bold {
+        font-weight: 700;
+    }
+    
+    [data-bs-theme="dark"] .macro-preview strong,
+    [data-bs-theme="dark"] .macro-preview .discord-bold {
+        color: #ffffff;
+    }
+    
+    [data-bs-theme="light"] .macro-preview strong,
+    [data-bs-theme="light"] .macro-preview .discord-bold {
+        color: #060607;
+    }
+    
+    .macro-preview em, .macro-preview .discord-italic {
+        font-style: italic;
+    }
+    .macro-preview u, .macro-preview .discord-underline {
+        text-decoration: underline;
+    }
+    .macro-preview s, .macro-preview .discord-strikethrough {
+        text-decoration: line-through;
+    }
+    
+    .macro-preview code, .macro-preview .discord-code {
+        border-radius: 3px;
+        padding: 0.125rem 0.25rem;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.875rem;
+    }
+    
+    [data-bs-theme="dark"] .macro-preview code,
+    [data-bs-theme="dark"] .macro-preview .discord-code {
+        background-color: #2f3136;
+        color: #ffffff;
+    }
+    
+    [data-bs-theme="light"] .macro-preview code,
+    [data-bs-theme="light"] .macro-preview .discord-code {
+        background-color: #e3e5e8;
+        color: #2e3338;
+    }
+    
+    .macro-preview .discord-code-block {
+        border-radius: 4px;
+        padding: 0.5rem;
+        margin: 0.25rem 0;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+        font-size: 0.875rem;
+        white-space: pre-wrap;
+        overflow-x: auto;
+    }
+    
+    [data-bs-theme="dark"] .macro-preview .discord-code-block {
+        background-color: #2f3136;
+        border: 1px solid #202225;
+        color: #ffffff;
+    }
+    
+    [data-bs-theme="light"] .macro-preview .discord-code-block {
+        background-color: #e3e5e8;
+        border: 1px solid #c4c9ce;
+        color: #2e3338;
+    }
+    
+    .macro-preview .discord-spoiler {
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.1s ease;
+    }
+    
+    [data-bs-theme="dark"] .macro-preview .discord-spoiler {
+        background-color: #202225;
+        color: #202225;
+    }
+    
+    [data-bs-theme="light"] .macro-preview .discord-spoiler {
+        background-color: #b9bbbe;
+        color: #b9bbbe;
+    }
+    
+    [data-bs-theme="dark"] .macro-preview .discord-spoiler:hover {
+        background-color: transparent;
+        color: #ffffff;
+    }
+    
+    [data-bs-theme="light"] .macro-preview .discord-spoiler:hover {
+        background-color: transparent;
+        color: #2e3338;
+    }
+    
+    .macro-preview .discord-mention {
+        background-color: rgba(88, 101, 242, 0.3);
+        color: #dee0fc;
+        padding: 0 2px;
+        border-radius: 3px;
+        font-weight: 500;
+    }
+    
+    .macro-preview .discord-timestamp {
+        background-color: rgba(114, 118, 125, 0.3);
+        padding: 0 2px;
+        border-radius: 3px;
+        text-decoration: underline;
+        text-decoration-style: dotted;
+        cursor: help;
+    }
+    
+    [data-bs-theme="dark"] .macro-preview .discord-timestamp {
+        color: #ffffff;
+    }
+    
+    [data-bs-theme="light"] .macro-preview .discord-timestamp {
+        color: #2e3338;
+    }
+    
+    .macro-preview a, .macro-preview .discord-link {
+        color: #00b0f4;
+        text-decoration: none;
+    }
+    .macro-preview a:hover, .macro-preview .discord-link:hover {
+        text-decoration: underline;
+    }
+    
+    /* Placeholder text styling */
+    .preview-placeholder {
+        opacity: 0.6;
+    }
+    
+    [data-bs-theme="dark"] .preview-placeholder {
+        color: #b9bbbe !important;
+    }
+    
+    [data-bs-theme="light"] .preview-placeholder {
+        color: #6c757d !important;
+    }
+    
+    .name-available {
+        color: #198754;
+    }
+    .name-unavailable {
+        color: #dc3545;
+    }
+    .name-checking {
+        color: var(--text-secondary);
+    }
+    
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid var(--border-color);
+        border-top: 2px solid var(--text-secondary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 0.5rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+{% endblock %}
+
+{% block content %}
     <div class="container mt-4">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                    <strong>{{ message.tags|capfirst|default:'Info' }}:</strong> {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
 
         <!-- Header -->
         <div class="row mb-4">
@@ -231,7 +299,7 @@
                         <small class="text-muted ms-2">How your message will appear in Discord</small>
                     </label>
                     <div class="macro-preview" id="macroPreview">
-                        <em style="color: #72767d; font-style: italic;">Type your message above to see a Discord-style preview...</em>
+                        <em class="preview-placeholder" style="font-style: italic;">Type your message above to see a Discord-style preview...</em>
                     </div>
                 </div>
                 {% endif %}
@@ -248,8 +316,9 @@
             </form>
         </div>
     </div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_scripts %}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const nameInput = document.getElementById('macroName');
@@ -290,7 +359,7 @@
                 if (message) {
                     macroPreview.innerHTML = parseDiscordMarkdown(message);
                 } else {
-                    macroPreview.innerHTML = '<em style="color: #72767d; font-style: italic;">Type your message above to see a Discord-style preview...</em>';
+                    macroPreview.innerHTML = '<em class="preview-placeholder" style="font-style: italic;">Type your message above to see a Discord-style preview...</em>';
                 }
             }
             {% endif %}
@@ -571,5 +640,4 @@
             }
         });
     </script>
-</body>
-</html>
+{% endblock %}

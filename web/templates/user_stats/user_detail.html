@@ -210,6 +210,81 @@
 document.addEventListener('DOMContentLoaded', function() {
     const chartData = {{ chart_data|safe }};
 
+    // Get theme-aware colors - check multiple ways to detect theme
+    function getThemeColors() {
+        // Check multiple sources for theme detection
+        const htmlTheme = document.documentElement.getAttribute('data-bs-theme');
+        const bodyClass = document.body.className;
+        const computedStyle = window.getComputedStyle(document.body);
+        const bgColor = computedStyle.backgroundColor;
+
+        // Detect dark mode by checking if background is dark
+        const isDark = htmlTheme === 'dark' ||
+                      bodyClass.includes('dark') ||
+                      bgColor === 'rgb(33, 37, 41)' || // Bootstrap dark bg
+                      bgColor === 'rgb(13, 17, 23)';   // GitHub dark bg
+
+        console.log('Theme detection:', {
+            htmlTheme,
+            bodyClass,
+            bgColor,
+            isDark
+        });
+
+        const colors = {
+            textColor: isDark ? '#ffffff' : '#2d3748',
+            gridColor: isDark ? '#6b7280' : '#e2e8f0',
+            borderColor: isDark ? '#9ca3af' : '#cbd5e0'
+        };
+        console.log('Chart colors:', colors);
+        return colors;
+    }
+
+    // Add theme change listener for real-time updates
+    function updateChartsForTheme() {
+        const colors = getThemeColors();
+
+        // Update all Chart.js instances
+        Object.values(Chart.instances || {}).forEach(chart => {
+            if (chart.options.scales) {
+                // Update axis colors
+                ['x', 'y'].forEach(axis => {
+                    if (chart.options.scales[axis]) {
+                        if (chart.options.scales[axis].ticks) {
+                            chart.options.scales[axis].ticks.color = colors.textColor;
+                        }
+                        if (chart.options.scales[axis].grid) {
+                            chart.options.scales[axis].grid.color = colors.gridColor;
+                        }
+                        if (chart.options.scales[axis].title) {
+                            chart.options.scales[axis].title.color = colors.textColor;
+                        }
+                    }
+                });
+            }
+
+            // Update legend colors
+            if (chart.options.plugins?.legend?.labels) {
+                chart.options.plugins.legend.labels.color = colors.textColor;
+            }
+
+            chart.update();
+        });
+    }
+
+    // Listen for theme changes
+    const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+            if (mutation.attributeName === 'data-bs-theme') {
+                console.log('Theme changed, updating charts');
+                setTimeout(updateChartsForTheme, 100);
+            }
+        });
+    });
+    observer.observe(document.documentElement, { attributes: true });
+
+    const colors = getThemeColors();
+
     // Channel Bar Chart
     const channelCtx = document.getElementById('channelChart').getContext('2d');
     new Chart(channelCtx, {
@@ -236,13 +311,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        precision: 0
+                        precision: 0,
+                        color: colors.textColor
+                    },
+                    grid: {
+                        color: colors.gridColor
                     }
                 },
                 x: {
                     ticks: {
                         maxRotation: 45,
-                        minRotation: 0
+                        minRotation: 0,
+                        color: colors.textColor
+                    },
+                    grid: {
+                        color: colors.gridColor
                     }
                 }
             }
@@ -270,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'rgba(249, 115, 22, 0.8)',
                 ],
                 borderWidth: 2,
-                borderColor: '#ffffff'
+                borderColor: colors.borderColor
             }]
         },
         options: {
@@ -281,7 +364,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     position: 'bottom',
                     labels: {
                         padding: 20,
-                        usePointStyle: true
+                        usePointStyle: true,
+                        color: colors.textColor
                     }
                 }
             }
@@ -291,8 +375,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Time-based Line Chart with dates on x-axis and separate lines for each channel
     const timeCtx = document.getElementById('timeChart').getContext('2d');
     
-    // Generate colors for each channel
-    const colors = [
+    // Generate colors for each channel line
+    const lineColors = [
         'rgba(159, 74, 243, 1)',   // Purple
         'rgba(34, 197, 94, 1)',    // Green
         'rgba(59, 130, 246, 1)',   // Blue
@@ -304,13 +388,13 @@ document.addEventListener('DOMContentLoaded', function() {
         'rgba(239, 68, 68, 1)',    // Red
         'rgba(245, 158, 11, 1)',   // Amber
     ];
-    
+
     // Create datasets for each channel
     const timeDatasets = chartData.channel_datasets.map((channelData, index) => ({
         label: channelData.channel,
         data: channelData.data,
-        borderColor: colors[index % colors.length],
-        backgroundColor: colors[index % colors.length].replace('1)', '0.1)'),
+        borderColor: lineColors[index % lineColors.length],
+        backgroundColor: lineColors[index % lineColors.length].replace('1)', '0.1)'),
         tension: 0.4,
         borderWidth: 2,
         pointRadius: 4,
@@ -332,7 +416,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     position: 'top',
                     labels: {
                         usePointStyle: true,
-                        padding: 15
+                        padding: 15,
+                        color: colors.textColor
                     }
                 },
                 tooltip: {
@@ -357,22 +442,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        precision: 0
+                        precision: 0,
+                        color: colors.textColor
+                    },
+                    grid: {
+                        color: colors.gridColor
                     },
                     title: {
                         display: true,
-                        text: 'Messages per Day'
+                        text: 'Messages per Day',
+                        color: colors.textColor
                     }
                 },
                 x: {
                     type: 'category',
                     title: {
                         display: true,
-                        text: 'Date'
+                        text: 'Date',
+                        color: colors.textColor
                     },
                     ticks: {
                         maxRotation: 45,
-                        minRotation: 45
+                        minRotation: 45,
+                        color: colors.textColor
+                    },
+                    grid: {
+                        color: colors.gridColor
                     }
                 }
             }

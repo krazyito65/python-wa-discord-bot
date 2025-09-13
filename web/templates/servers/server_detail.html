@@ -10,6 +10,26 @@
     .macro-card:hover {
         transform: translateY(-1px);
     }
+
+    /* Theme-aware macro preview cards */
+    .macro-preview-card {
+        background-color: var(--secondary-bg);
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+    }
+
+    /* Ensure good contrast in both themes */
+    [data-bs-theme="light"] .macro-preview-card {
+        background-color: #f8f9fa;
+        color: #212529;
+        border-color: #dee2e6;
+    }
+
+    [data-bs-theme="dark"] .macro-preview-card {
+        background-color: #343a40;
+        color: #ffffff;
+        border-color: #495057;
+    }
 </style>
 {% endblock %}
 
@@ -105,7 +125,7 @@
                                                     <br>Last edited: <span class="timestamp" data-timestamp="{{ macro.updated_at }}">{{ macro.updated_at|date:"M d, Y" }}</span>
                                                 {% endif %}
                                             </small>
-                                            <div class="macro-preview bg-light p-2 rounded small" style="max-height: 100px; overflow: hidden;">
+                                            <div class="macro-preview-card p-2 rounded small" style="max-height: 100px; overflow: hidden;">
                                                 {{ macro.message|truncatechars:100 }}
                                             </div>
                                         </div>
