@@ -31,7 +31,7 @@ class MacroAddFeatureFlagTest(TestCase):
         """Test that preview respects current configuration."""
 
         mock_get_guilds.return_value = [
-            {"id": str(self.guild_id), "name": "Test Server"}
+            {"id": str(self.guild_id), "name": "Test Server", "permissions": "8"}  # Administrator permission
         ]
 
         self.client.force_login(self.user)
@@ -57,7 +57,7 @@ class MacroAddFeatureFlagTest(TestCase):
     def test_preview_disabled_by_feature_flag(self, mock_get_guilds):
         """Test that preview is hidden when feature flag is disabled."""
         mock_get_guilds.return_value = [
-            {"id": str(self.guild_id), "name": "Test Server"}
+            {"id": str(self.guild_id), "name": "Test Server", "permissions": "8"}  # Administrator permission
         ]
 
         self.client.force_login(self.user)
@@ -73,7 +73,7 @@ class MacroAddFeatureFlagTest(TestCase):
     def test_preview_explicitly_enabled(self, mock_get_guilds):
         """Test that preview works when explicitly enabled."""
         mock_get_guilds.return_value = [
-            {"id": str(self.guild_id), "name": "Test Server"}
+            {"id": str(self.guild_id), "name": "Test Server", "permissions": "8"}  # Administrator permission
         ]
 
         self.client.force_login(self.user)

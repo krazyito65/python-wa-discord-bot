@@ -10,6 +10,8 @@ from allauth.socialaccount.models import SocialToken
 from django.conf import settings
 from django.core.cache import cache
 
+from .bot_interface import bot_interface
+
 
 class DiscordAPIError(Exception):
     """Exception raised when Discord API calls fail."""
@@ -267,3 +269,100 @@ def clear_all_discord_cache() -> None:
     # For production, you might want to implement a more targeted approach
     # using cache key patterns if your cache backend supports it
     cache.clear()
+
+
+def get_bot_discord_token() -> str | None:
+    """Get the Discord bot token from configuration.
+
+    Returns:
+        Optional[str]: Discord bot token if available, None otherwise.
+    """
+    try:
+        config = bot_interface.load_bot_config()
+        # Try to get dev token first, then prod
+        tokens = config.get("discord", {}).get("tokens", {})
+        return tokens.get("dev") or tokens.get("prod")
+    except Exception:
+        return None
+
+
+def get_user_roles_in_guild(user, guild_id: int) -> list[dict] | None:
+    """Fetch user's roles in a specific guild using bot token.
+
+    This uses the bot token to make privileged API calls to get detailed
+    member information including roles.
+
+    Args:
+        user: Django user object with Discord social account.
+        guild_id: Discord guild ID to get roles for.
+
+    Returns:
+        Optional[List[Dict]]: List of role objects from Discord API, None if request fails.
+                             Each role dict contains id, name, color, permissions, etc.
+
+    Raises:
+        DiscordAPIError: If Discord API request fails.
+    """
+    bot_token = get_bot_discord_token()
+    if not bot_token:
+        raise DiscordAPIError("No Discord bot token available")
+
+    user_id = user.socialaccount_set.first().uid if user.socialaccount_set.first() else None
+    if not user_id:
+        raise DiscordAPIError("No Discord user ID available")
+
+    cache_key = f"discord_user_roles_{user_id}_{guild_id}"
+
+    # Check cache first
+    cached_roles = cache.get(cache_key)
+    if cached_roles is not None:
+        return cached_roles
+
+    try:
+        headers = {"Authorization": f"Bot {bot_token}"}
+
+        # Get guild member information using bot token
+        response = requests.get(
+            f"https://discord.com/api/v10/guilds/{guild_id}/members/{user_id}",
+            headers=headers,
+            timeout=10,
+        )
+
+        if response.status_code == 404:
+            # User is not a member of this guild
+            cache.set(cache_key, None, 300)  # Cache negative result briefly
+            return None
+
+        response.raise_for_status()
+        member_data = response.json()
+
+        # Extract role IDs from member data
+        role_ids = member_data.get("roles", [])
+
+        if not role_ids:
+            # User has no roles (only @everyone)
+            cache.set(cache_key, [], 300)
+            return []
+
+        # Get detailed role information
+        guild_response = requests.get(
+            f"https://discord.com/api/v10/guilds/{guild_id}",
+            headers=headers,
+            timeout=10,
+        )
+        guild_response.raise_for_status()
+        guild_data = guild_response.json()
+
+        # Filter roles to only include the ones the user has
+        all_roles = guild_data.get("roles", [])
+        user_roles = [role for role in all_roles if role["id"] in role_ids]
+
+        # Cache the result
+        cache_timeout = getattr(settings, "DISCORD_ROLES_CACHE_TIMEOUT", 300)
+        cache.set(cache_key, user_roles, cache_timeout)
+
+        return user_roles
+
+    except requests.RequestException as e:
+        msg = f"Failed to fetch user roles: {e}"
+        raise DiscordAPIError(msg) from e

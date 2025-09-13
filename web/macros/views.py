@@ -12,8 +12,10 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
+
+from admin_panel.models import ServerPermissionConfig
 from shared.bot_interface import MacroData, MacroUpdateData, bot_interface
-from shared.discord_api import DiscordAPIError, get_user_guilds
+from shared.discord_api import DiscordAPIError, get_user_guilds, get_user_roles_in_guild
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +51,13 @@ def macro_add(request, guild_id):  # noqa: PLR0911
     """
     try:
         guild_name = _validate_server_access(request, guild_id)
+
+        # Check create_macros permission
+        if not _check_server_permission(request, guild_id, 'create_macros'):
+            messages.error(
+                request, "You don't have permission to create macros in this server"
+            )
+            return redirect("servers:server_detail", guild_id=guild_id)
 
         if request.method == "POST":
             # Get form data
@@ -187,8 +196,77 @@ def _validate_server_access(request, guild_id):
     return guild_name
 
 
+def _check_server_permission(request, guild_id: int, permission_type: str) -> bool:
+    """
+    Check if user has the specified permission for the given server using admin panel config.
+
+    Args:
+        request: Django HTTP request with authenticated user
+        guild_id: Discord guild ID to check permissions for
+        permission_type: Type of permission to check ('create_macros', 'edit_macros', 'delete_macros', etc.)
+
+    Returns:
+        bool: True if user has the specified permission, False otherwise
+    """
+    try:
+        # Get user's Discord guilds to get guild info and permissions
+        user_guilds = get_user_guilds(request.user)
+        guild_info = next(
+            (guild for guild in user_guilds if int(guild["id"]) == guild_id),
+            None,
+        )
+
+        if not guild_info:
+            logger.warning(f"Guild {guild_id} not found in user's guilds")
+            return False
+
+        guild_name = guild_info["name"]
+        is_server_owner = guild_info.get("owner", False)
+        guild_permissions = int(guild_info.get("permissions", 0))
+
+        # Get or create server permission configuration
+        server_config, created = ServerPermissionConfig.objects.get_or_create(
+            guild_id=str(guild_id),
+            defaults={
+                'guild_name': guild_name,
+                'updated_by': str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else '',
+                'updated_by_name': request.user.username,
+            }
+        )
+
+        # For newly created configs, default to admin_only for create/edit/delete operations
+        if created:
+            logger.info(f"Created new server config for guild {guild_id}, using default admin-only permissions")
+            # For new configs, use basic admin permission check (Discord administrator/owner/manage server)
+            return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
+        else:
+            # Use the configured permission system with actual roles
+            try:
+                user_roles_data = get_user_roles_in_guild(request.user, guild_id) or []
+                user_role_names = [role["name"].lower() for role in user_roles_data]
+            except DiscordAPIError:
+                user_role_names = []  # Fall back to empty roles if API fails
+
+            has_permission = server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
+
+            logger.info(
+                f"Permission check for user {request.user.username} in guild {guild_id}: "
+                f"permission_type={permission_type}, result={has_permission}, "
+                f"permission_level={getattr(server_config, permission_type, 'admin_only')}"
+            )
+
+            return has_permission
+
+    except Exception as e:
+        logger.error(f"Error checking {permission_type} permission for user {request.user.username} in guild {guild_id}: {e}")
+        return False
+
+
 def _validate_admin_permissions(request, guild_id):
     """Validate that user has admin permissions for the given server.
+
+    This is a legacy function that now uses the server-specific permission system
+    for 'edit_macros' and 'delete_macros' permissions.
 
     Args:
         request: Django HTTP request with authenticated user.
@@ -197,45 +275,7 @@ def _validate_admin_permissions(request, guild_id):
     Returns:
         bool: True if user has admin permissions, False otherwise.
     """
-    try:
-        # Simplified approach: Use guild permissions from the user's guilds data
-        # The Discord API endpoint for member data may not be available with user tokens
-        user_guilds = get_user_guilds(request.user)
-        guild_permissions = 0
-
-        for guild in user_guilds:
-            if int(guild["id"]) == guild_id:
-                guild_permissions = int(guild.get("permissions", 0))
-                break
-
-        if guild_permissions == 0:
-            logger.warning(
-                f"No permissions found for user {request.user.username} in guild {guild_id}"
-            )
-            return False
-
-        logger.info(
-            f"User {request.user.username} has permissions {guild_permissions} in guild {guild_id}"
-        )
-
-        # For now, use permissions-based checking since role names require additional API calls
-        # Check if user has admin permissions using bot configuration
-        role_names = []  # Empty for now since we can't easily get role names with user tokens
-        has_admin = bot_interface.check_admin_access(role_names, guild_permissions)
-
-        logger.info(
-            f"Admin access check result for user {request.user.username}: {has_admin}"
-        )
-        return has_admin
-
-    except DiscordAPIError as e:
-        logger.exception(
-            f"Error checking admin permissions for user {request.user.username} in guild {guild_id}: {e}"
-        )
-        return False
-    except Exception as e:
-        logger.exception(f"Unexpected error checking admin permissions: {e}")
-        return False
+    return _check_server_permission(request, guild_id, 'edit_macros')
 
 
 def _validate_macro_edit_inputs(request, macro_name, guild_id, guild_name):
@@ -479,8 +519,8 @@ def macro_delete(request, guild_id, macro_name):
     try:
         guild_name = _validate_server_access(request, guild_id)
 
-        # Check admin permissions for deleting macros
-        if not _validate_admin_permissions(request, guild_id):
+        # Check delete_macros permission
+        if not _check_server_permission(request, guild_id, 'delete_macros'):
             messages.error(
                 request, "You don't have permission to delete macros in this server"
             )
