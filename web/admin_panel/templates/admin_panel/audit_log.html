@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Audit Log - {{ guild_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">📋 Audit Log</h1>
+                    <p class="text-muted mb-0">{{ guild_name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_panel:dashboard' guild_id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Admin Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audit Log -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Permission Change History
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if logs %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Action</th>
+                                    <th>Field Changed</th>
+                                    <th>Old Value</th>
+                                    <th>New Value</th>
+                                    <th>Changed By</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in logs %}
+                                <tr>
+                                    <td>
+                                        <small title="{{ log.timestamp }}">
+                                            {{ log.timestamp|naturaltime }}
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if log.action == 'created' %}success{% elif log.action == 'updated' %}primary{% elif log.action == 'permission_changed' %}warning{% elif log.action == 'roles_updated' %}info{% else %}secondary{% endif %}">
+                                            {{ log.get_action_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if log.field_changed %}
+                                            <code class="small">{{ log.field_changed }}</code>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.old_value %}
+                                            <small class="text-muted">
+                                                {% if log.old_value|length > 50 %}
+                                                    {{ log.old_value|truncatechars:50 }}
+                                                {% else %}
+                                                    {{ log.old_value }}
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if log.new_value %}
+                                            <small class="text-success">
+                                                {% if log.new_value|length > 50 %}
+                                                    {{ log.new_value|truncatechars:50 }}
+                                                {% else %}
+                                                    {{ log.new_value }}
+                                                {% endif %}
+                                            </small>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <div class="fw-medium">{{ log.changed_by_name|default:"System" }}</div>
+                                                {% if log.changed_by %}
+                                                    <small class="text-muted">{{ log.changed_by }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No Changes Yet</h4>
+                        <p class="text-muted">Permission changes will appear here once you start configuring settings.</p>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if logs %}
+                <div class="card-footer text-muted">
+                    <small>
+                        <i class="fas fa-info-circle"></i>
+                        Showing last 50 entries. All changes are permanently logged for security and compliance.
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Legend -->
+    {% if logs %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle"></i> Action Types
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="small mb-0">
+                                <dt><span class="badge bg-success">Configuration Created</span></dt>
+                                <dd>Initial server configuration was created</dd>
+
+                                <dt><span class="badge bg-primary">Configuration Updated</span></dt>
+                                <dd>General configuration changes</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="small mb-0">
+                                <dt><span class="badge bg-warning">Permission Changed</span></dt>
+                                <dd>Permission levels were modified</dd>
+
+                                <dt><span class="badge bg-info">Role Lists Updated</span></dt>
+                                <dd>Role name lists were changed</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

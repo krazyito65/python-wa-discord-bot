@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Role Settings - {{ guild_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">👥 Role Settings</h1>
+                    <p class="text-muted mb-0">{{ guild_name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_panel:dashboard' guild_id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Admin Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Role Settings Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-users"></i> Configure Role Names
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Standard Role Categories -->
+                        <div class="row g-4">
+                            <!-- Admin Roles -->
+                            <div class="col-md-4">
+                                <div class="card border-danger">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-crown"></i> Administrator Roles
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="admin_roles" class="form-label">Role Names</label>
+                                        <textarea class="form-control" id="admin_roles" name="admin_roles" rows="3"
+                                                  placeholder="administrator, admin, owner">{{ server_config.admin_roles|join:", " }}</textarea>
+                                        <small class="form-text text-muted">
+                                            Comma-separated list of role names that grant admin privileges
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Moderator Roles -->
+                            <div class="col-md-4">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-warning text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-shield"></i> Moderator Roles
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="moderator_roles" class="form-label">Role Names</label>
+                                        <textarea class="form-control" id="moderator_roles" name="moderator_roles" rows="3"
+                                                  placeholder="moderator, mod, helper">{{ server_config.moderator_roles|join:", " }}</textarea>
+                                        <small class="form-text text-muted">
+                                            Comma-separated list of role names that grant moderator privileges
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Trusted User Roles -->
+                            <div class="col-md-4">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-star"></i> Trusted User Roles
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="trusted_user_roles" class="form-label">Role Names</label>
+                                        <textarea class="form-control" id="trusted_user_roles" name="trusted_user_roles" rows="3"
+                                                  placeholder="trusted, veteran, vip">{{ server_config.trusted_user_roles|join:", " }}</textarea>
+                                        <small class="form-text text-muted">
+                                            Comma-separated list of role names that grant trusted user privileges
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Permission Roles -->
+                        <div class="row g-4 mt-3">
+                            <div class="col-12">
+                                <h6 class="text-muted">
+                                    <i class="fas fa-cogs"></i> Custom Permission Roles
+                                    <small class="text-muted">(Used when permission level is set to "Custom Roles Only")</small>
+                                </h6>
+                            </div>
+
+                            <!-- Custom Admin Panel Roles -->
+                            <div class="col-md-6">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-shield-alt"></i> Admin Panel Access
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="custom_admin_panel_roles" class="form-label">Custom Roles</label>
+                                        <textarea class="form-control" id="custom_admin_panel_roles" name="custom_admin_panel_roles" rows="2"
+                                                  placeholder="panel-admin, config-manager">{{ server_config.custom_admin_panel_roles|join:", " }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custom Create Roles -->
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-plus-circle"></i> Create Macros
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="custom_create_roles" class="form-label">Custom Roles</label>
+                                        <textarea class="form-control" id="custom_create_roles" name="custom_create_roles" rows="2"
+                                                  placeholder="macro-creator, content-maker">{{ server_config.custom_create_roles|join:", " }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custom Edit Roles -->
+                            <div class="col-md-6">
+                                <div class="card border-warning">
+                                    <div class="card-header bg-warning text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-edit"></i> Edit Macros
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="custom_edit_roles" class="form-label">Custom Roles</label>
+                                        <textarea class="form-control" id="custom_edit_roles" name="custom_edit_roles" rows="2"
+                                                  placeholder="macro-editor, content-editor">{{ server_config.custom_edit_roles|join:", " }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Custom Delete Roles -->
+                            <div class="col-md-6">
+                                <div class="card border-danger">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-trash-alt"></i> Delete Macros
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="custom_delete_roles" class="form-label">Custom Roles</label>
+                                        <textarea class="form-control" id="custom_delete_roles" name="custom_delete_roles" rows="2"
+                                                  placeholder="macro-manager, senior-mod">{{ server_config.custom_delete_roles|join:", " }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i>
+                                            Role names are case-insensitive. Changes will be logged for auditing.
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Save Role Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb"></i> Tips & Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Role Name Guidelines</h6>
+                            <ul class="small">
+                                <li>Role names are <strong>case-insensitive</strong></li>
+                                <li>Separate multiple roles with <strong>commas</strong></li>
+                                <li>Spaces around commas are automatically removed</li>
+                                <li>Empty fields mean no roles have that privilege</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Permission Hierarchy</h6>
+                            <ul class="small">
+                                <li><strong>Admin roles</strong> have the highest privileges</li>
+                                <li><strong>Moderator roles</strong> include admin privileges when selected</li>
+                                <li><strong>Trusted user roles</strong> include mod and admin privileges when selected</li>
+                                <li><strong>Custom roles</strong> work independently of hierarchy</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

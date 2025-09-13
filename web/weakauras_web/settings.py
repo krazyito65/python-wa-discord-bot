@@ -128,6 +128,7 @@ INSTALLED_APPS = [
     "allauth.socialaccount.providers.discord",
     "rest_framework",
     # Local apps
+    "admin_panel",
     "authentication",
     "macros",
     "servers",

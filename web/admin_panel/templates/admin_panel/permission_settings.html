@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Permission Settings - {{ guild_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">🔐 Permission Settings</h1>
+                    <p class="text-muted mb-0">{{ guild_name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_panel:dashboard' guild_id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Admin Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permission Settings Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-key"></i> Configure Permissions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="row g-4">
+                            <!-- Admin Panel Access -->
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-header bg-primary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-shield-alt"></i> Admin Panel Access
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small text-muted mb-3">Who can access this admin panel</p>
+                                        {% for value, label in permission_choices %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="admin_panel_access"
+                                                   id="admin_panel_access_{{ value }}" value="{{ value }}"
+                                                   {% if server_config.admin_panel_access == value %}checked{% endif %}>
+                                            <label class="form-check-label" for="admin_panel_access_{{ value }}">
+                                                {{ label }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Create Macros -->
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-plus-circle"></i> Create Macros
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small text-muted mb-3">Who can create new macros</p>
+                                        {% for value, label in permission_choices %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="create_macros"
+                                                   id="create_macros_{{ value }}" value="{{ value }}"
+                                                   {% if server_config.create_macros == value %}checked{% endif %}>
+                                            <label class="form-check-label" for="create_macros_{{ value }}">
+                                                {{ label }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Edit Macros -->
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-header bg-warning text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-edit"></i> Edit Macros
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small text-muted mb-3">Who can edit existing macros</p>
+                                        {% for value, label in permission_choices %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="edit_macros"
+                                                   id="edit_macros_{{ value }}" value="{{ value }}"
+                                                   {% if server_config.edit_macros == value %}checked{% endif %}>
+                                            <label class="form-check-label" for="edit_macros_{{ value }}">
+                                                {{ label }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Macros -->
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-trash-alt"></i> Delete Macros
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small text-muted mb-3">Who can delete macros</p>
+                                        {% for value, label in permission_choices %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="delete_macros"
+                                                   id="delete_macros_{{ value }}" value="{{ value }}"
+                                                   {% if server_config.delete_macros == value %}checked{% endif %}>
+                                            <label class="form-check-label" for="delete_macros_{{ value }}">
+                                                {{ label }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Use Macros -->
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-play"></i> Use Macros
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small text-muted mb-3">Who can execute/use macros</p>
+                                        {% for value, label in permission_choices %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="use_macros"
+                                                   id="use_macros_{{ value }}" value="{{ value }}"
+                                                   {% if server_config.use_macros == value %}checked{% endif %}>
+                                            <label class="form-check-label" for="use_macros_{{ value }}">
+                                                {{ label }}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Discord Permissions Settings -->
+                            <div class="col-md-6">
+                                <div class="card border">
+                                    <div class="card-header bg-secondary text-white">
+                                        <h6 class="mb-0">
+                                            <i class="fab fa-discord"></i> Discord Integration
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <p class="small text-muted mb-3">Integration with Discord permissions</p>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="require_discord_permissions"
+                                                   id="require_discord_permissions"
+                                                   {% if server_config.require_discord_permissions %}checked{% endif %}>
+                                            <label class="form-check-label" for="require_discord_permissions">
+                                                <strong>Enable Discord Permission Checks</strong>
+                                            </label>
+                                        </div>
+                                        <small class="form-text text-muted mt-2">
+                                            When enabled, users with Discord Administrator or Manage Server permissions
+                                            will automatically have admin-level access regardless of role settings above.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Save Button -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <hr>
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i>
+                                            Changes will be logged for auditing purposes
+                                        </small>
+                                    </div>
+                                    <div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save"></i> Save Permission Settings
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle"></i> Permission Levels Explained
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="small">
+                                <dt>Server Owner Only</dt>
+                                <dd>Only the Discord server owner can perform this action</dd>
+
+                                <dt>Administrators Only</dt>
+                                <dd>Users with admin roles or Discord Administrator permission</dd>
+
+                                <dt>Moderators and Administrators</dt>
+                                <dd>Users with moderator or admin roles, plus Discord permissions</dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="small">
+                                <dt>Trusted Users and Above</dt>
+                                <dd>Users with trusted user, moderator, or admin roles</dd>
+
+                                <dt>Everyone</dt>
+                                <dd>All server members can perform this action</dd>
+
+                                <dt>Custom Roles Only</dt>
+                                <dd>Only users with specific custom roles (configure in Role Settings)</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

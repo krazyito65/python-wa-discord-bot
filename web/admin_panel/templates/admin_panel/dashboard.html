@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Admin Panel - {{ guild_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">🛡️ Admin Panel</h1>
+                    <p class="text-muted mb-0">{{ guild_name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'servers:server_detail' guild_id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Server
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Admin Panel Access</h6>
+                            <h4>{{ permission_displays.admin_panel_access }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-shield-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Create Macros</h6>
+                            <h4>{{ permission_displays.create_macros }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-plus-circle fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Edit Macros</h6>
+                            <h4>{{ permission_displays.edit_macros }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-edit fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Delete Macros</h6>
+                            <h4>{{ permission_displays.delete_macros }}</h4>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-trash-alt fa-2x opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Actions -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog"></i> Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <a href="{% url 'admin_panel:permission_settings' guild_id %}" class="btn btn-primary w-100">
+                                <i class="fas fa-key"></i> Permission Settings
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="{% url 'admin_panel:role_settings' guild_id %}" class="btn btn-info w-100">
+                                <i class="fas fa-users"></i> Role Settings
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <a href="{% url 'admin_panel:audit_log' guild_id %}" class="btn btn-secondary w-100">
+                                <i class="fas fa-history"></i> Audit Log
+                            </a>
+                        </div>
+                        <div class="col-sm-6">
+                            <form method="post" action="{% url 'admin_panel:reset_to_defaults' guild_id %}" class="w-100" onsubmit="return confirm('Are you sure you want to reset all permissions to default settings? This cannot be undone.');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger w-100">
+                                    <i class="fas fa-undo"></i> Reset to Defaults
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle"></i> Server Info
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row small">
+                        <dt class="col-sm-5">Server ID:</dt>
+                        <dd class="col-sm-7">{{ guild_id }}</dd>
+
+                        <dt class="col-sm-5">Discord Permissions:</dt>
+                        <dd class="col-sm-7">
+                            <span class="badge bg-{{ server_config.require_discord_permissions|yesno:'success,secondary' }}">
+                                {{ server_config.require_discord_permissions|yesno:'Enabled,Disabled' }}
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-5">Last Updated:</dt>
+                        <dd class="col-sm-7" title="{{ server_config.updated_at }}">
+                            {{ server_config.updated_at|naturaltime }}
+                        </dd>
+
+                        <dt class="col-sm-5">Updated By:</dt>
+                        <dd class="col-sm-7">{{ server_config.updated_by_name|default:'System' }}</dd>
+                    </dl>
+                </div>
+            </div>
+
+            {% if recent_logs %}
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-clock"></i> Recent Changes
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for log in recent_logs|slice:":5" %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <small class="fw-medium">{{ log.get_action_display }}</small>
+                                <small class="text-muted">{{ log.timestamp|naturaltime }}</small>
+                            </div>
+                            {% if log.field_changed %}
+                            <small class="text-muted d-block">{{ log.field_changed }}</small>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

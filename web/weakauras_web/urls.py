@@ -25,6 +25,7 @@ urlpatterns = [
     path("accounts/", include("allauth.urls")),
     # App URLs
     path("", RedirectView.as_view(url="/dashboard/", permanent=False), name="home"),
+    path("admin-panel/", include("admin_panel.urls")),
     path("dashboard/", include("servers.urls")),
     path("macros/", include("macros.urls")),
     path("stats/", include("user_stats.urls")),
