@@ -200,11 +200,11 @@ jobs:
       run: |
         # Additional security check for hardcoded secrets
         echo "🔒 Scanning for potential secrets..."
-        if grep -r "sk-" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude="*.lock"; then
+        if grep -r "sk-" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock"; then
           echo "❌ Found potential API keys (sk- pattern)"
           exit 1
         fi
-        if grep -r "DISCORD_TOKEN.*=" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude="*.lock" --exclude="*.example" --exclude="CLAUDE.md"; then
+        if grep -r "DISCORD_TOKEN.*=" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock" --exclude="*.example" --exclude="CLAUDE.md"; then
           echo "❌ Found potential hardcoded Discord tokens"
           exit 1
         fi
