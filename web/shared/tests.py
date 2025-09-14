@@ -571,3 +571,45 @@ class TestDiscordAPI(TestCase):
         # Server Three should not be included (no bot data)
         guild_names = [server["guild_name"] for server in result]
         assert "Server Three" not in guild_names
+
+
+class DataClassTestCase(TestCase):
+    """Test data classes used by bot interface."""
+
+    def test_macro_data_creation(self):
+        """Test MacroData dataclass creation and attributes."""
+        macro_data = MacroData(
+            guild_id=123456789,
+            guild_name="Test Guild",
+            name="test_macro",
+            message="Test message",
+            created_by="987654321",
+            created_by_name="Test User"
+        )
+
+        assert macro_data.guild_id == 123456789
+        assert macro_data.guild_name == "Test Guild"
+        assert macro_data.name == "test_macro"
+        assert macro_data.message == "Test message"
+        assert macro_data.created_by == "987654321"
+        assert macro_data.created_by_name == "Test User"
+
+    def test_macro_update_data_creation(self):
+        """Test MacroUpdateData dataclass creation and attributes."""
+        update_data = MacroUpdateData(
+            guild_id=123456789,
+            guild_name="Test Guild",
+            old_name="old_macro",
+            new_name="new_macro",
+            message="Updated message",
+            edited_by="987654321",
+            edited_by_name="Test Editor"
+        )
+
+        assert update_data.guild_id == 123456789
+        assert update_data.guild_name == "Test Guild"
+        assert update_data.old_name == "old_macro"
+        assert update_data.new_name == "new_macro"
+        assert update_data.message == "Updated message"
+        assert update_data.edited_by == "987654321"
+        assert update_data.edited_by_name == "Test Editor"

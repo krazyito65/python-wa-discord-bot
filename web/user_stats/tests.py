@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from shared.discord_api import DiscordAPIError
+from shared.test_utils import skip_discord_api_dependent
 
 from .models import (
     DiscordChannel,
@@ -90,6 +91,43 @@ class UserStatsModelsTest(TestCase):
 
         assert job.progress_percentage == 25.0
 
+    def test_collection_job_zero_total_progress(self):
+        """Test collection job progress with zero total."""
+        job = StatisticsCollectionJob.objects.create(
+            guild=self.guild, progress_current=0, progress_total=0
+        )
+
+        assert job.progress_percentage == 0.0
+
+    def test_discord_guild_str_method(self):
+        """Test Discord guild string representation."""
+        guild = DiscordGuild.objects.create(
+            guild_id="999888777666555444", name="Another Server"
+        )
+
+        assert str(guild) == "Another Server (999888777666555444)"
+
+    def test_discord_user_str_method(self):
+        """Test Discord user string representation."""
+        user = DiscordUser.objects.create(
+            user_id="111222333444555666",
+            username="newuser",
+            display_name="New User"
+        )
+
+        assert str(user) == "New User (111222333444555666)"
+
+    def test_discord_channel_str_method(self):
+        """Test Discord channel string representation."""
+        channel = DiscordChannel.objects.create(
+            channel_id="777888999000111222",
+            guild=self.guild,
+            name="testing",
+            channel_type="text"
+        )
+
+        assert str(channel) == "#testing (Test Server)"
+
 
 class UserStatsViewsTest(TestCase):
     """Test user statistics views."""
@@ -135,6 +173,7 @@ class UserStatsViewsTest(TestCase):
         response = self.client.get(reverse("user_stats:dashboard"))
         assert response.status_code == 302  # Redirect to login
 
+    @skip_discord_api_dependent
     @patch("user_stats.views.get_user_guilds")
     def test_dashboard_access_with_login(self, mock_get_guilds):
         """Test dashboard access with authenticated user."""
@@ -143,7 +182,7 @@ class UserStatsViewsTest(TestCase):
 
         self.client.force_login(self.user)
 
-        # This should now return a 200 but with an error message
+        # When DiscordAPIError is raised, should redirect to servers dashboard
         response = self.client.get(reverse("user_stats:dashboard"))
         assert response.status_code == 302  # Redirect to servers dashboard
 
