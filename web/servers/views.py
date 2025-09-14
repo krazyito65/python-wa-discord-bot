@@ -507,15 +507,37 @@ def server_detail(request, guild_id):  # noqa: PLR0912, PLR0915
                         if field.get("value"):
                             search_text_parts.append(field["value"])
                     macro_info["searchable_text"] = " ".join(search_text_parts)
-                    # Set display content for embed macros
-                    macro_info["display_content"] = (
-                        "[Embed Macro - Use Edit to view details]"
-                    )
+                    # Create rich preview for embed macros
+                    preview_parts = []
+                    if embed_data.get("title"):
+                        preview_parts.append(f"**{embed_data['title']}**")
+                    if embed_data.get("description"):
+                        desc = embed_data["description"]
+                        max_preview_length = 100
+                        if len(desc) > max_preview_length:
+                            desc = desc[:max_preview_length] + "..."
+                        preview_parts.append(desc)
+                    if embed_data.get("fields"):
+                        fields_preview = (
+                            f"[{len(embed_data['fields'])} custom field(s)]"
+                        )
+                        preview_parts.append(fields_preview)
+                    if embed_data.get("footer"):
+                        preview_parts.append(f"*{embed_data['footer']}*")
+
+                    if preview_parts:
+                        macro_info["display_content"] = "\n\n".join(preview_parts)
+                    else:
+                        macro_info["display_content"] = "[Empty Embed]"
+
+                    # Store full embed data for modal display
+                    macro_info["is_embed"] = True
                 else:
                     # Text macro - use message for search
                     macro_info["searchable_text"] = data.get("message", "")
                     # Set display content for text macros
                     macro_info["display_content"] = data.get("message", "")
+                    macro_info["is_embed"] = False
             else:
                 # Legacy format (just message string)
                 macro_info = {
@@ -524,6 +546,7 @@ def server_detail(request, guild_id):  # noqa: PLR0912, PLR0915
                     "type": "text",
                     "searchable_text": data,
                     "display_content": data,
+                    "is_embed": False,
                     "created_by": "",
                     "created_by_name": "Unknown",
                     "created_at": "",
