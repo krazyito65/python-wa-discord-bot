@@ -25,16 +25,16 @@ class ServerPermissionConfigTest(TestCase):
             guild_id=self.guild_id,
             guild_name=self.guild_name,
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
         assert config.guild_id == self.guild_id
         assert config.guild_name == self.guild_name
-        assert config.admin_panel_access == 'admin_only'  # Default
-        assert config.create_macros == 'admin_only'  # Default
-        assert config.edit_macros == 'admin_only'  # Default
-        assert config.delete_macros == 'admin_only'  # Default
-        assert config.use_macros == 'everyone'  # Default
+        assert config.admin_panel_access == "admin_only"  # Default
+        assert config.create_macros == "admin_only"  # Default
+        assert config.edit_macros == "admin_only"  # Default
+        assert config.delete_macros == "admin_only"  # Default
+        assert config.use_macros == "everyone"  # Default
         assert config.require_discord_permissions is True  # Default
 
     def test_server_config_str_representation(self):
@@ -43,7 +43,7 @@ class ServerPermissionConfigTest(TestCase):
             guild_id=self.guild_id,
             guild_name=self.guild_name,
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
         assert str(config) == f"Test Server ({self.guild_id}) - Permission Config"
@@ -53,20 +53,20 @@ class ServerPermissionConfigTest(TestCase):
         config = ServerPermissionConfig.objects.create(
             guild_id=self.guild_id,
             guild_name=self.guild_name,
-            admin_panel_access='moderators',
-            create_macros='trusted_users',
-            edit_macros='everyone',
-            delete_macros='server_owner',
-            use_macros='everyone',
+            admin_panel_access="moderators",
+            create_macros="trusted_users",
+            edit_macros="everyone",
+            delete_macros="server_owner",
+            use_macros="everyone",
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
-        assert config.admin_panel_access == 'moderators'
-        assert config.create_macros == 'trusted_users'
-        assert config.edit_macros == 'everyone'
-        assert config.delete_macros == 'server_owner'
-        assert config.use_macros == 'everyone'
+        assert config.admin_panel_access == "moderators"
+        assert config.create_macros == "trusted_users"
+        assert config.edit_macros == "everyone"
+        assert config.delete_macros == "server_owner"
+        assert config.use_macros == "everyone"
 
     def test_server_config_custom_roles_json(self):
         """Test server configuration with custom roles JSON fields."""
@@ -76,12 +76,12 @@ class ServerPermissionConfigTest(TestCase):
         config = ServerPermissionConfig.objects.create(
             guild_id=self.guild_id,
             guild_name=self.guild_name,
-            admin_panel_access='custom_roles',
-            create_macros='custom_roles',
+            admin_panel_access="custom_roles",
+            create_macros="custom_roles",
             custom_admin_panel_roles=custom_admin_roles,
             custom_create_roles=custom_create_roles,
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
         assert config.custom_admin_panel_roles == custom_admin_roles
@@ -100,7 +100,7 @@ class ServerPermissionConfigTest(TestCase):
             moderator_roles=moderator_roles,
             admin_roles=admin_roles,
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
         assert config.trusted_user_roles == trusted_roles
@@ -113,7 +113,7 @@ class ServerPermissionConfigTest(TestCase):
             guild_id=self.guild_id,
             guild_name=self.guild_name,
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
         assert config.created_at is not None
@@ -133,7 +133,7 @@ class ServerPermissionConfigTest(TestCase):
             guild_id=self.guild_id,
             guild_name=self.guild_name,
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
         # Attempting to create another config with same guild_id should fail
@@ -142,7 +142,7 @@ class ServerPermissionConfigTest(TestCase):
                 guild_id=self.guild_id,
                 guild_name="Different Server Name",
                 updated_by="111111111111111111",
-                updated_by_name="Different User"
+                updated_by_name="Different User",
             )
 
 
@@ -155,28 +155,28 @@ class ServerPermissionLogTest(TestCase):
             guild_id="123456789012345678",
             guild_name="Test Server",
             updated_by="987654321098765432",
-            updated_by_name="Test User"
+            updated_by_name="Test User",
         )
 
     def test_permission_log_creation(self):
         """Test basic permission log creation."""
         log_entry = ServerPermissionLog.objects.create(
             server_config=self.server_config,
-            action='updated',
-            field_changed='create_macros',
-            old_value='admin_only',
-            new_value='moderators',
+            action="updated",
+            field_changed="create_macros",
+            old_value="admin_only",
+            new_value="moderators",
             changed_by="987654321098765432",
             changed_by_name="Test User",
             user_agent="TestAgent/1.0",
-            ip_address="127.0.0.1"
+            ip_address="127.0.0.1",
         )
 
         assert log_entry.server_config == self.server_config
-        assert log_entry.action == 'updated'
-        assert log_entry.field_changed == 'create_macros'
-        assert log_entry.old_value == 'admin_only'
-        assert log_entry.new_value == 'moderators'
+        assert log_entry.action == "updated"
+        assert log_entry.field_changed == "create_macros"
+        assert log_entry.old_value == "admin_only"
+        assert log_entry.new_value == "moderators"
         assert log_entry.changed_by == "987654321098765432"
         assert log_entry.changed_by_name == "Test User"
         assert log_entry.user_agent == "TestAgent/1.0"
@@ -187,13 +187,13 @@ class ServerPermissionLogTest(TestCase):
         """Test string representation of permission log."""
         log_entry = ServerPermissionLog.objects.create(
             server_config=self.server_config,
-            action='updated',
-            field_changed='create_macros',
-            old_value='admin_only',
-            new_value='moderators',
+            action="updated",
+            field_changed="create_macros",
+            old_value="admin_only",
+            new_value="moderators",
             changed_by="987654321098765432",
             changed_by_name="Test User",
-            user_agent="TestAgent/1.0"
+            user_agent="TestAgent/1.0",
         )
 
         # Test that string representation contains expected components
@@ -204,18 +204,18 @@ class ServerPermissionLogTest(TestCase):
 
     def test_permission_log_different_actions(self):
         """Test permission log with different action types."""
-        actions = ['created', 'updated', 'permission_changed', 'roles_updated']
+        actions = ["created", "updated", "permission_changed", "roles_updated"]
 
         for action in actions:
             log_entry = ServerPermissionLog.objects.create(
                 server_config=self.server_config,
                 action=action,
-                field_changed='admin_panel_access',
-                old_value='admin_only',
-                new_value='moderators',
+                field_changed="admin_panel_access",
+                old_value="admin_only",
+                new_value="moderators",
                 changed_by="987654321098765432",
                 changed_by_name="Test User",
-                user_agent="TestAgent/1.0"
+                user_agent="TestAgent/1.0",
             )
 
             assert log_entry.action == action
@@ -224,13 +224,13 @@ class ServerPermissionLogTest(TestCase):
         """Test permission log without IP address."""
         log_entry = ServerPermissionLog.objects.create(
             server_config=self.server_config,
-            action='updated',
-            field_changed='create_macros',
-            old_value='admin_only',
-            new_value='moderators',
+            action="updated",
+            field_changed="create_macros",
+            old_value="admin_only",
+            new_value="moderators",
             changed_by="987654321098765432",
             changed_by_name="Test User",
-            user_agent="TestAgent/1.0"
+            user_agent="TestAgent/1.0",
             # ip_address is optional
         )
 
@@ -240,13 +240,13 @@ class ServerPermissionLogTest(TestCase):
         """Test relationship between log and server config."""
         log_entry = ServerPermissionLog.objects.create(
             server_config=self.server_config,
-            action='updated',
-            field_changed='create_macros',
-            old_value='admin_only',
-            new_value='moderators',
+            action="updated",
+            field_changed="create_macros",
+            old_value="admin_only",
+            new_value="moderators",
             changed_by="987654321098765432",
             changed_by_name="Test User",
-            user_agent="TestAgent/1.0"
+            user_agent="TestAgent/1.0",
         )
 
         # Test forward relationship

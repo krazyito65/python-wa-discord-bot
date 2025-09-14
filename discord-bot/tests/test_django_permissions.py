@@ -39,16 +39,13 @@ class TestDjangoPermissions(unittest.TestCase):
 
     def test_get_django_database_path_with_config(self):
         """Test getting Django database path from config file."""
-        test_config = {
-            "django": {
-                "database_url": "sqlite:///~/test-data/test.db"
-            }
-        }
+        test_config = {"django": {"database_url": "sqlite:///~/test-data/test.db"}}
 
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("builtins.open", create=True), \
-             patch("yaml.safe_load", return_value=test_config):
-
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("builtins.open", create=True),
+            patch("yaml.safe_load", return_value=test_config),
+        ):
             result = get_django_database_path()
             expected = str(Path("~/test-data/test.db").expanduser())
             assert result == expected
@@ -63,7 +60,10 @@ class TestDjangoPermissions(unittest.TestCase):
 
     def test_get_server_permission_config_no_database(self):
         """Test getting server permission config when database doesn't exist."""
-        with patch("utils.django_permissions.get_django_database_path", return_value="/nonexistent/path.db"):
+        with patch(
+            "utils.django_permissions.get_django_database_path",
+            return_value="/nonexistent/path.db",
+        ):
             result = get_server_permission_config(self.test_guild_id)
 
             # Should return None when database is not accessible
@@ -100,19 +100,16 @@ class TestDjangoPermissions(unittest.TestCase):
     def test_get_django_database_path_sqlite_prefix(self):
         """Test database path extraction from different SQLite URL formats."""
         test_configs = [
-            {
-                "django": {"database_url": "sqlite:///relative/path/db.sqlite3"}
-            },
-            {
-                "django": {"database_url": "sqlite:///absolute/path/db.sqlite3"}
-            },
+            {"django": {"database_url": "sqlite:///relative/path/db.sqlite3"}},
+            {"django": {"database_url": "sqlite:///absolute/path/db.sqlite3"}},
         ]
 
         for config in test_configs:
-            with patch("pathlib.Path.exists", return_value=True), \
-                 patch("builtins.open"), \
-                 patch("yaml.safe_load", return_value=config):
-
+            with (
+                patch("pathlib.Path.exists", return_value=True),
+                patch("builtins.open"),
+                patch("yaml.safe_load", return_value=config),
+            ):
                 result = get_django_database_path()
                 assert isinstance(result, str)
                 # Should not contain the sqlite:/// prefix
@@ -120,14 +117,13 @@ class TestDjangoPermissions(unittest.TestCase):
 
     def test_get_django_database_path_yaml_parsing(self):
         """Test that function properly parses YAML configuration."""
-        test_config = {
-            "django": {"database_url": "sqlite:///~/test-db/test.db"}
-        }
+        test_config = {"django": {"database_url": "sqlite:///~/test-db/test.db"}}
 
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("builtins.open", create=True), \
-             patch("yaml.safe_load", return_value=test_config):
-
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("builtins.open", create=True),
+            patch("yaml.safe_load", return_value=test_config),
+        ):
             result = get_django_database_path()
             # Should process the config and return a path
             assert isinstance(result, str)
@@ -135,14 +131,13 @@ class TestDjangoPermissions(unittest.TestCase):
 
     def test_get_django_database_path_non_sqlite(self):
         """Test behavior with non-SQLite database URLs."""
-        test_config = {
-            "django": {"database_url": "postgresql://localhost/test"}
-        }
+        test_config = {"django": {"database_url": "postgresql://localhost/test"}}
 
-        with patch("pathlib.Path.exists", return_value=True), \
-             patch("builtins.open"), \
-             patch("yaml.safe_load", return_value=test_config):
-
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("builtins.open"),
+            patch("yaml.safe_load", return_value=test_config),
+        ):
             result = get_django_database_path()
             # Should fall back to default path for non-SQLite URLs
             expected = str(Path("~/weakauras-bot-data/statistics.db").expanduser())

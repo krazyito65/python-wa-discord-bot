@@ -6,63 +6,314 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='ServerPermissionConfig',
+            name="ServerPermissionConfig",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('guild_id', models.CharField(help_text='Discord guild/server ID', max_length=20, unique=True)),
-                ('guild_name', models.CharField(help_text='Discord guild/server name (cached for display)', max_length=100)),
-                ('admin_panel_access', models.CharField(choices=[('admin_only', 'Administrators Only'), ('moderators', 'Moderators and Administrators'), ('trusted_users', 'Trusted Users and Above'), ('everyone', 'Everyone'), ('custom_roles', 'Custom Roles Only'), ('server_owner', 'Server Owner Only')], default='admin_only', help_text='Who can access the admin panel for this server', max_length=20)),
-                ('create_macros', models.CharField(choices=[('admin_only', 'Administrators Only'), ('moderators', 'Moderators and Administrators'), ('trusted_users', 'Trusted Users and Above'), ('everyone', 'Everyone'), ('custom_roles', 'Custom Roles Only'), ('server_owner', 'Server Owner Only')], default='admin_only', help_text='Who can create new macros', max_length=20)),
-                ('edit_macros', models.CharField(choices=[('admin_only', 'Administrators Only'), ('moderators', 'Moderators and Administrators'), ('trusted_users', 'Trusted Users and Above'), ('everyone', 'Everyone'), ('custom_roles', 'Custom Roles Only'), ('server_owner', 'Server Owner Only')], default='admin_only', help_text='Who can edit existing macros', max_length=20)),
-                ('delete_macros', models.CharField(choices=[('admin_only', 'Administrators Only'), ('moderators', 'Moderators and Administrators'), ('trusted_users', 'Trusted Users and Above'), ('everyone', 'Everyone'), ('custom_roles', 'Custom Roles Only'), ('server_owner', 'Server Owner Only')], default='admin_only', help_text='Who can delete macros', max_length=20)),
-                ('use_macros', models.CharField(choices=[('admin_only', 'Administrators Only'), ('moderators', 'Moderators and Administrators'), ('trusted_users', 'Trusted Users and Above'), ('everyone', 'Everyone'), ('custom_roles', 'Custom Roles Only'), ('server_owner', 'Server Owner Only')], default='everyone', help_text='Who can use/execute macros', max_length=20)),
-                ('custom_admin_panel_roles', models.JSONField(blank=True, default=list, help_text='Custom role names that can access admin panel (case-insensitive)')),
-                ('custom_create_roles', models.JSONField(blank=True, default=list, help_text='Custom role names that can create macros (case-insensitive)')),
-                ('custom_edit_roles', models.JSONField(blank=True, default=list, help_text='Custom role names that can edit macros (case-insensitive)')),
-                ('custom_delete_roles', models.JSONField(blank=True, default=list, help_text='Custom role names that can delete macros (case-insensitive)')),
-                ('custom_use_roles', models.JSONField(blank=True, default=list, help_text='Custom role names that can use macros (case-insensitive)')),
-                ('require_discord_permissions', models.BooleanField(default=True, help_text='Also check Discord permissions (Administrator, Manage Server, etc.)')),
-                ('trusted_user_roles', models.JSONField(blank=True, default=list, help_text="Role names considered 'trusted users' (case-insensitive)")),
-                ('moderator_roles', models.JSONField(default=list, help_text="Role names considered 'moderators' (case-insensitive)")),
-                ('admin_roles', models.JSONField(default=list, help_text="Role names considered 'administrators' (case-insensitive)")),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now, help_text='When this configuration was created')),
-                ('updated_at', models.DateTimeField(auto_now=True, help_text='When this configuration was last updated')),
-                ('updated_by', models.CharField(help_text='Discord user ID who last updated this config', max_length=20)),
-                ('updated_by_name', models.CharField(default='', help_text='Discord username who last updated this config', max_length=100)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "guild_id",
+                    models.CharField(
+                        help_text="Discord guild/server ID", max_length=20, unique=True
+                    ),
+                ),
+                (
+                    "guild_name",
+                    models.CharField(
+                        help_text="Discord guild/server name (cached for display)",
+                        max_length=100,
+                    ),
+                ),
+                (
+                    "admin_panel_access",
+                    models.CharField(
+                        choices=[
+                            ("admin_only", "Administrators Only"),
+                            ("moderators", "Moderators and Administrators"),
+                            ("trusted_users", "Trusted Users and Above"),
+                            ("everyone", "Everyone"),
+                            ("custom_roles", "Custom Roles Only"),
+                            ("server_owner", "Server Owner Only"),
+                        ],
+                        default="admin_only",
+                        help_text="Who can access the admin panel for this server",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "create_macros",
+                    models.CharField(
+                        choices=[
+                            ("admin_only", "Administrators Only"),
+                            ("moderators", "Moderators and Administrators"),
+                            ("trusted_users", "Trusted Users and Above"),
+                            ("everyone", "Everyone"),
+                            ("custom_roles", "Custom Roles Only"),
+                            ("server_owner", "Server Owner Only"),
+                        ],
+                        default="admin_only",
+                        help_text="Who can create new macros",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "edit_macros",
+                    models.CharField(
+                        choices=[
+                            ("admin_only", "Administrators Only"),
+                            ("moderators", "Moderators and Administrators"),
+                            ("trusted_users", "Trusted Users and Above"),
+                            ("everyone", "Everyone"),
+                            ("custom_roles", "Custom Roles Only"),
+                            ("server_owner", "Server Owner Only"),
+                        ],
+                        default="admin_only",
+                        help_text="Who can edit existing macros",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "delete_macros",
+                    models.CharField(
+                        choices=[
+                            ("admin_only", "Administrators Only"),
+                            ("moderators", "Moderators and Administrators"),
+                            ("trusted_users", "Trusted Users and Above"),
+                            ("everyone", "Everyone"),
+                            ("custom_roles", "Custom Roles Only"),
+                            ("server_owner", "Server Owner Only"),
+                        ],
+                        default="admin_only",
+                        help_text="Who can delete macros",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "use_macros",
+                    models.CharField(
+                        choices=[
+                            ("admin_only", "Administrators Only"),
+                            ("moderators", "Moderators and Administrators"),
+                            ("trusted_users", "Trusted Users and Above"),
+                            ("everyone", "Everyone"),
+                            ("custom_roles", "Custom Roles Only"),
+                            ("server_owner", "Server Owner Only"),
+                        ],
+                        default="everyone",
+                        help_text="Who can use/execute macros",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "custom_admin_panel_roles",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Custom role names that can access admin panel (case-insensitive)",
+                    ),
+                ),
+                (
+                    "custom_create_roles",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Custom role names that can create macros (case-insensitive)",
+                    ),
+                ),
+                (
+                    "custom_edit_roles",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Custom role names that can edit macros (case-insensitive)",
+                    ),
+                ),
+                (
+                    "custom_delete_roles",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Custom role names that can delete macros (case-insensitive)",
+                    ),
+                ),
+                (
+                    "custom_use_roles",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Custom role names that can use macros (case-insensitive)",
+                    ),
+                ),
+                (
+                    "require_discord_permissions",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Also check Discord permissions (Administrator, Manage Server, etc.)",
+                    ),
+                ),
+                (
+                    "trusted_user_roles",
+                    models.JSONField(
+                        blank=True,
+                        default=list,
+                        help_text="Role names considered 'trusted users' (case-insensitive)",
+                    ),
+                ),
+                (
+                    "moderator_roles",
+                    models.JSONField(
+                        default=list,
+                        help_text="Role names considered 'moderators' (case-insensitive)",
+                    ),
+                ),
+                (
+                    "admin_roles",
+                    models.JSONField(
+                        default=list,
+                        help_text="Role names considered 'administrators' (case-insensitive)",
+                    ),
+                ),
+                (
+                    "created_at",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now,
+                        help_text="When this configuration was created",
+                    ),
+                ),
+                (
+                    "updated_at",
+                    models.DateTimeField(
+                        auto_now=True,
+                        help_text="When this configuration was last updated",
+                    ),
+                ),
+                (
+                    "updated_by",
+                    models.CharField(
+                        help_text="Discord user ID who last updated this config",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "updated_by_name",
+                    models.CharField(
+                        default="",
+                        help_text="Discord username who last updated this config",
+                        max_length=100,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Server Permission Configuration',
-                'verbose_name_plural': 'Server Permission Configurations',
-                'ordering': ['guild_name'],
+                "verbose_name": "Server Permission Configuration",
+                "verbose_name_plural": "Server Permission Configurations",
+                "ordering": ["guild_name"],
             },
         ),
         migrations.CreateModel(
-            name='ServerPermissionLog',
+            name="ServerPermissionLog",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('action', models.CharField(choices=[('created', 'Configuration Created'), ('updated', 'Configuration Updated'), ('permission_changed', 'Permission Level Changed'), ('roles_updated', 'Role Lists Updated'), ('admin_access_changed', 'Admin Panel Access Changed')], help_text='Type of action performed', max_length=25)),
-                ('field_changed', models.CharField(blank=True, help_text='Specific field that was changed (if applicable)', max_length=50)),
-                ('old_value', models.TextField(blank=True, help_text='Previous value (JSON format)')),
-                ('new_value', models.TextField(blank=True, help_text='New value (JSON format)')),
-                ('changed_by', models.CharField(help_text='Discord user ID who made the change', max_length=20)),
-                ('changed_by_name', models.CharField(help_text='Discord username who made the change', max_length=100)),
-                ('timestamp', models.DateTimeField(default=django.utils.timezone.now, help_text='When the change was made')),
-                ('user_agent', models.CharField(blank=True, help_text='User agent of the request', max_length=200)),
-                ('ip_address', models.GenericIPAddressField(blank=True, help_text='IP address of the user who made the change', null=True)),
-                ('server_config', models.ForeignKey(help_text='The server configuration that was changed', on_delete=django.db.models.deletion.CASCADE, related_name='permission_logs', to='admin_panel.serverpermissionconfig')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "action",
+                    models.CharField(
+                        choices=[
+                            ("created", "Configuration Created"),
+                            ("updated", "Configuration Updated"),
+                            ("permission_changed", "Permission Level Changed"),
+                            ("roles_updated", "Role Lists Updated"),
+                            ("admin_access_changed", "Admin Panel Access Changed"),
+                        ],
+                        help_text="Type of action performed",
+                        max_length=25,
+                    ),
+                ),
+                (
+                    "field_changed",
+                    models.CharField(
+                        blank=True,
+                        help_text="Specific field that was changed (if applicable)",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "old_value",
+                    models.TextField(
+                        blank=True, help_text="Previous value (JSON format)"
+                    ),
+                ),
+                (
+                    "new_value",
+                    models.TextField(blank=True, help_text="New value (JSON format)"),
+                ),
+                (
+                    "changed_by",
+                    models.CharField(
+                        help_text="Discord user ID who made the change", max_length=20
+                    ),
+                ),
+                (
+                    "changed_by_name",
+                    models.CharField(
+                        help_text="Discord username who made the change", max_length=100
+                    ),
+                ),
+                (
+                    "timestamp",
+                    models.DateTimeField(
+                        default=django.utils.timezone.now,
+                        help_text="When the change was made",
+                    ),
+                ),
+                (
+                    "user_agent",
+                    models.CharField(
+                        blank=True,
+                        help_text="User agent of the request",
+                        max_length=200,
+                    ),
+                ),
+                (
+                    "ip_address",
+                    models.GenericIPAddressField(
+                        blank=True,
+                        help_text="IP address of the user who made the change",
+                        null=True,
+                    ),
+                ),
+                (
+                    "server_config",
+                    models.ForeignKey(
+                        help_text="The server configuration that was changed",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="permission_logs",
+                        to="admin_panel.serverpermissionconfig",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Server Permission Log',
-                'verbose_name_plural': 'Server Permission Logs',
-                'ordering': ['-timestamp'],
+                "verbose_name": "Server Permission Log",
+                "verbose_name_plural": "Server Permission Logs",
+                "ordering": ["-timestamp"],
             },
         ),
     ]

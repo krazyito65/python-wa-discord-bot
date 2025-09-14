@@ -19,6 +19,7 @@ from shared.discord_api import (
     get_user_guilds,
     get_user_roles_in_guild,
 )
+from user_stats.models import DiscordGuild, MessageStatistics
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +125,6 @@ def server_hub(request, guild_id):
         if has_bot_data:
             # Check if server has statistics data
             try:
-                from user_stats.models import DiscordGuild, MessageStatistics
-
                 try:
                     stats_guild = DiscordGuild.objects.get(guild_id=str(guild_id))
                     stats_count = MessageStatistics.objects.filter(
@@ -183,26 +182,36 @@ def _check_admin_panel_access(request, guild_id: int, user_guilds: list) -> bool
         server_config, created = ServerPermissionConfig.objects.get_or_create(
             guild_id=str(guild_id),
             defaults={
-                'guild_name': guild_name,
-                'updated_by': str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else '',
-                'updated_by_name': request.user.username,
-            }
+                "guild_name": guild_name,
+                "updated_by": str(request.user.socialaccount_set.first().uid)
+                if request.user.socialaccount_set.first()
+                else "",
+                "updated_by_name": request.user.username,
+            },
         )
 
         # For newly created configs, default to basic admin permission check
         if created:
             # For new configs, use basic admin permission check (Discord administrator/owner)
-            return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
+            return (
+                is_server_owner
+                or (guild_permissions & 0x8) == 0x8
+                or (guild_permissions & 0x20) == 0x20
+            )
         # Use the configured permission system
         user_roles = []  # We'll need to implement role fetching from Discord API in the future
-        return server_config.has_permission(user_roles, 'admin_panel_access', guild_permissions, is_server_owner)
+        return server_config.has_permission(
+            user_roles, "admin_panel_access", guild_permissions, is_server_owner
+        )
 
     except Exception as e:
         logger.exception(f"Error checking admin panel access: {e}")
         return False
 
 
-def _check_macro_permission(request, guild_id: int, user_guilds: list, permission_type: str) -> bool:
+def _check_macro_permission(
+    request, guild_id: int, user_guilds: list, permission_type: str
+) -> bool:
     """
     Check if user has the specified macro permission for the given server.
 
@@ -233,16 +242,22 @@ def _check_macro_permission(request, guild_id: int, user_guilds: list, permissio
         server_config, created = ServerPermissionConfig.objects.get_or_create(
             guild_id=str(guild_id),
             defaults={
-                'guild_name': guild_name,
-                'updated_by': str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else '',
-                'updated_by_name': request.user.username,
-            }
+                "guild_name": guild_name,
+                "updated_by": str(request.user.socialaccount_set.first().uid)
+                if request.user.socialaccount_set.first()
+                else "",
+                "updated_by_name": request.user.username,
+            },
         )
 
         # For newly created configs, default to admin_only for create/edit/delete operations
         if created:
             # For new configs, use basic admin permission check (Discord administrator/owner/manage server)
-            return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
+            return (
+                is_server_owner
+                or (guild_permissions & 0x8) == 0x8
+                or (guild_permissions & 0x20) == 0x20
+            )
         # Use the configured permission system with actual roles
         try:
             user_roles_data = get_user_roles_in_guild(request.user, guild_id) or []
@@ -250,7 +265,9 @@ def _check_macro_permission(request, guild_id: int, user_guilds: list, permissio
         except DiscordAPIError:
             user_role_names = []  # Fall back to empty roles if API fails
 
-        return server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
+        return server_config.has_permission(
+            user_role_names, permission_type, guild_permissions, is_server_owner
+        )
 
     except Exception as e:
         logger.exception(f"Error checking {permission_type} permission: {e}")
@@ -292,10 +309,12 @@ def _get_user_permission_status(request, guild_id: int, user_guilds: list) -> di
         server_config, created = ServerPermissionConfig.objects.get_or_create(
             guild_id=str(guild_id),
             defaults={
-                'guild_name': guild_name,
-                'updated_by': str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else '',
-                'updated_by_name': request.user.username,
-            }
+                "guild_name": guild_name,
+                "updated_by": str(request.user.socialaccount_set.first().uid)
+                if request.user.socialaccount_set.first()
+                else "",
+                "updated_by_name": request.user.username,
+            },
         )
 
         # Build permission status
@@ -324,25 +343,50 @@ def _get_user_permission_status(request, guild_id: int, user_guilds: list) -> di
         if server_config.admin_roles:
             for role_name in server_config.admin_roles:
                 has_role = role_name.lower() in user_role_names
-                role_requirements.append({"name": f'Admin Role: "{role_name}"', "has": has_role, "type": "admin"})
+                role_requirements.append(
+                    {
+                        "name": f'Admin Role: "{role_name}"',
+                        "has": has_role,
+                        "type": "admin",
+                    }
+                )
         if server_config.moderator_roles:
             for role_name in server_config.moderator_roles:
                 has_role = role_name.lower() in user_role_names
-                role_requirements.append({"name": f'Moderator Role: "{role_name}"', "has": has_role, "type": "moderator"})
+                role_requirements.append(
+                    {
+                        "name": f'Moderator Role: "{role_name}"',
+                        "has": has_role,
+                        "type": "moderator",
+                    }
+                )
         if server_config.trusted_user_roles:
             for role_name in server_config.trusted_user_roles:
                 has_role = role_name.lower() in user_role_names
-                role_requirements.append({"name": f'Trusted Role: "{role_name}"', "has": has_role, "type": "trusted"})
+                role_requirements.append(
+                    {
+                        "name": f'Trusted Role: "{role_name}"',
+                        "has": has_role,
+                        "type": "trusted",
+                    }
+                )
 
         # Check specific permissions with actual roles
         permissions_status = {}
-        for permission_type in ['create_macros', 'edit_macros', 'delete_macros', 'admin_panel_access']:
-            has_perm = server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
-            perm_level = getattr(server_config, permission_type, 'admin_only')
+        for permission_type in [
+            "create_macros",
+            "edit_macros",
+            "delete_macros",
+            "admin_panel_access",
+        ]:
+            has_perm = server_config.has_permission(
+                user_role_names, permission_type, guild_permissions, is_server_owner
+            )
+            perm_level = getattr(server_config, permission_type, "admin_only")
             permissions_status[permission_type] = {
                 "has": has_perm,
                 "level": perm_level,
-                "display": server_config.get_permission_level_display(permission_type)
+                "display": server_config.get_permission_level_display(permission_type),
             }
 
         return {
@@ -459,13 +503,19 @@ def server_detail(request, guild_id):
             )
 
         # Check if user has admin panel access
-        has_admin_panel_access = _check_admin_panel_access(request, guild_id, user_guilds)
+        has_admin_panel_access = _check_admin_panel_access(
+            request, guild_id, user_guilds
+        )
 
         # Check if user has create_macros permission
-        has_create_macros_access = _check_macro_permission(request, guild_id, user_guilds, 'create_macros')
+        has_create_macros_access = _check_macro_permission(
+            request, guild_id, user_guilds, "create_macros"
+        )
 
         # Get detailed user permission status for display
-        user_permission_status = _get_user_permission_status(request, guild_id, user_guilds)
+        user_permission_status = _get_user_permission_status(
+            request, guild_id, user_guilds
+        )
 
         context = {
             "guild_id": guild_id,

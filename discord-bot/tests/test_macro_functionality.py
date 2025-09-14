@@ -27,7 +27,9 @@ class TestMacroFunctionality(unittest.TestCase):
         mock_file = Mock(spec=discord.File)
 
         async def run_test():
-            await send_embed_response(mock_interaction, mock_embed, mock_file, ephemeral=False)
+            await send_embed_response(
+                mock_interaction, mock_embed, mock_file, ephemeral=False
+            )
 
             # Verify response was called with correct parameters
             mock_interaction.response.send_message.assert_called_once_with(
@@ -46,7 +48,9 @@ class TestMacroFunctionality(unittest.TestCase):
         mock_embed = Mock(spec=discord.Embed)
 
         async def run_test():
-            await send_embed_response(mock_interaction, mock_embed, None, ephemeral=True)
+            await send_embed_response(
+                mock_interaction, mock_embed, None, ephemeral=True
+            )
 
             # Verify response was called with correct parameters (default ephemeral=True)
             mock_interaction.response.send_message.assert_called_once_with(

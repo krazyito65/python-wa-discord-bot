@@ -116,9 +116,7 @@ class UserStatsModelsTest(TestCase):
     def test_discord_user_str_method(self):
         """Test Discord user string representation."""
         user = DiscordUser.objects.create(
-            user_id="111222333444555666",
-            username="newuser",
-            display_name="New User"
+            user_id="111222333444555666", username="newuser", display_name="New User"
         )
 
         assert str(user) == "New User (111222333444555666)"
@@ -129,7 +127,7 @@ class UserStatsModelsTest(TestCase):
             channel_id="777888999000111222",
             guild=self.guild,
             name="testing",
-            channel_type="text"
+            channel_type="text",
         )
 
         assert str(channel) == "#testing (Test Server)"
@@ -190,7 +188,9 @@ class UserStatsViewsTest(TestCase):
 
         # When DiscordAPIError is raised, should redirect to servers dashboard
         response = self.client.get(reverse("user_stats:dashboard"))
-        assert response.status_code == HTTP_REDIRECT_STATUS  # Redirect to servers dashboard
+        assert (
+            response.status_code == HTTP_REDIRECT_STATUS
+        )  # Redirect to servers dashboard
 
     def test_api_endpoint_requires_login(self):
         """Test API endpoint requires authentication."""

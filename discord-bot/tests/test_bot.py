@@ -282,10 +282,11 @@ class TestWeakAurasBot(unittest.TestCase):
             bot = WeakAurasBot(self.test_config)
             bot.data_dir = self.temp_dir
 
-            with patch.object(bot, "get_server_folder", return_value=self.temp_dir):
-                # Should raise JSONDecodeError for invalid JSON
-                with pytest.raises(json.JSONDecodeError):
-                    bot.load_server_macros(self.test_guild_id, self.test_guild_name)
+            with (
+                patch.object(bot, "get_server_folder", return_value=self.temp_dir),
+                pytest.raises(json.JSONDecodeError),
+            ):
+                bot.load_server_macros(self.test_guild_id, self.test_guild_name)
 
     def test_save_server_macros_creates_directory(self):
         """Test that save_server_macros creates the directory if it doesn't exist."""
@@ -296,7 +297,9 @@ class TestWeakAurasBot(unittest.TestCase):
 
             # Don't mock get_server_folder, let it create the directory naturally
             test_macros = {"test": {"name": "test", "message": "test message"}}
-            bot.save_server_macros(self.test_guild_id, self.test_guild_name, test_macros)
+            bot.save_server_macros(
+                self.test_guild_id, self.test_guild_name, test_macros
+            )
 
             # Verify directory was created and file exists
             expected_dir = self.temp_dir / f"Test Server_{self.test_guild_id}"

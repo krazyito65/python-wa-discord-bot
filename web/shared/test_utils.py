@@ -8,7 +8,9 @@ hard to test due to complex external dependencies like Discord API integration.
 import unittest
 
 
-def skip_complex_integration(reason="Complex integration test - requires extensive mocking"):
+def skip_complex_integration(
+    reason="Complex integration test - requires extensive mocking",
+):
     """
     Decorator to skip tests that involve complex integration patterns that are
     hard to test reliably due to external dependencies.
@@ -19,8 +21,10 @@ def skip_complex_integration(reason="Complex integration test - requires extensi
     - Complex bot state management
     - Server permission validation with multiple Discord API calls
     """
+
     def decorator(test_func):
         return unittest.skip(reason)(test_func)
+
     return decorator
 
 

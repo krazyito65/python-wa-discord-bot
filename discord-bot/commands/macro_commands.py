@@ -63,11 +63,11 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         guild_name = interaction.guild.name
 
         # Check if user has permission to create macros
-        if not isinstance(interaction.user, discord.Member) or not check_server_permission(
-            interaction.user, guild_id, 'create_macros'
-        ):
+        if not isinstance(
+            interaction.user, discord.Member
+        ) or not check_server_permission(interaction.user, guild_id, "create_macros"):
             config = get_server_permission_config(guild_id)
-            error_message = get_permission_error_message('create_macros', config)
+            error_message = get_permission_error_message("create_macros", config)
 
             embed, logo_file = bot.create_embed(
                 title="❌ Permission Denied",
@@ -167,11 +167,13 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
             return
 
         # Check if user has permission to delete macros
-        if not isinstance(interaction.user, discord.Member) or not check_server_permission(
-            interaction.user, interaction.guild.id, 'delete_macros'
+        if not isinstance(
+            interaction.user, discord.Member
+        ) or not check_server_permission(
+            interaction.user, interaction.guild.id, "delete_macros"
         ):
             config = get_server_permission_config(interaction.guild.id)
-            error_message = get_permission_error_message('delete_macros', config)
+            error_message = get_permission_error_message("delete_macros", config)
 
             embed, logo_file = bot.create_embed(
                 title="❌ Permission Denied",

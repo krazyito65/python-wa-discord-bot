@@ -52,7 +52,7 @@ def macro_add(request, guild_id):  # noqa: PLR0911
         guild_name = _validate_server_access(request, guild_id)
 
         # Check create_macros permission
-        if not _check_server_permission(request, guild_id, 'create_macros'):
+        if not _check_server_permission(request, guild_id, "create_macros"):
             messages.error(
                 request, "You don't have permission to create macros in this server"
             )
@@ -108,7 +108,11 @@ def macro_add(request, guild_id):  # noqa: PLR0911
                 return render(request, "macros/macro_add.html", context)
 
             # Get user info
-            user_id = str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id)
+            user_id = (
+                str(request.user.socialaccount_set.first().uid)
+                if request.user.socialaccount_set.first()
+                else str(request.user.id)
+            )
             user_name = request.user.username
 
             # Create macro data
@@ -227,17 +231,25 @@ def _check_server_permission(request, guild_id: int, permission_type: str) -> bo
         server_config, created = ServerPermissionConfig.objects.get_or_create(
             guild_id=str(guild_id),
             defaults={
-                'guild_name': guild_name,
-                'updated_by': str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else '',
-                'updated_by_name': request.user.username,
-            }
+                "guild_name": guild_name,
+                "updated_by": str(request.user.socialaccount_set.first().uid)
+                if request.user.socialaccount_set.first()
+                else "",
+                "updated_by_name": request.user.username,
+            },
         )
 
         # For newly created configs, default to admin_only for create/edit/delete operations
         if created:
-            logger.info(f"Created new server config for guild {guild_id}, using default admin-only permissions")
+            logger.info(
+                f"Created new server config for guild {guild_id}, using default admin-only permissions"
+            )
             # For new configs, use basic admin permission check (Discord administrator/owner/manage server)
-            return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
+            return (
+                is_server_owner
+                or (guild_permissions & 0x8) == 0x8
+                or (guild_permissions & 0x20) == 0x20
+            )
         # Use the configured permission system with actual roles
         try:
             user_roles_data = get_user_roles_in_guild(request.user, guild_id) or []
@@ -245,7 +257,9 @@ def _check_server_permission(request, guild_id: int, permission_type: str) -> bo
         except DiscordAPIError:
             user_role_names = []  # Fall back to empty roles if API fails
 
-        has_permission = server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
+        has_permission = server_config.has_permission(
+            user_role_names, permission_type, guild_permissions, is_server_owner
+        )
 
         logger.info(
             f"Permission check for user {request.user.username} in guild {guild_id}: "
@@ -256,7 +270,9 @@ def _check_server_permission(request, guild_id: int, permission_type: str) -> bo
         return has_permission
 
     except Exception as e:
-        logger.exception(f"Error checking {permission_type} permission for user {request.user.username} in guild {guild_id}: {e}")
+        logger.exception(
+            f"Error checking {permission_type} permission for user {request.user.username} in guild {guild_id}: {e}"
+        )
         return False
 
 
@@ -273,7 +289,7 @@ def _validate_admin_permissions(request, guild_id):
     Returns:
         bool: True if user has admin permissions, False otherwise.
     """
-    return _check_server_permission(request, guild_id, 'edit_macros')
+    return _check_server_permission(request, guild_id, "edit_macros")
 
 
 def _validate_macro_edit_inputs(request, macro_name, guild_id, guild_name):
@@ -350,7 +366,11 @@ def macro_edit(request, guild_id, macro_name):
                 return redirect("servers:server_detail", guild_id=guild_id)
 
             # Get user info and update macro
-            user_id = str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id)
+            user_id = (
+                str(request.user.socialaccount_set.first().uid)
+                if request.user.socialaccount_set.first()
+                else str(request.user.id)
+            )
             user_name = request.user.username
 
             update_data = MacroUpdateData(
@@ -518,7 +538,7 @@ def macro_delete(request, guild_id, macro_name):
         guild_name = _validate_server_access(request, guild_id)
 
         # Check delete_macros permission
-        if not _check_server_permission(request, guild_id, 'delete_macros'):
+        if not _check_server_permission(request, guild_id, "delete_macros"):
             messages.error(
                 request, "You don't have permission to delete macros in this server"
             )

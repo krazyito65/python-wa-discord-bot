@@ -307,7 +307,9 @@ def get_user_roles_in_guild(user, guild_id: int) -> list[dict] | None:
     if not bot_token:
         raise DiscordAPIError("No Discord bot token available")
 
-    user_id = user.socialaccount_set.first().uid if user.socialaccount_set.first() else None
+    user_id = (
+        user.socialaccount_set.first().uid if user.socialaccount_set.first() else None
+    )
     if not user_id:
         raise DiscordAPIError("No Discord user ID available")
 

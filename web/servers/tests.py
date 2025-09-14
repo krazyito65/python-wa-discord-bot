@@ -6,8 +6,9 @@ from unittest.mock import patch
 
 from allauth.socialaccount.models import SocialAccount, SocialApp
 from django.contrib.auth.models import User
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 from django.urls import reverse
+from servers.views import _check_macro_permission, _get_user_permission_status
 from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
 
 
@@ -237,26 +238,22 @@ class ServerViewTests(TestCase):
         assert response.context["total_macros"] == 3
 
     @skip_discord_api_dependent
-    @patch('servers.views.get_user_guilds')
+    @patch("servers.views.get_user_guilds")
     def test_server_hub_success(self, mock_get_guilds):
         """Test server hub view with valid access."""
         self.client.force_login(self.user)
 
         guild_id = 123456789012345678
         mock_get_guilds.return_value = [
-            {
-                'id': str(guild_id),
-                'name': 'Test Server',
-                'permissions': str(0x8)
-            }
+            {"id": str(guild_id), "name": "Test Server", "permissions": str(0x8)}
         ]
 
-        response = self.client.get(reverse('servers:server_hub', args=[guild_id]))
+        response = self.client.get(reverse("servers:server_hub", args=[guild_id]))
         assert response.status_code == 200
-        assert 'Test Server' in response.content.decode()
+        assert "Test Server" in response.content.decode()
 
     @skip_discord_api_dependent
-    @patch('servers.views.get_user_guilds')
+    @patch("servers.views.get_user_guilds")
     def test_server_hub_no_access(self, mock_get_guilds):
         """Test server hub when user has no access."""
         self.client.force_login(self.user)
@@ -264,64 +261,60 @@ class ServerViewTests(TestCase):
         guild_id = 123456789012345678
         mock_get_guilds.return_value = []  # No guilds
 
-        response = self.client.get(reverse('servers:server_hub', args=[guild_id]))
+        response = self.client.get(reverse("servers:server_hub", args=[guild_id]))
         assert response.status_code == 302  # Redirect to servers:dashboard
 
     @skip_complex_integration
-    @patch('servers.views.get_user_guilds')
+    @patch("servers.views.get_user_guilds")
     def test_permission_status_checking(self, mock_get_guilds):
         """Test user permission status checking utility."""
-        from django.test import RequestFactory
 
         factory = RequestFactory()
-        request = factory.get('/dummy')
+        request = factory.get("/dummy")
         request.user = self.user
 
         guild_id = 123456789012345678
         mock_get_guilds.return_value = [
             {
-                'id': str(guild_id),
-                'name': 'Test Server',
-                'permissions': str(0x8),  # Administrator permission
-                'owner': False
+                "id": str(guild_id),
+                "name": "Test Server",
+                "permissions": str(0x8),  # Administrator permission
+                "owner": False,
             }
         ]
-
-        from servers.views import _get_user_permission_status
 
         # Test permission status calculation
         user_guilds = mock_get_guilds.return_value
         permission_status = _get_user_permission_status(request, guild_id, user_guilds)
 
         # Should have various permission flags
-        assert 'can_admin_panel' in permission_status
-        assert 'can_create_macros' in permission_status
+        assert "can_admin_panel" in permission_status
+        assert "can_create_macros" in permission_status
 
     @skip_complex_integration
-    @patch('servers.views.get_user_guilds')
+    @patch("servers.views.get_user_guilds")
     def test_macro_permission_checking(self, mock_get_guilds):
         """Test macro permission checking function."""
-        from django.test import RequestFactory
 
         factory = RequestFactory()
-        request = factory.get('/dummy')
+        request = factory.get("/dummy")
         request.user = self.user
 
         guild_id = 123456789012345678
         mock_get_guilds.return_value = [
             {
-                'id': str(guild_id),
-                'name': 'Test Server',
-                'permissions': str(0x8),
-                'owner': True
+                "id": str(guild_id),
+                "name": "Test Server",
+                "permissions": str(0x8),
+                "owner": True,
             }
         ]
 
-        from servers.views import _check_macro_permission
-
         # Test permission checking
         user_guilds = mock_get_guilds.return_value
-        has_permission = _check_macro_permission(request, guild_id, user_guilds, 'create_macros')
+        has_permission = _check_macro_permission(
+            request, guild_id, user_guilds, "create_macros"
+        )
 
         # Server owner should have all permissions
         assert has_permission

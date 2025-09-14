@@ -30,7 +30,7 @@ class TestLoggingUtils(unittest.TestCase):
         assert logger1.name == "module1"
         assert logger2.name == "module2"
 
-    @patch('utils.logging.logging.basicConfig')
+    @patch("utils.logging.logging.basicConfig")
     def test_setup_logging_dev_environment(self, mock_basic_config):
         """Test logging setup for development environment."""
         setup_logging("dev")
@@ -38,9 +38,9 @@ class TestLoggingUtils(unittest.TestCase):
         # Should call basicConfig for dev environment
         mock_basic_config.assert_called_once()
         call_args = mock_basic_config.call_args[1]
-        assert call_args['level'] == logging.DEBUG
+        assert call_args["level"] == logging.DEBUG
 
-    @patch('utils.logging.logging.basicConfig')
+    @patch("utils.logging.logging.basicConfig")
     def test_setup_logging_prod_environment(self, mock_basic_config):
         """Test logging setup for production environment."""
         setup_logging("prod")
@@ -48,9 +48,9 @@ class TestLoggingUtils(unittest.TestCase):
         # Should call basicConfig for prod environment
         mock_basic_config.assert_called_once()
         call_args = mock_basic_config.call_args[1]
-        assert call_args['level'] == logging.INFO
+        assert call_args["level"] == logging.INFO
 
-    @patch('utils.logging.logging.basicConfig')
+    @patch("utils.logging.logging.basicConfig")
     def test_setup_logging_default_environment(self, mock_basic_config):
         """Test logging setup with default environment."""
         setup_logging()

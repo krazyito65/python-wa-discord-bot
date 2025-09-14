@@ -584,7 +584,7 @@ class DataClassTestCase(TestCase):
             name="test_macro",
             message="Test message",
             created_by="987654321",
-            created_by_name="Test User"
+            created_by_name="Test User",
         )
 
         assert macro_data.guild_id == 123456789
@@ -603,7 +603,7 @@ class DataClassTestCase(TestCase):
             new_name="new_macro",
             message="Updated message",
             edited_by="987654321",
-            edited_by_name="Test Editor"
+            edited_by_name="Test Editor",
         )
 
         assert update_data.guild_id == 123456789
