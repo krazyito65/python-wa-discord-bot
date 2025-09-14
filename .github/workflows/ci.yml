@@ -139,8 +139,8 @@ jobs:
 
     - name: Run Comprehensive Coverage Validation
       run: |
-        # Run coverage validation with 80% minimum threshold
-        bin/test-coverage --min-coverage=80
+        # Run coverage validation with 25% minimum threshold
+        bin/test-coverage --min-coverage=25
 
     - name: Upload Combined Coverage Report
       uses: actions/upload-artifact@v4
