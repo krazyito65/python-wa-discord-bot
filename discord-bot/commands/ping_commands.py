@@ -21,7 +21,7 @@ async def send_embed_response(
 def setup_ping_commands(bot: WeakAurasBot):
     """Setup ping-related slash commands for the WeakAuras bot.
 
-    Registers the wa_ping command which provides bot status information
+    Registers the ping command which provides bot status information
     including latency, server details, and helpful links.
 
     Args:
@@ -33,7 +33,7 @@ def setup_ping_commands(bot: WeakAurasBot):
         register all ping-related commands with the bot's command tree.
     """
 
-    @bot.tree.command(name="wa_ping", description="Test WeakAuras bot responsiveness")
+    @bot.tree.command(name="ping", description="Test WeakAuras bot responsiveness")
     @log_command
     async def ping(interaction: discord.Interaction):
         """Test WeakAuras bot responsiveness with server information.
@@ -58,7 +58,7 @@ def setup_ping_commands(bot: WeakAurasBot):
         server_name = guild.name if guild else "Unknown Server"
 
         logger.info(
-            f"wa_ping response: latency={latency}ms, server={server_name}, members={member_count}"
+            f"ping response: latency={latency}ms, server={server_name}, members={member_count}"
         )
 
         # Build description with bot info and GitHub link

@@ -371,3 +371,67 @@ def get_user_roles_in_guild(user, guild_id: int) -> list[dict] | None:
     except requests.RequestException as e:
         msg = f"Failed to fetch user roles: {e}"
         raise DiscordAPIError(msg) from e
+
+
+def get_guild_roles(guild_id: int) -> list[dict] | None:
+    """Fetch all roles in a specific guild using bot token.
+
+    This uses the bot token to make privileged API calls to get all
+    roles available in the guild.
+
+    Args:
+        guild_id: Discord guild ID to get roles for.
+
+    Returns:
+        Optional[List[Dict]]: List of role objects from Discord API, None if request fails.
+                             Each role dict contains id, name, color, permissions, etc.
+
+    Raises:
+        DiscordAPIError: If Discord API request fails.
+    """
+    bot_token = get_bot_discord_token()
+    if not bot_token:
+        raise DiscordAPIError("No Discord bot token available")
+
+    cache_key = f"discord_guild_roles_{guild_id}"
+
+    # Check cache first
+    cached_roles = cache.get(cache_key)
+    if cached_roles is not None:
+        return cached_roles
+
+    try:
+        headers = {"Authorization": f"Bot {bot_token}"}
+
+        # Get guild information including roles
+        response = requests.get(
+            f"https://discord.com/api/v10/guilds/{guild_id}",
+            headers=headers,
+            timeout=10,
+        )
+
+        if response.status_code == HTTP_NOT_FOUND:
+            # Guild not found or bot not in guild
+            cache.set(cache_key, None, 300)  # Cache negative result briefly
+            return None
+
+        response.raise_for_status()
+        guild_data = response.json()
+
+        # Extract roles from guild data
+        all_roles = guild_data.get("roles", [])
+
+        # Sort roles by position (higher positions first), then by name
+        all_roles.sort(
+            key=lambda role: (-role.get("position", 0), role.get("name", "").lower())
+        )
+
+        # Cache the result
+        cache_timeout = getattr(settings, "DISCORD_ROLES_CACHE_TIMEOUT", 300)
+        cache.set(cache_key, all_roles, cache_timeout)
+
+        return all_roles
+
+    except requests.RequestException as e:
+        msg = f"Failed to fetch guild roles: {e}"
+        raise DiscordAPIError(msg) from e

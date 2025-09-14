@@ -13,7 +13,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
-from shared.discord_api import DiscordAPIError, get_user_guilds
+from shared.discord_api import DiscordAPIError, get_guild_roles, get_user_guilds
 
 from .models import (
     DISCORD_ADMINISTRATOR_PERMISSION,
@@ -201,11 +201,35 @@ def role_settings(request, guild_id):
         if request.method == "POST":
             return _handle_role_update(request, server_config, guild_id)
 
+        # Fetch Discord roles for dropdown
+        discord_roles = []
+        try:
+            discord_roles = get_guild_roles(int(guild_id))
+            if discord_roles is None:
+                discord_roles = []
+                messages.warning(
+                    request,
+                    "Could not fetch Discord roles. The bot may not be in this server or may lack permissions.",
+                )
+        except DiscordAPIError as e:
+            logger.warning(f"Failed to fetch Discord roles for guild {guild_id}: {e}")
+            messages.warning(
+                request,
+                "Could not fetch Discord roles. Some features may not work correctly.",
+            )
+
+        # Create role name to ID mapping for template selection
+        role_name_to_id = {}
+        if discord_roles:
+            role_name_to_id = {role["name"]: role["id"] for role in discord_roles}
+
         context = {
             "guild_id": guild_id,
             "guild_name": guild_name,
             "server_config": server_config,
             "user_guilds": user_guilds,
+            "discord_roles": discord_roles,
+            "role_name_to_id": role_name_to_id,
         }
 
         return render(request, "admin_panel/role_settings.html", context)
@@ -296,28 +320,50 @@ def _handle_role_update(request, server_config, guild_id):
         "custom_use_roles",
     ]
 
+    # Get Discord roles for ID to name mapping
+    try:
+        discord_roles = get_guild_roles(int(guild_id))
+        role_id_to_name = {}
+        if discord_roles:
+            role_id_to_name = {role["id"]: role["name"] for role in discord_roles}
+    except (DiscordAPIError, ValueError):
+        logger.warning(
+            f"Failed to fetch Discord roles for guild {guild_id} during role update"
+        )
+        role_id_to_name = {}
+
     for field in role_fields:
-        new_value_str = request.POST.get(field, "").strip()
-        # Convert comma-separated string to list
-        new_value = [role.strip() for role in new_value_str.split(",") if role.strip()]
+        # Get selected role IDs from form
+        new_role_ids = request.POST.getlist(field)
+
+        # Convert role IDs to role names
+        new_role_names = []
+        for role_id in new_role_ids:
+            if role_id in role_id_to_name:
+                new_role_names.append(role_id_to_name[role_id])
+            else:
+                # If we can't find the role name, log a warning but continue
+                logger.warning(
+                    f"Role ID {role_id} not found in Discord roles for guild {guild_id}"
+                )
 
         if hasattr(server_config, field):
             old_value = getattr(server_config, field)
-            if old_value != new_value:
+            if old_value != new_role_names:
                 # Log the change
                 ServerPermissionLog.objects.create(
                     server_config=server_config,
                     action="roles_updated",
                     field_changed=field,
                     old_value=json.dumps(old_value),
-                    new_value=json.dumps(new_value),
+                    new_value=json.dumps(new_role_names),
                     changed_by=user_id,
                     changed_by_name=user_name,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
                     ip_address=request.META.get("REMOTE_ADDR"),
                 )
 
-                setattr(server_config, field, new_value)
+                setattr(server_config, field, new_role_names)
                 changes_made = True
 
     if changes_made:

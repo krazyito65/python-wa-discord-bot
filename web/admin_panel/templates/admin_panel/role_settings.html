@@ -46,11 +46,19 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <label for="admin_roles" class="form-label">Role Names</label>
-                                        <textarea class="form-control" id="admin_roles" name="admin_roles" rows="3"
-                                                  placeholder="administrator, admin, owner">{{ server_config.admin_roles|join:", " }}</textarea>
+                                        <label for="admin_roles" class="form-label">Select Admin Roles</label>
+                                        <select class="form-select role-select" id="admin_roles" name="admin_roles" multiple size="5" data-role-type="Admin">
+                                            {% for role in discord_roles %}
+                                                {% if role.name != "@everyone" %}
+                                                    <option value="{{ role.id }}"
+                                                            {% if role.name in server_config.admin_roles %}selected{% endif %}>
+                                                        {{ role.name }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
                                         <small class="form-text text-muted">
-                                            Comma-separated list of role names that grant admin privileges
+                                            Hold Ctrl/Cmd to select multiple roles. <span class="role-count" data-target="admin_roles"></span>
                                         </small>
                                     </div>
                                 </div>
@@ -65,11 +73,19 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <label for="moderator_roles" class="form-label">Role Names</label>
-                                        <textarea class="form-control" id="moderator_roles" name="moderator_roles" rows="3"
-                                                  placeholder="moderator, mod, helper">{{ server_config.moderator_roles|join:", " }}</textarea>
+                                        <label for="moderator_roles" class="form-label">Select Moderator Roles</label>
+                                        <select class="form-select role-select" id="moderator_roles" name="moderator_roles" multiple size="5" data-role-type="Moderator">
+                                            {% for role in discord_roles %}
+                                                {% if role.name != "@everyone" %}
+                                                    <option value="{{ role.id }}"
+                                                            {% if role.name in server_config.moderator_roles %}selected{% endif %}>
+                                                        {{ role.name }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
                                         <small class="form-text text-muted">
-                                            Comma-separated list of role names that grant moderator privileges
+                                            Hold Ctrl/Cmd to select multiple roles. <span class="role-count" data-target="moderator_roles"></span>
                                         </small>
                                     </div>
                                 </div>
@@ -84,11 +100,19 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <label for="trusted_user_roles" class="form-label">Role Names</label>
-                                        <textarea class="form-control" id="trusted_user_roles" name="trusted_user_roles" rows="3"
-                                                  placeholder="trusted, veteran, vip">{{ server_config.trusted_user_roles|join:", " }}</textarea>
+                                        <label for="trusted_user_roles" class="form-label">Select Trusted User Roles</label>
+                                        <select class="form-select role-select" id="trusted_user_roles" name="trusted_user_roles" multiple size="5" data-role-type="Trusted User">
+                                            {% for role in discord_roles %}
+                                                {% if role.name != "@everyone" %}
+                                                    <option value="{{ role.id }}"
+                                                            {% if role.name in server_config.trusted_user_roles %}selected{% endif %}>
+                                                        {{ role.name }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
                                         <small class="form-text text-muted">
-                                            Comma-separated list of role names that grant trusted user privileges
+                                            Hold Ctrl/Cmd to select multiple roles. <span class="role-count" data-target="trusted_user_roles"></span>
                                         </small>
                                     </div>
                                 </div>
@@ -113,9 +137,20 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <label for="custom_admin_panel_roles" class="form-label">Custom Roles</label>
-                                        <textarea class="form-control" id="custom_admin_panel_roles" name="custom_admin_panel_roles" rows="2"
-                                                  placeholder="panel-admin, config-manager">{{ server_config.custom_admin_panel_roles|join:", " }}</textarea>
+                                        <label for="custom_admin_panel_roles" class="form-label">Select Custom Admin Panel Roles</label>
+                                        <select class="form-select role-select" id="custom_admin_panel_roles" name="custom_admin_panel_roles" multiple size="4" data-role-type="Custom Admin Panel">
+                                            {% for role in discord_roles %}
+                                                {% if role.name != "@everyone" %}
+                                                    <option value="{{ role.id }}"
+                                                            {% if role.name in server_config.custom_admin_panel_roles %}selected{% endif %}>
+                                                        {{ role.name }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            Hold Ctrl/Cmd to select multiple roles. <span class="role-count" data-target="custom_admin_panel_roles"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -129,9 +164,20 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <label for="custom_create_roles" class="form-label">Custom Roles</label>
-                                        <textarea class="form-control" id="custom_create_roles" name="custom_create_roles" rows="2"
-                                                  placeholder="macro-creator, content-maker">{{ server_config.custom_create_roles|join:", " }}</textarea>
+                                        <label for="custom_create_roles" class="form-label">Select Custom Create Roles</label>
+                                        <select class="form-select role-select" id="custom_create_roles" name="custom_create_roles" multiple size="4" data-role-type="Custom Create">
+                                            {% for role in discord_roles %}
+                                                {% if role.name != "@everyone" %}
+                                                    <option value="{{ role.id }}"
+                                                            {% if role.name in server_config.custom_create_roles %}selected{% endif %}>
+                                                        {{ role.name }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            Hold Ctrl/Cmd to select multiple roles. <span class="role-count" data-target="custom_create_roles"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -145,9 +191,20 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <label for="custom_edit_roles" class="form-label">Custom Roles</label>
-                                        <textarea class="form-control" id="custom_edit_roles" name="custom_edit_roles" rows="2"
-                                                  placeholder="macro-editor, content-editor">{{ server_config.custom_edit_roles|join:", " }}</textarea>
+                                        <label for="custom_edit_roles" class="form-label">Select Custom Edit Roles</label>
+                                        <select class="form-select role-select" id="custom_edit_roles" name="custom_edit_roles" multiple size="4" data-role-type="Custom Edit">
+                                            {% for role in discord_roles %}
+                                                {% if role.name != "@everyone" %}
+                                                    <option value="{{ role.id }}"
+                                                            {% if role.name in server_config.custom_edit_roles %}selected{% endif %}>
+                                                        {{ role.name }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            Hold Ctrl/Cmd to select multiple roles. <span class="role-count" data-target="custom_edit_roles"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -161,9 +218,20 @@
                                         </h6>
                                     </div>
                                     <div class="card-body">
-                                        <label for="custom_delete_roles" class="form-label">Custom Roles</label>
-                                        <textarea class="form-control" id="custom_delete_roles" name="custom_delete_roles" rows="2"
-                                                  placeholder="macro-manager, senior-mod">{{ server_config.custom_delete_roles|join:", " }}</textarea>
+                                        <label for="custom_delete_roles" class="form-label">Select Custom Delete Roles</label>
+                                        <select class="form-select role-select" id="custom_delete_roles" name="custom_delete_roles" multiple size="4" data-role-type="Custom Delete">
+                                            {% for role in discord_roles %}
+                                                {% if role.name != "@everyone" %}
+                                                    <option value="{{ role.id }}"
+                                                            {% if role.name in server_config.custom_delete_roles %}selected{% endif %}>
+                                                        {{ role.name }}
+                                                    </option>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </select>
+                                        <small class="form-text text-muted">
+                                            Hold Ctrl/Cmd to select multiple roles. <span class="role-count" data-target="custom_delete_roles"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -206,12 +274,13 @@
                 <div class="card-body">
                     <div class="row">
                         <div class="col-md-6">
-                            <h6>Role Name Guidelines</h6>
+                            <h6>Role Selection Guidelines</h6>
                             <ul class="small">
-                                <li>Role names are <strong>case-insensitive</strong></li>
-                                <li>Separate multiple roles with <strong>commas</strong></li>
-                                <li>Spaces around commas are automatically removed</li>
-                                <li>Empty fields mean no roles have that privilege</li>
+                                <li>Hold <strong>Ctrl/Cmd</strong> to select multiple roles</li>
+                                <li>Role IDs are used internally for security</li>
+                                <li>Roles are sorted by Discord hierarchy (highest first)</li>
+                                <li>@everyone role is excluded from selection</li>
+                                <li>No selection means no roles have that privilege</li>
                             </ul>
                         </div>
                         <div class="col-md-6">
@@ -229,4 +298,66 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Update role selection counters
+    function updateRoleCount(selectElement) {
+        const targetId = selectElement.id;
+        const countSpan = document.querySelector(`.role-count[data-target="${targetId}"]`);
+        if (countSpan) {
+            const selectedCount = selectElement.selectedOptions.length;
+            const roleType = selectElement.dataset.roleType || 'roles';
+
+            if (selectedCount === 0) {
+                countSpan.textContent = `(No ${roleType.toLowerCase()} selected)`;
+                countSpan.className = 'role-count text-muted';
+            } else if (selectedCount === 1) {
+                countSpan.textContent = `(1 ${roleType.toLowerCase().slice(0, -1)} selected)`;
+                countSpan.className = 'role-count text-info';
+            } else {
+                countSpan.textContent = `(${selectedCount} ${roleType.toLowerCase()} selected)`;
+                countSpan.className = 'role-count text-success';
+            }
+        }
+    }
+
+    // Initialize counters and add event listeners
+    document.querySelectorAll('.role-select').forEach(function(select) {
+        // Update initial count
+        updateRoleCount(select);
+
+        // Update count on change
+        select.addEventListener('change', function() {
+            updateRoleCount(this);
+        });
+
+        // Add visual feedback for better UX
+        select.addEventListener('focus', function() {
+            this.style.borderColor = 'var(--wa-purple)';
+        });
+
+        select.addEventListener('blur', function() {
+            this.style.borderColor = 'var(--input-border)';
+        });
+    });
+
+    // Add keyboard shortcut hint
+    const roleSelects = document.querySelectorAll('.role-select');
+    if (roleSelects.length > 0) {
+        // Add a subtle animation to highlight the role selection
+        roleSelects.forEach(function(select) {
+            select.addEventListener('mouseenter', function() {
+                this.style.transition = 'box-shadow 0.2s ease';
+                this.style.boxShadow = '0 0 0 0.1rem rgba(159, 74, 243, 0.15)';
+            });
+
+            select.addEventListener('mouseleave', function() {
+                this.style.boxShadow = 'none';
+            });
+        });
+    }
+});
+</script>
+
 {% endblock %}

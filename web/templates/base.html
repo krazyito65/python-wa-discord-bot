@@ -93,6 +93,41 @@
             box-shadow: 0 0 0 0.2rem rgba(159, 74, 243, 0.25);
         }
 
+        /* Enhanced styling for multi-select dropdown options */
+        .form-select[multiple] {
+            padding: 8px;
+            min-height: 140px;
+        }
+
+        .form-select[multiple] option {
+            padding: 6px 8px;
+            margin: 1px 0;
+            border-radius: 4px;
+        }
+
+        /* Light mode selected option styling */
+        .form-select[multiple] option:checked {
+            background-color: var(--wa-purple) !important;
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        /* Dark mode selected option styling */
+        [data-bs-theme="dark"] .form-select[multiple] option:checked {
+            background-color: var(--wa-purple) !important;
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        /* Hover effect for options */
+        .form-select[multiple] option:hover {
+            background-color: rgba(159, 74, 243, 0.1) !important;
+        }
+
+        [data-bs-theme="dark"] .form-select[multiple] option:hover {
+            background-color: rgba(159, 74, 243, 0.2) !important;
+        }
+
         .table {
             color: var(--text-primary);
             --bs-table-bg: var(--card-bg);

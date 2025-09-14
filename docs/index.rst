@@ -57,7 +57,7 @@ Available Commands
 * ``/macro <name>`` - Execute an existing WeakAuras macro
 * ``/list_macros`` - Show all available WeakAuras macros for current server
 * ``/delete_macro <name>`` - Remove a WeakAuras macro (admin role required)
-* ``/wa_ping`` - Test bot responsiveness and show server information
+* ``/ping`` - Test bot responsiveness and show server information
 * ``/toggle_temperature`` - Enable/disable temperature events (admin role required)
 
 Documentation

@@ -115,7 +115,7 @@ Once the bot is running and in your server:
 
    .. code-block:: text
 
-      /wa_ping
+      /ping
 
 2. **Create Your First Macro**
 

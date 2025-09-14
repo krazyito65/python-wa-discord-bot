@@ -46,7 +46,7 @@ Our testing strategy focuses on **core business logic** and **user-facing functi
 - **Why excluded**: Simple bot status command with Discord-specific responses
 - **Testing challenge**: Requires mocking bot latency, guild information, command trees
 - **Business logic**: Minimal - just formats bot status information
-- **Alternative validation**: Easy to verify manually with `/wa_ping` command
+- **Alternative validation**: Easy to verify manually with `/ping` command
 
 #### `commands/stats_commands.py` (267 statements)
 - **Why excluded**: Complex Discord API integration for message statistics collection
