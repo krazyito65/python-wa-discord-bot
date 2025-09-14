@@ -419,7 +419,7 @@ def _get_user_permission_status(request, guild_id: int, user_guilds: list) -> di
 
 
 @login_required
-def server_detail(request, guild_id):
+def server_detail(request, guild_id):  # noqa: PLR0912, PLR0915
     """Server detail view showing macro management interface for a specific server.
 
     Args:
@@ -484,11 +484,39 @@ def server_detail(request, guild_id):
                 # Modern macro format with metadata
                 macro_info = data.copy()
                 macro_info["name"] = name  # Ensure name is included
+
+                # Determine macro type
+                macro_type = data.get("type", "text")
+                macro_info["type"] = macro_type
+
+                # For embed macros, ensure embed_data is available
+                if macro_type == "embed":
+                    macro_info["embed_data"] = data.get("embed_data", {})
+                    # Create a text representation for search
+                    embed_data = macro_info["embed_data"]
+                    search_text_parts = []
+                    if embed_data.get("title"):
+                        search_text_parts.append(embed_data["title"])
+                    if embed_data.get("description"):
+                        search_text_parts.append(embed_data["description"])
+                    if embed_data.get("footer"):
+                        search_text_parts.append(embed_data["footer"])
+                    for field in embed_data.get("fields", []):
+                        if field.get("name"):
+                            search_text_parts.append(field["name"])
+                        if field.get("value"):
+                            search_text_parts.append(field["value"])
+                    macro_info["searchable_text"] = " ".join(search_text_parts)
+                else:
+                    # Text macro - use message for search
+                    macro_info["searchable_text"] = data.get("message", "")
             else:
                 # Legacy format (just message string)
                 macro_info = {
                     "name": name,
                     "message": data,
+                    "type": "text",
+                    "searchable_text": data,
                     "created_by": "",
                     "created_by_name": "Unknown",
                     "created_at": "",
@@ -504,7 +532,7 @@ def server_detail(request, guild_id):
                 for macro in macros
                 if (
                     search_lower in macro["name"].lower()
-                    or search_lower in macro["message"].lower()
+                    or search_lower in macro.get("searchable_text", "").lower()
                 )
             ]
 

@@ -18,6 +18,9 @@ from bot import WeakAurasBot
 # Test constants
 MAX_SERVER_NAME_LENGTH = 100
 WEAKAURAS_PURPLE_COLOR = 10439411
+TEST_EMBED_COLOR = 0x5865F2
+EXPECTED_FIELD_COUNT = 2
+EXPECTED_MACRO_COUNT = 2
 
 
 class TestWeakAurasBot(unittest.TestCase):
@@ -371,6 +374,159 @@ class TestWeakAurasBot(unittest.TestCase):
 
             result = bot.has_admin_access(mock_member)
             assert result
+
+    def test_load_embed_macro(self):
+        """Test loading embed macro from JSON file."""
+        test_embed_macro = {
+            "test_embed": {
+                "name": "test_embed",
+                "type": "embed",
+                "embed_data": {
+                    "title": "Test Embed Title",
+                    "description": "Test embed description",
+                    "color": 0x5865F2,
+                    "footer": "Test footer",
+                    "image": "https://example.com/image.png",
+                    "fields": [
+                        {"name": "Field 1", "value": "Field 1 value", "inline": False},
+                        {"name": "Field 2", "value": "Field 2 value", "inline": True},
+                    ],
+                },
+                "created_by": "user123",
+                "created_by_name": "TestUser",
+                "created_at": "2024-01-01T00:00:00",
+            }
+        }
+
+        # Create a test macros file
+        macros_file = self.temp_dir / f"{self.test_guild_id}_macros.json"
+        with open(macros_file, "w", encoding="utf-8") as f:
+            json.dump(test_embed_macro, f)
+
+        with patch("bot.weakauras_bot.commands.Bot.__init__") as mock_init:
+            mock_init.return_value = None
+            bot = WeakAurasBot(self.test_config)
+            bot.data_dir = self.temp_dir
+
+            with patch.object(bot, "get_server_folder", return_value=self.temp_dir):
+                result = bot.load_server_macros(
+                    self.test_guild_id, self.test_guild_name
+                )
+                assert result == test_embed_macro
+
+                # Verify embed macro structure
+                embed_macro = result["test_embed"]
+                assert embed_macro["type"] == "embed"
+                assert "embed_data" in embed_macro
+
+                embed_data = embed_macro["embed_data"]
+                assert embed_data["title"] == "Test Embed Title"
+                assert embed_data["description"] == "Test embed description"
+                assert embed_data["color"] == TEST_EMBED_COLOR
+                assert embed_data["footer"] == "Test footer"
+                assert embed_data["image"] == "https://example.com/image.png"
+                assert len(embed_data["fields"]) == EXPECTED_FIELD_COUNT
+                assert embed_data["fields"][0]["name"] == "Field 1"
+                assert embed_data["fields"][0]["inline"] is False
+                assert embed_data["fields"][1]["inline"] is True
+
+    def test_save_embed_macro(self):
+        """Test saving embed macro to JSON file."""
+        test_embed_macro = {
+            "test_embed": {
+                "name": "test_embed",
+                "type": "embed",
+                "embed_data": {
+                    "title": "Test Embed",
+                    "description": "Test description",
+                    "color": 0xFF0000,
+                    "fields": [
+                        {"name": "Test Field", "value": "Test value", "inline": False}
+                    ],
+                },
+                "created_by": "user123",
+                "created_by_name": "TestUser",
+                "created_at": "2024-01-01T00:00:00",
+            }
+        }
+
+        with patch("bot.weakauras_bot.commands.Bot.__init__") as mock_init:
+            mock_init.return_value = None
+            bot = WeakAurasBot(self.test_config)
+            bot.data_dir = self.temp_dir
+
+            with patch.object(bot, "get_server_folder", return_value=self.temp_dir):
+                bot.save_server_macros(
+                    self.test_guild_id, self.test_guild_name, test_embed_macro
+                )
+
+                # Verify file was created and has correct content
+                macros_file = self.temp_dir / f"{self.test_guild_id}_macros.json"
+                assert macros_file.exists()
+
+                with open(macros_file, encoding="utf-8") as f:
+                    saved_data = json.load(f)
+                assert saved_data == test_embed_macro
+
+                # Verify embed structure is preserved
+                saved_embed = saved_data["test_embed"]
+                assert saved_embed["type"] == "embed"
+                assert "embed_data" in saved_embed
+                assert saved_embed["embed_data"]["title"] == "Test Embed"
+                assert len(saved_embed["embed_data"]["fields"]) == 1
+
+    def test_mixed_macro_types(self):
+        """Test loading and saving both text and embed macros together."""
+        mixed_macros = {
+            "text_macro": {
+                "name": "text_macro",
+                "message": "Simple text message",
+                "created_by": "user123",
+                "created_by_name": "TestUser",
+                "created_at": "2024-01-01T00:00:00",
+            },
+            "embed_macro": {
+                "name": "embed_macro",
+                "type": "embed",
+                "embed_data": {
+                    "title": "Embed Title",
+                    "description": "Embed description",
+                },
+                "created_by": "user456",
+                "created_by_name": "TestUser2",
+                "created_at": "2024-01-01T01:00:00",
+            },
+        }
+
+        with patch("bot.weakauras_bot.commands.Bot.__init__") as mock_init:
+            mock_init.return_value = None
+            bot = WeakAurasBot(self.test_config)
+            bot.data_dir = self.temp_dir
+
+            with patch.object(bot, "get_server_folder", return_value=self.temp_dir):
+                # Save mixed macros
+                bot.save_server_macros(
+                    self.test_guild_id, self.test_guild_name, mixed_macros
+                )
+
+                # Load and verify
+                result = bot.load_server_macros(
+                    self.test_guild_id, self.test_guild_name
+                )
+
+                assert len(result) == EXPECTED_MACRO_COUNT
+                assert "text_macro" in result
+                assert "embed_macro" in result
+
+                # Verify text macro (legacy format)
+                text_macro = result["text_macro"]
+                assert "message" in text_macro
+                assert text_macro.get("type") != "embed"
+
+                # Verify embed macro
+                embed_macro = result["embed_macro"]
+                assert embed_macro["type"] == "embed"
+                assert "embed_data" in embed_macro
 
 
 if __name__ == "__main__":

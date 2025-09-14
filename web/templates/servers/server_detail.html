@@ -60,9 +60,14 @@
                         </a>
                         {% endif %}
                         {% if has_create_macros_access %}
-                        <a href="{% url 'macros:macro_add' guild_id=guild_id %}" class="btn btn-success">
-                            <i class="fas fa-plus me-1"></i>Add Macro
-                        </a>
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'macros:macro_add' guild_id=guild_id %}" class="btn btn-success">
+                                <i class="fas fa-plus me-1"></i>Add Text Macro
+                            </a>
+                            <a href="{% url 'macros:embed_macro_add' guild_id=guild_id %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Add Embed Macro
+                            </a>
+                        </div>
                         {% endif %}
                     </div>
                 </div>
@@ -223,7 +228,14 @@
                             <div class="col-md-6 col-lg-4 mb-3">
                                 <div class="card macro-card">
                                     <div class="card-body">
-                                        <h5 class="card-title">{{ macro.name }}</h5>
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h5 class="card-title mb-0">{{ macro.name }}</h5>
+                                            {% if macro.type == 'embed' %}
+                                                <span class="badge bg-primary">📄 Embed</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">💬 Text</span>
+                                            {% endif %}
+                                        </div>
                                         <div class="card-text">
                                             <small class="text-muted d-block mb-2">
                                                 {% if macro.created_by_name %}
@@ -241,9 +253,25 @@
                                                     <br>Last edited: <span class="timestamp" data-timestamp="{{ macro.updated_at }}">{{ macro.updated_at|date:"M d, Y" }}</span>
                                                 {% endif %}
                                             </small>
-                                            <div class="macro-preview-card p-2 rounded small" style="max-height: 100px; overflow: hidden;">
-                                                {{ macro.message|truncatechars:100 }}
-                                            </div>
+                                            {% if macro.type == 'embed' %}
+                                                <!-- Embed Preview -->
+                                                <div class="macro-preview-card p-2 rounded small" style="max-height: 100px; overflow: hidden;">
+                                                    {% if macro.embed_data.title %}
+                                                        <div class="fw-bold">{{ macro.embed_data.title|truncatechars:50 }}</div>
+                                                    {% endif %}
+                                                    {% if macro.embed_data.description %}
+                                                        <div class="text-muted">{{ macro.embed_data.description|truncatechars:80 }}</div>
+                                                    {% endif %}
+                                                    {% if macro.embed_data.fields %}
+                                                        <small class="text-muted">{{ macro.embed_data.fields|length }} field{{ macro.embed_data.fields|length|pluralize }}</small>
+                                                    {% endif %}
+                                                </div>
+                                            {% else %}
+                                                <!-- Text Preview -->
+                                                <div class="macro-preview-card p-2 rounded small" style="max-height: 100px; overflow: hidden;">
+                                                    {{ macro.message|truncatechars:100 }}
+                                                </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     <div class="card-footer bg-transparent">

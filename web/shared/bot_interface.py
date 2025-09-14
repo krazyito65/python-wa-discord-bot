@@ -30,6 +30,18 @@ class MacroData:
 
 
 @dataclass
+class EmbedMacroData:
+    """Data structure for embed macro information."""
+
+    guild_id: int
+    guild_name: str
+    name: str
+    embed_data: dict[str, Any]
+    created_by: str
+    created_by_name: str
+
+
+@dataclass
 class MacroUpdateData:
     """Data structure for macro update information."""
 
@@ -38,6 +50,19 @@ class MacroUpdateData:
     old_name: str
     new_name: str
     message: str
+    edited_by: str
+    edited_by_name: str
+
+
+@dataclass
+class EmbedMacroUpdateData:
+    """Data structure for embed macro update information."""
+
+    guild_id: int
+    guild_name: str
+    old_name: str
+    new_name: str
+    embed_data: dict[str, Any]
     edited_by: str
     edited_by_name: str
 
@@ -251,6 +276,34 @@ class BotDataInterface:
             macro_data.guild_id, macro_data.guild_name, macros
         )
 
+    def add_embed_macro(self, macro_data: EmbedMacroData) -> bool:
+        """Add a new embed macro to the server.
+
+        Args:
+            macro_data (EmbedMacroData): Embed macro information containing all required fields.
+
+        Returns:
+            bool: True if macro was added successfully, False if macro already exists or save failed.
+        """
+        macros = self.load_server_macros(macro_data.guild_id, macro_data.guild_name)
+
+        if macro_data.name in macros:
+            return False  # Macro already exists
+
+        macro_dict = {
+            "name": macro_data.name,
+            "type": "embed",
+            "embed_data": macro_data.embed_data,
+            "created_by": macro_data.created_by,
+            "created_by_name": macro_data.created_by_name,
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+
+        macros[macro_data.name] = macro_dict
+        return self.save_server_macros(
+            macro_data.guild_id, macro_data.guild_name, macros
+        )
+
     def update_macro(self, update_data: MacroUpdateData) -> tuple[bool, str]:
         """Update an existing macro's name and/or message.
 
@@ -312,6 +365,63 @@ class BotDataInterface:
         if save_success:
             return True, ""
         return False, "Failed to save macro changes to file"
+
+    def update_embed_macro(self, update_data: EmbedMacroUpdateData) -> tuple[bool, str]:
+        """Update an existing embed macro's name and/or embed data.
+
+        Args:
+            update_data (EmbedMacroUpdateData): Embed macro update information containing all required fields.
+
+        Returns:
+            tuple[bool, str]: (success, error_message). If success is True, error_message is empty.
+                             If success is False, error_message contains the specific error.
+        """
+        macros = self.load_server_macros(update_data.guild_id, update_data.guild_name)
+
+        if update_data.old_name not in macros:
+            return False, f"Macro '{update_data.old_name}' not found"
+
+        current_macro = macros[update_data.old_name]
+
+        # Check if this is an embed macro
+        if not (
+            isinstance(current_macro, dict) and current_macro.get("type") == "embed"
+        ):
+            return False, f"Macro '{update_data.old_name}' is not an embed macro"
+
+        # Check if new name conflicts with existing macro (unless it's the same macro)
+        if (
+            update_data.new_name != update_data.old_name
+            and update_data.new_name in macros
+        ):
+            return False, f"A macro named '{update_data.new_name}' already exists"
+
+        now = datetime.now(UTC)
+
+        # Update the macro data while preserving metadata
+        updated_macro = current_macro.copy()
+        updated_macro["name"] = update_data.new_name
+        updated_macro["embed_data"] = update_data.embed_data
+        updated_macro["modified_at"] = now.isoformat()
+        updated_macro["modified_by"] = update_data.edited_by
+        updated_macro["modified_by_name"] = update_data.edited_by_name
+
+        # Handle name change
+        if update_data.new_name != update_data.old_name:
+            # Remove old entry and add new one
+            del macros[update_data.old_name]
+            macros[update_data.new_name] = updated_macro
+        else:
+            # Just update existing entry
+            macros[update_data.old_name] = updated_macro
+
+        save_success = self.save_server_macros(
+            update_data.guild_id, update_data.guild_name, macros
+        )
+
+        if save_success:
+            return True, ""
+        return False, "Failed to save embed macro changes to file"
 
     def delete_macro(self, guild_id: int, guild_name: str, name: str) -> bool:
         """Delete a macro from the server.

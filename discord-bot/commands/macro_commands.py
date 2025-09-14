@@ -1,3 +1,5 @@
+from typing import Any
+
 import discord
 from bot.weakauras_bot import WeakAurasBot
 from discord import app_commands
@@ -7,6 +9,7 @@ from utils.django_permissions import (
     get_server_permission_config,
 )
 from utils.logging import get_logger, log_command
+from views.embed_builder import EmbedBuilderView
 
 logger = get_logger(__name__)
 
@@ -112,6 +115,92 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         await send_embed_response(interaction, embed, logo_file)
 
     @bot.tree.command(
+        name="create_embed_macro",
+        description="Create a new WeakAuras embed macro with rich formatting",
+    )
+    @log_command
+    async def create_embed_macro(interaction: discord.Interaction, name: str):
+        """Create a new embed macro with rich formatting"""
+        if not interaction.guild:
+            logger.warning("create_embed_macro command used outside of server")
+            await interaction.response.send_message(
+                "This command can only be used in a server!", ephemeral=True
+            )
+            return
+
+        guild_id = interaction.guild.id
+        guild_name = interaction.guild.name
+
+        # Check if user has permission to create macros
+        if not isinstance(
+            interaction.user, discord.Member
+        ) or not check_server_permission(interaction.user, guild_id, "create_macros"):
+            config = get_server_permission_config(guild_id)
+            error_message = get_permission_error_message("create_macros", config)
+
+            embed, logo_file = bot.create_embed(
+                title="❌ Permission Denied",
+                description=error_message,
+                footer_text=f"Server: {guild_name}",
+            )
+            await send_embed_response(interaction, embed, logo_file)
+            logger.warning(
+                "create_embed_macro command denied - insufficient permissions"
+            )
+            return
+
+        # Load server-specific macros
+        macros = bot.load_server_macros(guild_id, guild_name)
+
+        if name in macros:
+            logger.info(f"create_embed_macro failed - macro '{name}' already exists")
+            await interaction.response.send_message(
+                f"WeakAuras macro '{name}' already exists!", ephemeral=True
+            )
+            return
+
+        async def save_embed_macro(
+            save_interaction: discord.Interaction, embed_data: dict[str, Any]
+        ):
+            """Callback to save the embed macro"""
+            # Store as JSON-formatted macro data with embed type
+            macro_data = {
+                "name": name,
+                "type": "embed",
+                "embed_data": embed_data,
+                "created_by": str(interaction.user.id),
+                "created_by_name": interaction.user.name,
+                "created_at": interaction.created_at.isoformat(),
+            }
+
+            macros[name] = macro_data
+            bot.save_server_macros(guild_id, guild_name, macros)
+            logger.info(
+                f"Successfully created embed macro '{name}' in guild {guild_name} ({guild_id})"
+            )
+
+            # Create branded success embed
+            success_embed, logo_file = bot.create_embed(
+                title="✅ Embed Macro Created",
+                description=f"Successfully created embed macro **{name}**",
+                footer_text=f"Server: {guild_name}",
+            )
+            await save_interaction.response.send_message(
+                embed=success_embed, file=logo_file, ephemeral=True
+            )
+
+        # Create embed builder view
+        embed_view = EmbedBuilderView(macro_name=name, callback_func=save_embed_macro)
+
+        # Create initial preview
+        preview_embed = embed_view.create_preview_embed()
+        content = f"**Building Embed Macro: `{name}`**\n*Status: No content added yet*"
+
+        await interaction.response.send_message(
+            content=content, embed=preview_embed, view=embed_view, ephemeral=True
+        )
+
+    @bot.tree.command(
         name="list_macros", description="List all available WeakAuras macros"
     )
     @log_command
@@ -143,7 +232,16 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         logger.info(
             f"list_macros returned {len(macros)} macros for guild {guild_name} ({guild_id}): {', '.join(macros.keys())}"
         )
-        macro_list = "\n".join([f"• {name}" for name in macros])
+
+        # Build macro list with type indicators
+        macro_lines = []
+        for name, data in macros.items():
+            if isinstance(data, dict) and data.get("type") == "embed":
+                macro_lines.append(f"📄 {name} *(embed)*")
+            else:
+                macro_lines.append(f"💬 {name} *(text)*")
+
+        macro_list = "\n".join(macro_lines)
         embed, logo_file = bot.create_embed(
             title="📂 WeakAuras Macros",
             description=macro_list,
@@ -213,6 +311,102 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         )
         await send_embed_response(interaction, embed, logo_file)
 
+    @bot.tree.command(
+        name="edit_embed_macro",
+        description="Edit an existing WeakAuras embed macro",
+    )
+    @app_commands.autocomplete(name=macro_name_autocomplete)
+    @log_command
+    async def edit_embed_macro(interaction: discord.Interaction, name: str):
+        """Edit an existing embed macro"""
+        if not interaction.guild:
+            logger.warning("edit_embed_macro command used outside of server")
+            await interaction.response.send_message(
+                "This command can only be used in a server!", ephemeral=True
+            )
+            return
+
+        guild_id = interaction.guild.id
+        guild_name = interaction.guild.name
+
+        # Check if user has permission to create/edit macros
+        if not isinstance(
+            interaction.user, discord.Member
+        ) or not check_server_permission(interaction.user, guild_id, "create_macros"):
+            config = get_server_permission_config(guild_id)
+            error_message = get_permission_error_message("create_macros", config)
+
+            embed, logo_file = bot.create_embed(
+                title="❌ Permission Denied",
+                description=error_message,
+                footer_text=f"Server: {guild_name}",
+            )
+            await send_embed_response(interaction, embed, logo_file)
+            logger.warning("edit_embed_macro command denied - insufficient permissions")
+            return
+
+        # Load server-specific macros
+        macros = bot.load_server_macros(guild_id, guild_name)
+
+        if name not in macros:
+            logger.info(f"edit_embed_macro failed - macro '{name}' does not exist")
+            await interaction.response.send_message(
+                f"WeakAuras macro '{name}' does not exist!", ephemeral=True
+            )
+            return
+
+        macro_data = macros[name]
+
+        # Check if this is an embed macro
+        if not (isinstance(macro_data, dict) and macro_data.get("type") == "embed"):
+            await interaction.response.send_message(
+                f"❌ Macro '{name}' is not an embed macro! Use `/create_embed_macro` to create a new embed version.",
+                ephemeral=True,
+            )
+            return
+
+        async def update_embed_macro(
+            save_interaction: discord.Interaction, embed_data: dict[str, Any]
+        ):
+            """Callback to update the embed macro"""
+            # Update the existing macro data
+            macro_data["embed_data"] = embed_data
+            macro_data["modified_by"] = str(interaction.user.id)
+            macro_data["modified_by_name"] = interaction.user.name
+            macro_data["modified_at"] = interaction.created_at.isoformat()
+
+            macros[name] = macro_data
+            bot.save_server_macros(guild_id, guild_name, macros)
+            logger.info(
+                f"Successfully updated embed macro '{name}' in guild {guild_name} ({guild_id})"
+            )
+
+            # Create branded success embed
+            success_embed, logo_file = bot.create_embed(
+                title="✅ Embed Macro Updated",
+                description=f"Successfully updated embed macro **{name}**",
+                footer_text=f"Server: {guild_name}",
+            )
+            await save_interaction.response.send_message(
+                embed=success_embed, file=logo_file, ephemeral=True
+            )
+
+        # Create embed builder view with existing data
+        existing_embed_data = macro_data.get("embed_data", {})
+        embed_view = EmbedBuilderView(
+            macro_name=name,
+            embed_data=existing_embed_data,
+            callback_func=update_embed_macro,
+        )
+
+        # Create initial preview
+        preview_embed = embed_view.create_preview_embed()
+        content = f"**Editing Embed Macro: `{name}`**\n*Use the buttons below to modify your embed.*"
+
+        await interaction.response.send_message(
+            content=content, embed=preview_embed, view=embed_view, ephemeral=True
+        )
+
     @bot.tree.command(name="macro", description="Execute a saved WeakAuras macro")
     @app_commands.autocomplete(name=macro_name_autocomplete)
     @log_command
@@ -242,12 +436,45 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
             return
 
         macro_data = macros[name]
-        message = (
-            macro_data.get("message", macro_data)
-            if isinstance(macro_data, dict)
-            else macro_data
-        )
-        logger.info(
-            f"Successfully executed macro '{name}' from guild {guild_name} ({guild_id})"
-        )
-        await interaction.response.send_message(message)
+
+        # Check if this is an embed macro
+        if isinstance(macro_data, dict) and macro_data.get("type") == "embed":
+            # Handle embed macro
+            embed_data = macro_data.get("embed_data", {})
+            embed = discord.Embed()
+
+            # Set embed properties
+            if embed_data.get("title"):
+                embed.title = embed_data["title"]
+            if embed_data.get("description"):
+                embed.description = embed_data["description"]
+            if embed_data.get("color"):
+                embed.color = embed_data["color"]
+            if embed_data.get("footer"):
+                embed.set_footer(text=embed_data["footer"])
+            if embed_data.get("image"):
+                embed.set_image(url=embed_data["image"])
+
+            # Add custom fields
+            for field in embed_data.get("fields", []):
+                embed.add_field(
+                    name=field["name"],
+                    value=field["value"],
+                    inline=field.get("inline", False),
+                )
+
+            logger.info(
+                f"Successfully executed embed macro '{name}' from guild {guild_name} ({guild_id})"
+            )
+            await interaction.response.send_message(embed=embed)
+        else:
+            # Handle regular text macro (backward compatibility)
+            message = (
+                macro_data.get("message", macro_data)
+                if isinstance(macro_data, dict)
+                else macro_data
+            )
+            logger.info(
+                f"Successfully executed text macro '{name}' from guild {guild_name} ({guild_id})"
+            )
+            await interaction.response.send_message(message)

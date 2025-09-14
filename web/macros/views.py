@@ -17,7 +17,12 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
-from shared.bot_interface import MacroData, MacroUpdateData, bot_interface
+from shared.bot_interface import (
+    EmbedMacroData,
+    MacroData,
+    MacroUpdateData,
+    bot_interface,
+)
 from shared.discord_api import DiscordAPIError, get_user_guilds, get_user_roles_in_guild
 
 logger = logging.getLogger(__name__)
@@ -176,6 +181,195 @@ def macro_add(request, guild_id):  # noqa: PLR0911
         }
 
         return render(request, "macros/macro_add.html", context)
+
+    except DiscordAPIError as e:
+        messages.error(request, f"Error accessing server: {e}")
+        return redirect("servers:dashboard")
+
+
+@login_required
+def embed_macro_add(request, guild_id):  # noqa: PLR0911, PLR0912, PLR0915
+    """Add a new embed macro to a specific server.
+
+    Args:
+        request: Django HTTP request object with authenticated user.
+        guild_id (int): Discord guild/server ID to add embed macro to.
+
+    Returns:
+        HttpResponse: Rendered embed macro add template or redirect after creation.
+    """
+    try:
+        guild_name = _validate_server_access(request, guild_id)
+
+        # Check create_macros permission
+        if not _check_server_permission(request, guild_id, "create_macros"):
+            messages.error(
+                request, "You don't have permission to create macros in this server"
+            )
+            return redirect("servers:server_detail", guild_id=guild_id)
+
+        if request.method == "POST":
+            # Get form data
+            macro_name = request.POST.get("name", "").strip()
+            embed_title = request.POST.get("embed_title", "").strip()
+            embed_description = request.POST.get("embed_description", "").strip()
+            embed_color = request.POST.get("embed_color", "").strip()
+            embed_footer = request.POST.get("embed_footer", "").strip()
+            embed_image = request.POST.get("embed_image", "").strip()
+
+            # Parse custom fields
+            field_names = request.POST.getlist("field_name[]")
+            field_values = request.POST.getlist("field_value[]")
+            field_inlines = request.POST.getlist("field_inline[]")
+
+            # Validate inputs
+            validation_errors = []
+            if not macro_name:
+                validation_errors.append("Macro name cannot be empty")
+
+            # Check if at least one embed field is filled
+            if not any(
+                [embed_title, embed_description, embed_footer, embed_image, field_names]
+            ):
+                validation_errors.append("At least one embed field must be filled")
+
+            # Check if macro name already exists
+            if macro_name:
+                existing_macros = bot_interface.load_server_macros(guild_id, guild_name)
+                if macro_name in existing_macros:
+                    validation_errors.append(
+                        f"A macro named '{macro_name}' already exists"
+                    )
+
+            # Parse color
+            embed_color_int = None
+            if embed_color:
+                try:
+                    color_str = embed_color.lstrip("#")
+                    embed_color_int = int(color_str, 16)
+                except ValueError:
+                    validation_errors.append(
+                        "Invalid color format. Use hex format like #5865F2"
+                    )
+
+            # If there are validation errors, render form with preserved data
+            if validation_errors:
+                for error in validation_errors:
+                    messages.error(request, error)
+
+                # Get guild info for template context
+                user_guilds = get_user_guilds(request.user)
+                guild_info = next(
+                    (guild for guild in user_guilds if int(guild["id"]) == guild_id),
+                    None,
+                )
+
+                if not guild_info:
+                    messages.error(request, "Server not found")
+                    return redirect("servers:dashboard")
+
+                # Preserve form data and custom fields
+                fields_data = []
+                for i, name in enumerate(field_names):
+                    if i < len(field_values):
+                        fields_data.append(
+                            {
+                                "name": name,
+                                "value": field_values[i],
+                                "inline": i < len(field_inlines)
+                                and field_inlines[i] == "on",
+                            }
+                        )
+
+                context = {
+                    "guild": guild_info,
+                    "guild_id": guild_id,
+                    "form_data": {
+                        "name": macro_name,
+                        "embed_title": embed_title,
+                        "embed_description": embed_description,
+                        "embed_color": embed_color,
+                        "embed_footer": embed_footer,
+                        "embed_image": embed_image,
+                        "fields": fields_data,
+                    },
+                    "feature_flags": settings.FEATURE_FLAGS,
+                }
+
+                return render(request, "macros/embed_macro_add.html", context)
+
+            # Create embed data
+            embed_data = {}
+            if embed_title:
+                embed_data["title"] = embed_title
+            if embed_description:
+                embed_data["description"] = embed_description
+            if embed_color_int is not None:
+                embed_data["color"] = embed_color_int
+            if embed_footer:
+                embed_data["footer"] = embed_footer
+            if embed_image:
+                embed_data["image"] = embed_image
+
+            # Add custom fields
+            fields = []
+            for i, name in enumerate(field_names):
+                if i < len(field_values) and name and field_values[i]:
+                    fields.append(
+                        {
+                            "name": name,
+                            "value": field_values[i],
+                            "inline": i < len(field_inlines)
+                            and field_inlines[i] == "on",
+                        }
+                    )
+            if fields:
+                embed_data["fields"] = fields
+
+            # Get user info
+            user_id = (
+                str(request.user.socialaccount_set.first().uid)
+                if request.user.socialaccount_set.first()
+                else str(request.user.id)
+            )
+            user_name = request.user.username
+
+            # Create embed macro data
+            macro_data = EmbedMacroData(
+                guild_id=guild_id,
+                guild_name=guild_name,
+                name=macro_name,
+                embed_data=embed_data,
+                created_by=user_id,
+                created_by_name=user_name,
+            )
+
+            # Add the embed macro
+            if bot_interface.add_embed_macro(macro_data):
+                messages.success(
+                    request, f"Successfully created embed macro '{macro_name}'"
+                )
+                return redirect("servers:server_detail", guild_id=guild_id)
+
+            messages.error(request, "Failed to create embed macro. Please try again.")
+
+        # For GET requests, render the creation form
+        user_guilds = get_user_guilds(request.user)
+        guild_info = next(
+            (guild for guild in user_guilds if int(guild["id"]) == guild_id), None
+        )
+
+        if not guild_info:
+            messages.error(request, "Server not found")
+            return redirect("servers:dashboard")
+
+        context = {
+            "guild": guild_info,
+            "guild_id": guild_id,
+            "feature_flags": settings.FEATURE_FLAGS,
+        }
+
+        return render(request, "macros/embed_macro_add.html", context)
 
     except DiscordAPIError as e:
         messages.error(request, f"Error accessing server: {e}")
@@ -448,30 +642,46 @@ def macro_get(request, guild_id, macro_name):
 
         current_macro = macros_dict[macro_name]
 
-        # Extract current message (handle both legacy and modern formats)
+        # Handle both text macros and embed macros
         if isinstance(current_macro, dict):
-            message = current_macro.get("message", "")
-            created_by_name = current_macro.get("created_by_name", "Unknown")
-            created_at = current_macro.get("created_at", "")
-            updated_by_name = current_macro.get("updated_by_name", "")
-            updated_at = current_macro.get("updated_at", "")
-        else:
-            message = current_macro
-            created_by_name = "Unknown"
-            created_at = ""
-            updated_by_name = ""
-            updated_at = ""
+            macro_type = current_macro.get("type", "text")
 
-        return JsonResponse(
-            {
+            if macro_type == "embed":
+                # Embed macro
+                embed_data = current_macro.get("embed_data", {})
+                response_data = {
+                    "name": macro_name,
+                    "type": "embed",
+                    "embed_data": embed_data,
+                    "created_by_name": current_macro.get("created_by_name", "Unknown"),
+                    "created_at": current_macro.get("created_at", ""),
+                    "updated_by_name": current_macro.get("updated_by_name", ""),
+                    "updated_at": current_macro.get("updated_at", ""),
+                }
+            else:
+                # Text macro (modern format)
+                response_data = {
+                    "name": macro_name,
+                    "type": "text",
+                    "message": current_macro.get("message", ""),
+                    "created_by_name": current_macro.get("created_by_name", "Unknown"),
+                    "created_at": current_macro.get("created_at", ""),
+                    "updated_by_name": current_macro.get("updated_by_name", ""),
+                    "updated_at": current_macro.get("updated_at", ""),
+                }
+        else:
+            # Legacy text macro format
+            response_data = {
                 "name": macro_name,
-                "message": message,
-                "created_by_name": created_by_name,
-                "created_at": created_at,
-                "updated_by_name": updated_by_name,
-                "updated_at": updated_at,
+                "type": "text",
+                "message": current_macro,
+                "created_by_name": "Unknown",
+                "created_at": "",
+                "updated_by_name": "",
+                "updated_at": "",
             }
-        )
+
+        return JsonResponse(response_data)
 
     except DiscordAPIError as e:
         return JsonResponse({"error": f"Error accessing server: {e}"}, status=500)
