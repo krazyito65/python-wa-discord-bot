@@ -580,9 +580,10 @@ def embed_macro_edit(request, guild_id, macro_name):  # noqa: PLR0911, PLR0912, 
         existing_embed_data = macro_data.get("embed_data", {})
 
         # Debug logging
-        logger.debug(f"Loading embed macro '{macro_name}' for editing")
-        logger.debug(f"Macro data keys: {list(macro_data.keys())}")
-        logger.debug(f"Embed data: {existing_embed_data}")
+        logger.info(f"Loading embed macro '{macro_name}' for editing")
+        logger.info(f"Macro data keys: {list(macro_data.keys())}")
+        logger.info(f"Embed data: {existing_embed_data}")
+        logger.info(f"Full macro data: {macro_data}")
 
         context = {
             "guild": guild_info,
