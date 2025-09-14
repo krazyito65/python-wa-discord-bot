@@ -59,7 +59,7 @@ def _validate_admin_panel_access(request, guild_id: int):
             guild_id=str(guild_id),
             defaults={
                 'guild_name': guild_name,
-                'updated_by': str(request.user.socialaccount_set.first().uid),
+                'updated_by': str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id),
                 'updated_by_name': request.user.username,
             }
         )
@@ -179,7 +179,7 @@ def role_settings(request, guild_id):
 
 def _handle_permission_update(request, server_config, guild_id):
     """Handle permission level updates from the form."""
-    user_id = str(request.user.socialaccount_set.first().uid)
+    user_id = str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id)
     user_name = request.user.username
     changes_made = False
 
@@ -226,7 +226,7 @@ def _handle_permission_update(request, server_config, guild_id):
 
 def _handle_role_update(request, server_config, guild_id):
     """Handle role list updates from the form."""
-    user_id = str(request.user.socialaccount_set.first().uid)
+    user_id = str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id)
     user_name = request.user.username
     changes_made = False
 
@@ -310,7 +310,7 @@ def reset_to_defaults(request, guild_id):
     try:
         guild_name, server_config, user_guilds = _validate_admin_panel_access(request, guild_id)
 
-        user_id = str(request.user.socialaccount_set.first().uid)
+        user_id = str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id)
         user_name = request.user.username
 
         # Log the reset action

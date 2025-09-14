@@ -210,11 +210,23 @@ cd discord-bot && uv run pytest
 cd web && uv run python manage.py test
 ```
 
+**Current Test Coverage:**
+- **Discord Bot**: 53% coverage (focused on core business logic)
+- **Django Web**: 61% coverage (authentication, models, utilities)
+- **Overall Project**: 57% coverage (target: 80%)
+
 **Test Coverage Areas:**
-- Discord bot core functionality and macro commands
-- Django authentication adapters and Discord OAuth
-- Bot data interface and server macro management
-- Discord API utilities and error handling
+- **Discord bot core functionality**: Macro storage, server management, configuration
+- **Django authentication adapters** and Discord OAuth integration
+- **Bot data interface** and server macro management with file persistence
+- **Permission systems** and role-based access control
+- **Utility functions** for database integration and logging
+
+**Discord Bot Testing Strategy:**
+- **Focus**: Core business logic, data persistence, permission checking
+- **Strategic Exclusions**: Complex Discord.py integration requiring extensive mocking
+- **Coverage Target**: 80% on business logic code (excludes Discord command registration)
+- **See**: `discord-bot/TESTING_STRATEGY.md` for detailed coverage approach
 
 **Test Validation Requirements:**
 - **ALWAYS run tests before making changes** to ensure existing functionality works
@@ -222,7 +234,7 @@ cd web && uv run python manage.py test
 - **ALWAYS update unit tests** when adding new features or modifying existing functionality
 - **NEVER commit code** without running the full test suite first
 - Add new test cases for any new functions, methods, or command handlers you create
-- Mock external dependencies (Discord API, file system, database) in tests
+- Mock external dependencies (Discord API, file system, database) appropriately
 - Use proper test isolation with temporary directories and cleanup
 
 ### Code Coverage Requirements

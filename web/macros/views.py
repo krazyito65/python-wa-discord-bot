@@ -109,7 +109,7 @@ def macro_add(request, guild_id):  # noqa: PLR0911
                 return render(request, "macros/macro_add.html", context)
 
             # Get user info
-            user_id = str(request.user.socialaccount_set.first().uid)
+            user_id = str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id)
             user_name = request.user.username
 
             # Create macro data
@@ -352,7 +352,7 @@ def macro_edit(request, guild_id, macro_name):
                 return redirect("servers:server_detail", guild_id=guild_id)
 
             # Get user info and update macro
-            user_id = str(request.user.socialaccount_set.first().uid)
+            user_id = str(request.user.socialaccount_set.first().uid) if request.user.socialaccount_set.first() else str(request.user.id)
             user_name = request.user.username
 
             update_data = MacroUpdateData(
