@@ -276,7 +276,7 @@
                                     </div>
                                     <div class="card-footer bg-transparent">
                                         <div class="btn-group btn-group-sm w-100" role="group">
-                                            <button class="btn btn-outline-primary" onclick="showMacroModal('{{ macro.name|escapejs }}', '{{ macro.message|escapejs }}')">
+                                            <button class="btn btn-outline-primary" onclick="showMacroModal('{{ macro.name|escapejs }}', '{{ macro.display_content|escapejs }}')">
                                                 View
                                             </button>
                                             <button class="btn btn-outline-warning" onclick="editMacro('{{ macro.name|escapejs }}')">

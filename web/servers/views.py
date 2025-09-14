@@ -507,9 +507,15 @@ def server_detail(request, guild_id):  # noqa: PLR0912, PLR0915
                         if field.get("value"):
                             search_text_parts.append(field["value"])
                     macro_info["searchable_text"] = " ".join(search_text_parts)
+                    # Set display content for embed macros
+                    macro_info["display_content"] = (
+                        "[Embed Macro - Use Edit to view details]"
+                    )
                 else:
                     # Text macro - use message for search
                     macro_info["searchable_text"] = data.get("message", "")
+                    # Set display content for text macros
+                    macro_info["display_content"] = data.get("message", "")
             else:
                 # Legacy format (just message string)
                 macro_info = {
@@ -517,6 +523,7 @@ def server_detail(request, guild_id):  # noqa: PLR0912, PLR0915
                     "message": data,
                     "type": "text",
                     "searchable_text": data,
+                    "display_content": data,
                     "created_by": "",
                     "created_by_name": "Unknown",
                     "created_at": "",
