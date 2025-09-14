@@ -396,7 +396,7 @@
 
 
         function editMacro(name) {
-            // Fetch macro data and show edit modal
+            // Fetch macro data and determine edit method
             fetch('{% url "macros:macro_get" guild_id "MACRO_NAME" %}'.replace('MACRO_NAME', encodeURIComponent(name)))
                 .then(response => response.json())
                 .then(data => {
@@ -405,11 +405,18 @@
                         return;
                     }
 
-                    // Populate the edit form
+                    // Check if this is an embed macro
+                    if (data.type === 'embed') {
+                        // Redirect to embed edit page
+                        window.location.href = '{% url "macros:embed_macro_edit" guild_id "MACRO_NAME" %}'.replace('MACRO_NAME', encodeURIComponent(name));
+                        return;
+                    }
+
+                    // Populate the edit form for text macros
                     document.getElementById('editMacroModalTitle').textContent = 'Edit Macro: ' + data.name;
                     document.getElementById('editMacroName').value = data.name;
                     document.getElementById('editMacroCreatedBy').value = data.created_by_name || 'Unknown';
-                    document.getElementById('editMacroMessage').value = data.message;
+                    document.getElementById('editMacroMessage').value = data.message || '';
 
                     // Set original name for validation
                     originalMacroName = data.name;
