@@ -8,8 +8,18 @@ from allauth.socialaccount.models import SocialAccount, SocialApp
 from django.contrib.auth.models import User
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
-from servers.views import _check_macro_permission, _get_user_permission_status
 from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
+
+from servers.views import _check_macro_permission, _get_user_permission_status
+
+# HTTP status constants
+HTTP_OK = 200
+HTTP_REDIRECT = 302
+
+# Test data constants
+TEST_MACRO_COUNT_TOTAL = 3
+TEST_MACRO_COUNT_ONE = 1
+TEST_MACRO_COUNT_TWO = 2
 
 
 class ServerViewTests(TestCase):
@@ -87,15 +97,15 @@ class ServerViewTests(TestCase):
             reverse("servers:server_detail", args=[self.guild_id]), {"search": "heal"}
         )
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         assert "heal" in response.content.decode()
         assert "dps" not in response.content.decode()
         assert "weakaura" not in response.content.decode()
 
         # Verify search context variables
         assert response.context["search_query"] == "heal"
-        assert response.context["macro_count"] == 1
-        assert response.context["total_macros"] == 3
+        assert response.context["macro_count"] == TEST_MACRO_COUNT_ONE
+        assert response.context["total_macros"] == TEST_MACRO_COUNT_TOTAL
 
     @skip_complex_integration
     @patch("servers.views.get_user_guilds")
@@ -122,15 +132,15 @@ class ServerViewTests(TestCase):
             reverse("servers:server_detail", args=[self.guild_id]), {"search": "cast"}
         )
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         assert "heal" in response.content.decode()
         assert "dps" in response.content.decode()
         assert "weakaura" not in response.content.decode()
 
         # Verify search context variables
         assert response.context["search_query"] == "cast"
-        assert response.context["macro_count"] == 2
-        assert response.context["total_macros"] == 3
+        assert response.context["macro_count"] == TEST_MACRO_COUNT_TWO
+        assert response.context["total_macros"] == TEST_MACRO_COUNT_TOTAL
 
     @skip_complex_integration
     @patch("servers.views.get_user_guilds")
@@ -158,7 +168,7 @@ class ServerViewTests(TestCase):
             {"search": "WEAKAURA"},
         )
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         assert "weakaura" in response.content.decode()
         assert "heal" not in response.content.decode()
         assert "dps" not in response.content.decode()
@@ -193,14 +203,14 @@ class ServerViewTests(TestCase):
             {"search": "nonexistent"},
         )
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         assert "No search results" in response.content.decode()
         assert 'No macros found matching "nonexistent"' in response.content.decode()
 
         # Verify search context variables
         assert response.context["search_query"] == "nonexistent"
         assert response.context["macro_count"] == 0
-        assert response.context["total_macros"] == 3
+        assert response.context["total_macros"] == TEST_MACRO_COUNT_TOTAL
 
     @skip_complex_integration
     @patch("servers.views.get_user_guilds")
@@ -227,15 +237,15 @@ class ServerViewTests(TestCase):
             reverse("servers:server_detail", args=[self.guild_id])
         )
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         assert "heal" in response.content.decode()
         assert "weakaura" in response.content.decode()
         assert "dps" in response.content.decode()
 
         # Verify context variables
         assert response.context["search_query"] == ""
-        assert response.context["macro_count"] == 3
-        assert response.context["total_macros"] == 3
+        assert response.context["macro_count"] == TEST_MACRO_COUNT_TOTAL
+        assert response.context["total_macros"] == TEST_MACRO_COUNT_TOTAL
 
     @skip_discord_api_dependent
     @patch("servers.views.get_user_guilds")
@@ -249,7 +259,7 @@ class ServerViewTests(TestCase):
         ]
 
         response = self.client.get(reverse("servers:server_hub", args=[guild_id]))
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         assert "Test Server" in response.content.decode()
 
     @skip_discord_api_dependent
@@ -262,7 +272,7 @@ class ServerViewTests(TestCase):
         mock_get_guilds.return_value = []  # No guilds
 
         response = self.client.get(reverse("servers:server_hub", args=[guild_id]))
-        assert response.status_code == 302  # Redirect to servers:dashboard
+        assert response.status_code == HTTP_REDIRECT  # Redirect to servers:dashboard
 
     @skip_complex_integration
     @patch("servers.views.get_user_guilds")

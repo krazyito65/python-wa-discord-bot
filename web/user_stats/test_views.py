@@ -13,6 +13,7 @@ from django.test import TestCase
 from django.urls import reverse
 from shared.discord_api import DiscordAPIError
 from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
+
 from user_stats.models import (
     DailyMessageStatistics,
     DiscordChannel,
@@ -34,9 +35,10 @@ from user_stats.views import (
     clear_user_stats_cache,
 )
 
-
 # HTTP status constants
 HTTP_OK = 200
+HTTP_REDIRECT = 302
+HTTP_NOT_FOUND = 404
 
 User = get_user_model()
 
@@ -137,7 +139,7 @@ class UserStatsViewsTestCase(TestCase):
         response = self.client.get(
             reverse("user_stats:guild_stats", args=[self.guild_id])
         )
-        assert response.status_code == 404
+        assert response.status_code == HTTP_NOT_FOUND
 
     @skip_discord_api_dependent
     @patch("user_stats.views.get_user_guilds")
@@ -250,7 +252,7 @@ class UserStatsViewsTestCase(TestCase):
     def test_unauthenticated_access_denied(self):
         """Test that unauthenticated users cannot access user stats views."""
         response = self.client.get(reverse("user_stats:dashboard"))
-        assert response.status_code == 302  # Redirect to login
+        assert response.status_code == HTTP_REDIRECT  # Redirect to login
 
     @skip_discord_api_dependent
     @patch("user_stats.views.get_user_guilds")

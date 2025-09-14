@@ -39,6 +39,9 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "ICN", "PIE", "PYI", "P
 ignore = [
     "E501",     # Line too long (we'll let the formatter handle this)
     "PLR0913",  # Too many arguments in function definition (sometimes necessary)
+    "TRY003",   # Avoid specifying long messages outside exception class (descriptive error messages are good)
+    "TRY300",   # Consider moving statements to else block (current code is clearer)
+    "PLR0911",  # Too many return statements (legitimate conditional logic functions)
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

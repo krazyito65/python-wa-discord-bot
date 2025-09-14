@@ -15,7 +15,12 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 from shared.discord_api import DiscordAPIError, get_user_guilds
 
-from .models import ServerPermissionConfig, ServerPermissionLog
+from .models import (
+    DISCORD_ADMINISTRATOR_PERMISSION,
+    DISCORD_MANAGE_SERVER_PERMISSION,
+    ServerPermissionConfig,
+    ServerPermissionLog,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,8 +83,10 @@ def _validate_admin_panel_access(request, guild_id: int):
             # For new configs, use basic admin permission check (Discord administrator permission)
             if not (
                 is_server_owner
-                or (guild_permissions & 0x8) == 0x8
-                or (guild_permissions & 0x20) == 0x20
+                or (guild_permissions & DISCORD_ADMINISTRATOR_PERMISSION)
+                == DISCORD_ADMINISTRATOR_PERMISSION
+                or (guild_permissions & DISCORD_MANAGE_SERVER_PERMISSION)
+                == DISCORD_MANAGE_SERVER_PERMISSION
             ):
                 raise Http404(
                     "You don't have permission to access the admin panel for this server"
@@ -97,8 +104,8 @@ def _validate_admin_panel_access(request, guild_id: int):
         return guild_name, server_config, user_guilds
 
     except DiscordAPIError as e:
-        logger.exception(f"Discord API error in admin panel access validation: {e}")
-        raise Http404(f"Error accessing server information: {e}")
+        logger.exception("Discord API error in admin panel access validation")
+        raise Http404(f"Error accessing server information: {e}") from e
 
 
 @login_required

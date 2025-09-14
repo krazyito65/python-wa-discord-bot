@@ -27,6 +27,9 @@ from shared.discord_api import (
     get_user_info,
 )
 
+# Test data constants
+TEST_GUILD_ID = 123456789
+
 # Test constants
 MAX_SERVER_NAME_LENGTH = 100
 EXPECTED_AVAILABLE_SERVERS = 2
@@ -579,7 +582,7 @@ class DataClassTestCase(TestCase):
     def test_macro_data_creation(self):
         """Test MacroData dataclass creation and attributes."""
         macro_data = MacroData(
-            guild_id=123456789,
+            guild_id=TEST_GUILD_ID,
             guild_name="Test Guild",
             name="test_macro",
             message="Test message",
@@ -587,7 +590,7 @@ class DataClassTestCase(TestCase):
             created_by_name="Test User",
         )
 
-        assert macro_data.guild_id == 123456789
+        assert macro_data.guild_id == TEST_GUILD_ID
         assert macro_data.guild_name == "Test Guild"
         assert macro_data.name == "test_macro"
         assert macro_data.message == "Test message"
@@ -597,7 +600,7 @@ class DataClassTestCase(TestCase):
     def test_macro_update_data_creation(self):
         """Test MacroUpdateData dataclass creation and attributes."""
         update_data = MacroUpdateData(
-            guild_id=123456789,
+            guild_id=TEST_GUILD_ID,
             guild_name="Test Guild",
             old_name="old_macro",
             new_name="new_macro",
@@ -606,7 +609,7 @@ class DataClassTestCase(TestCase):
             edited_by_name="Test Editor",
         )
 
-        assert update_data.guild_id == 123456789
+        assert update_data.guild_id == TEST_GUILD_ID
         assert update_data.guild_name == "Test Guild"
         assert update_data.old_name == "old_macro"
         assert update_data.new_name == "new_macro"

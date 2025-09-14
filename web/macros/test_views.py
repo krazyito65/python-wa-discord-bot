@@ -14,17 +14,18 @@ from django.contrib.auth import get_user_model
 from django.http import Http404
 from django.test import TestCase
 from django.urls import reverse
-from django.test import RequestFactory
+from shared.discord_api import DiscordAPIError
+from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
+
 from macros.views import (
     _check_server_permission,
     _validate_server_access,
 )
-from shared.discord_api import DiscordAPIError
-from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
 
 # HTTP status constants
 HTTP_OK = 200
 HTTP_REDIRECT = 302
+HTTP_NOT_FOUND = 404
 
 User = get_user_model()
 
@@ -92,7 +93,7 @@ class MacrosViewsTestCase(TestCase):
 
         # Current application behavior: returns 404 when bot not found in server
         # This is actually reasonable behavior for a bot-specific interface
-        assert response.status_code == 404
+        assert response.status_code == HTTP_NOT_FOUND
 
     @skip_discord_api_dependent
     @patch("macros.views.get_user_guilds")
@@ -106,9 +107,8 @@ class MacrosViewsTestCase(TestCase):
         assert response.status_code == HTTP_REDIRECT  # Redirects to servers:dashboard
 
     @skip_complex_integration
-    @patch("macros.views.bot_interface")
     @patch("macros.views.get_user_guilds")
-    def test_macro_add_get(self, mock_get_guilds, mock_bot_interface):
+    def test_macro_add_get(self, mock_get_guilds):
         """Test GET request to macro add view."""
         self.client.login(username="testuser", password="testpassword")
 
@@ -153,8 +153,6 @@ class MacrosViewsTestCase(TestCase):
         )
 
         assert response.status_code == HTTP_REDIRECT  # Redirect after success
-        # TODO: Re-enable this assertion when save flow is properly mocked
-        # mock_bot_interface.save_server_macros.assert_called_once()
 
     @skip_complex_integration
     @patch("macros.views.bot_interface")
@@ -401,9 +399,8 @@ class MacrosViewsTestCase(TestCase):
         assert "admin_access" in data
 
     @skip_complex_integration
-    @patch("macros.views.bot_interface")
     @patch("macros.views.get_user_guilds")
-    def test_macro_add_invalid_name(self, mock_get_guilds, mock_bot_interface):
+    def test_macro_add_invalid_name(self, mock_get_guilds):
         """Test macro creation with invalid name."""
         self.client.login(username="testuser", password="testpassword")
 
@@ -451,10 +448,7 @@ class MacrosViewsTestCase(TestCase):
     @skip_complex_integration
     @patch("macros.views._check_server_permission")
     @patch("macros.views._validate_server_access")
-    @patch("macros.views.get_user_guilds")
-    def test_macro_add_no_permission(
-        self, mock_get_guilds, mock_validate_access, mock_check_permission
-    ):
+    def test_macro_add_no_permission(self, mock_validate_access, mock_check_permission):
         """Test macro add when user lacks create permission."""
         self.client.login(username="testuser", password="testpassword")
 
@@ -468,7 +462,6 @@ class MacrosViewsTestCase(TestCase):
             ANY, self.guild_id, "create_macros"
         )
 
-    @patch("macros.views.bot_interface")
     @patch("macros.views._check_server_permission")
     @patch("macros.views._validate_server_access")
     @patch("macros.views.get_user_guilds")
@@ -477,7 +470,6 @@ class MacrosViewsTestCase(TestCase):
         mock_get_guilds,
         mock_validate_access,
         mock_check_permission,
-        mock_bot_interface,
     ):
         """Test that validation errors preserve form data."""
         self.client.login(username="testuser", password="testpassword")

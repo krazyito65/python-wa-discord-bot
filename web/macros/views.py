@@ -7,7 +7,11 @@ for specific Discord servers through the web interface.
 
 import logging
 
-from admin_panel.models import ServerPermissionConfig
+from admin_panel.models import (
+    DISCORD_ADMINISTRATOR_PERMISSION,
+    DISCORD_MANAGE_SERVER_PERMISSION,
+    ServerPermissionConfig,
+)
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -247,8 +251,10 @@ def _check_server_permission(request, guild_id: int, permission_type: str) -> bo
             # For new configs, use basic admin permission check (Discord administrator/owner/manage server)
             return (
                 is_server_owner
-                or (guild_permissions & 0x8) == 0x8
-                or (guild_permissions & 0x20) == 0x20
+                or (guild_permissions & DISCORD_ADMINISTRATOR_PERMISSION)
+                == DISCORD_ADMINISTRATOR_PERMISSION
+                or (guild_permissions & DISCORD_MANAGE_SERVER_PERMISSION)
+                == DISCORD_MANAGE_SERVER_PERMISSION
             )
         # Use the configured permission system with actual roles
         try:
@@ -269,9 +275,9 @@ def _check_server_permission(request, guild_id: int, permission_type: str) -> bo
 
         return has_permission
 
-    except Exception as e:
+    except Exception:
         logger.exception(
-            f"Error checking {permission_type} permission for user {request.user.username} in guild {guild_id}: {e}"
+            f"Error checking {permission_type} permission for user {request.user.username} in guild {guild_id}"
         )
         return False
 

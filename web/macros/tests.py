@@ -10,6 +10,9 @@ from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+# HTTP status constants
+HTTP_OK = 200
+
 
 class MacroAddFeatureFlagTest(TestCase):
     """Test macro_add view feature flag functionality."""
@@ -41,7 +44,7 @@ class MacroAddFeatureFlagTest(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("macros:macro_add", args=[self.guild_id]))
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
 
         # Test based on actual configuration
         feature_flags = getattr(settings, "FEATURE_FLAGS", {})
@@ -71,7 +74,7 @@ class MacroAddFeatureFlagTest(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("macros:macro_add", args=[self.guild_id]))
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         self.assertNotContains(response, "Discord Preview")
         self.assertNotContains(response, "macroPreview")
         self.assertNotContains(response, "parseDiscordMarkdown")
@@ -91,7 +94,7 @@ class MacroAddFeatureFlagTest(TestCase):
         self.client.force_login(self.user)
         response = self.client.get(reverse("macros:macro_add", args=[self.guild_id]))
 
-        assert response.status_code == 200
+        assert response.status_code == HTTP_OK
         self.assertContains(response, "Discord Preview")
         self.assertContains(response, "macroPreview")
         self.assertContains(response, "parseDiscordMarkdown")

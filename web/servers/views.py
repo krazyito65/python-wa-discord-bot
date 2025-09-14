@@ -7,7 +7,12 @@ allowing users to choose which Discord server to manage macros for.
 
 import logging
 
-from admin_panel.models import ServerPermissionConfig
+from admin_panel.models import (
+    DISCORD_ADMINISTRATOR_PERMISSION,
+    DISCORD_MANAGE_CHANNELS_PERMISSION,
+    DISCORD_MANAGE_SERVER_PERMISSION,
+    ServerPermissionConfig,
+)
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
@@ -195,8 +200,10 @@ def _check_admin_panel_access(request, guild_id: int, user_guilds: list) -> bool
             # For new configs, use basic admin permission check (Discord administrator/owner)
             return (
                 is_server_owner
-                or (guild_permissions & 0x8) == 0x8
-                or (guild_permissions & 0x20) == 0x20
+                or (guild_permissions & DISCORD_ADMINISTRATOR_PERMISSION)
+                == DISCORD_ADMINISTRATOR_PERMISSION
+                or (guild_permissions & DISCORD_MANAGE_SERVER_PERMISSION)
+                == DISCORD_MANAGE_SERVER_PERMISSION
             )
         # Use the configured permission system
         user_roles = []  # We'll need to implement role fetching from Discord API in the future
@@ -204,8 +211,8 @@ def _check_admin_panel_access(request, guild_id: int, user_guilds: list) -> bool
             user_roles, "admin_panel_access", guild_permissions, is_server_owner
         )
 
-    except Exception as e:
-        logger.exception(f"Error checking admin panel access: {e}")
+    except Exception:
+        logger.exception("Error checking admin panel access")
         return False
 
 
@@ -255,8 +262,10 @@ def _check_macro_permission(
             # For new configs, use basic admin permission check (Discord administrator/owner/manage server)
             return (
                 is_server_owner
-                or (guild_permissions & 0x8) == 0x8
-                or (guild_permissions & 0x20) == 0x20
+                or (guild_permissions & DISCORD_ADMINISTRATOR_PERMISSION)
+                == DISCORD_ADMINISTRATOR_PERMISSION
+                or (guild_permissions & DISCORD_MANAGE_SERVER_PERMISSION)
+                == DISCORD_MANAGE_SERVER_PERMISSION
             )
         # Use the configured permission system with actual roles
         try:
@@ -269,8 +278,8 @@ def _check_macro_permission(
             user_role_names, permission_type, guild_permissions, is_server_owner
         )
 
-    except Exception as e:
-        logger.exception(f"Error checking {permission_type} permission: {e}")
+    except Exception:
+        logger.exception(f"Error checking {permission_type} permission")
         return False
 
 
@@ -301,9 +310,15 @@ def _get_user_permission_status(request, guild_id: int, user_guilds: list) -> di
         guild_permissions = int(guild_info.get("permissions", 0))
 
         # Check Discord permission bits
-        has_administrator = (guild_permissions & 0x8) == 0x8
-        has_manage_server = (guild_permissions & 0x20) == 0x20
-        has_manage_channels = (guild_permissions & 0x10) == 0x10
+        has_administrator = (
+            guild_permissions & DISCORD_ADMINISTRATOR_PERMISSION
+        ) == DISCORD_ADMINISTRATOR_PERMISSION
+        has_manage_server = (
+            guild_permissions & DISCORD_MANAGE_SERVER_PERMISSION
+        ) == DISCORD_MANAGE_SERVER_PERMISSION
+        has_manage_channels = (
+            guild_permissions & DISCORD_MANAGE_CHANNELS_PERMISSION
+        ) == DISCORD_MANAGE_CHANNELS_PERMISSION
 
         # Get server permission configuration
         server_config, created = ServerPermissionConfig.objects.get_or_create(
@@ -399,7 +414,7 @@ def _get_user_permission_status(request, guild_id: int, user_guilds: list) -> di
         }
 
     except Exception as e:
-        logger.exception(f"Error getting user permission status: {e}")
+        logger.exception("Error getting user permission status")
         return {"error": f"Error checking permissions: {e}"}
 
 

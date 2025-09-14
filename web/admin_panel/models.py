@@ -11,6 +11,7 @@ from django.utils import timezone
 
 # Discord permission constants
 DISCORD_ADMINISTRATOR_PERMISSION = 0x8
+DISCORD_MANAGE_CHANNELS_PERMISSION = 0x10
 DISCORD_MANAGE_SERVER_PERMISSION = 0x20
 
 

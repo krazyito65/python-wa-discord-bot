@@ -12,6 +12,9 @@ from django.core.cache import cache
 
 from .bot_interface import bot_interface
 
+# HTTP status constants
+HTTP_NOT_FOUND = 404
+
 
 class DiscordAPIError(Exception):
     """Exception raised when Discord API calls fail."""
@@ -211,7 +214,7 @@ def get_user_guild_member(user, guild_id: int) -> dict | None:
             timeout=10,
         )
 
-        if response.status_code == 404:
+        if response.status_code == HTTP_NOT_FOUND:
             # User is not a member of this guild
             cache.set(cache_key, None, 300)  # Cache negative result briefly
             return None
@@ -330,7 +333,7 @@ def get_user_roles_in_guild(user, guild_id: int) -> list[dict] | None:
             timeout=10,
         )
 
-        if response.status_code == 404:
+        if response.status_code == HTTP_NOT_FOUND:
             # User is not a member of this guild
             cache.set(cache_key, None, 300)  # Cache negative result briefly
             return None
