@@ -71,6 +71,9 @@ docs/api/
 # Test artifacts
 .pytest_cache/
 .coverage
+**/coverage.xml
+coverage.xml
+
 htmlcov/
 
 # Django database
