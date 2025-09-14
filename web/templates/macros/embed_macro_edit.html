@@ -203,7 +203,7 @@
                                 name="embed_title"
                                 placeholder="Enter embed title..."
                                 maxlength="256"
-                                value="{{ form_data.embed_title|default:embed_data.title|default:'' }}"
+                                value="{% if form_data.embed_title %}{{ form_data.embed_title }}{% elif 'title' in embed_data %}{{ embed_data.title }}{% endif %}"
                             >
                             <div class="char-counter" id="titleCounter">0 / 256</div>
                         </div>
@@ -220,7 +220,7 @@
                                 rows="4"
                                 placeholder="Enter the main description..."
                                 maxlength="4000"
-                            >{{ form_data.embed_description|default:embed_data.description|default:'' }}</textarea>
+                            >{% if form_data.embed_description %}{{ form_data.embed_description }}{% elif 'description' in embed_data %}{{ embed_data.description }}{% endif %}</textarea>
                             <div class="char-counter" id="descriptionCounter">0 / 4000</div>
                         </div>
 
@@ -237,7 +237,7 @@
                                     name="embed_color"
                                     placeholder="#5865F2"
                                     maxlength="7"
-                                    value="{% if form_data.embed_color %}{{ form_data.embed_color }}{% elif embed_data.color %}#{{ embed_data.color|stringformat:'06x' }}{% endif %}"
+                                    value="{% if form_data.embed_color %}{{ form_data.embed_color }}{% elif 'color' in embed_data and embed_data.color %}#{{ embed_data.color|stringformat:'06x' }}{% endif %}"
                                 >
                                 <div class="color-preview" id="colorPreview"></div>
                             </div>
@@ -258,7 +258,7 @@
                                 name="embed_footer"
                                 placeholder="Footer text (optional)..."
                                 maxlength="2048"
-                                value="{{ form_data.embed_footer|default:embed_data.footer|default:'' }}"
+                                value="{% if form_data.embed_footer %}{{ form_data.embed_footer }}{% elif 'footer' in embed_data %}{{ embed_data.footer }}{% endif %}"
                             >
                             <div class="char-counter" id="footerCounter">0 / 2048</div>
                         </div>
@@ -274,7 +274,7 @@
                                 id="embedImage"
                                 name="embed_image"
                                 placeholder="https://example.com/image.png"
-                                value="{{ form_data.embed_image|default:embed_data.image|default:'' }}"
+                                value="{% if form_data.embed_image %}{{ form_data.embed_image }}{% elif 'image' in embed_data %}{{ embed_data.image }}{% endif %}"
                             >
                             <div class="form-text">
                                 Optional image to display in the embed
@@ -314,7 +314,7 @@
                                             </button>
                                         </div>
                                     {% endfor %}
-                                {% elif embed_data.fields %}
+                                {% elif embed_data and 'fields' in embed_data and embed_data.fields %}
                                     {% for field in embed_data.fields %}
                                         <div class="field-row">
                                             <div class="form-group">
