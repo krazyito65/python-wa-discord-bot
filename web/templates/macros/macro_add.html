@@ -22,7 +22,7 @@
     .char-counter.danger {
         color: #dc3545;
     }
-    
+
     /* Discord-style preview that adapts to theme */
     .macro-preview {
         background-color: #36393f;
@@ -37,35 +37,35 @@
         word-wrap: break-word;
         min-height: 100px;
     }
-    
+
     /* Dark mode: Use lighter Discord theme for better contrast */
     [data-bs-theme="dark"] .macro-preview {
         background-color: #2f3136;
         color: #ffffff;
         border-color: #40444b;
     }
-    
+
     /* Light mode: Use lighter Discord theme */
     [data-bs-theme="light"] .macro-preview {
         background-color: #f2f3f5;
         color: #2e3338;
         border-color: #d1d4d8;
     }
-    
+
     .macro-preview strong, .macro-preview .discord-bold {
         font-weight: 700;
     }
-    
+
     [data-bs-theme="dark"] .macro-preview strong,
     [data-bs-theme="dark"] .macro-preview .discord-bold {
         color: #ffffff;
     }
-    
+
     [data-bs-theme="light"] .macro-preview strong,
     [data-bs-theme="light"] .macro-preview .discord-bold {
         color: #060607;
     }
-    
+
     .macro-preview em, .macro-preview .discord-italic {
         font-style: italic;
     }
@@ -75,26 +75,26 @@
     .macro-preview s, .macro-preview .discord-strikethrough {
         text-decoration: line-through;
     }
-    
+
     .macro-preview code, .macro-preview .discord-code {
         border-radius: 3px;
         padding: 0.125rem 0.25rem;
         font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
         font-size: 0.875rem;
     }
-    
+
     [data-bs-theme="dark"] .macro-preview code,
     [data-bs-theme="dark"] .macro-preview .discord-code {
         background-color: #2f3136;
         color: #ffffff;
     }
-    
+
     [data-bs-theme="light"] .macro-preview code,
     [data-bs-theme="light"] .macro-preview .discord-code {
         background-color: #e3e5e8;
         color: #2e3338;
     }
-    
+
     .macro-preview .discord-code-block {
         border-radius: 4px;
         padding: 0.5rem;
@@ -104,45 +104,45 @@
         white-space: pre-wrap;
         overflow-x: auto;
     }
-    
+
     [data-bs-theme="dark"] .macro-preview .discord-code-block {
         background-color: #2f3136;
         border: 1px solid #202225;
         color: #ffffff;
     }
-    
+
     [data-bs-theme="light"] .macro-preview .discord-code-block {
         background-color: #e3e5e8;
         border: 1px solid #c4c9ce;
         color: #2e3338;
     }
-    
+
     .macro-preview .discord-spoiler {
         border-radius: 3px;
         cursor: pointer;
         transition: all 0.1s ease;
     }
-    
+
     [data-bs-theme="dark"] .macro-preview .discord-spoiler {
         background-color: #202225;
         color: #202225;
     }
-    
+
     [data-bs-theme="light"] .macro-preview .discord-spoiler {
         background-color: #b9bbbe;
         color: #b9bbbe;
     }
-    
+
     [data-bs-theme="dark"] .macro-preview .discord-spoiler:hover {
         background-color: transparent;
         color: #ffffff;
     }
-    
+
     [data-bs-theme="light"] .macro-preview .discord-spoiler:hover {
         background-color: transparent;
         color: #2e3338;
     }
-    
+
     .macro-preview .discord-mention {
         background-color: rgba(88, 101, 242, 0.3);
         color: #dee0fc;
@@ -150,7 +150,7 @@
         border-radius: 3px;
         font-weight: 500;
     }
-    
+
     .macro-preview .discord-timestamp {
         background-color: rgba(114, 118, 125, 0.3);
         padding: 0 2px;
@@ -159,15 +159,15 @@
         text-decoration-style: dotted;
         cursor: help;
     }
-    
+
     [data-bs-theme="dark"] .macro-preview .discord-timestamp {
         color: #ffffff;
     }
-    
+
     [data-bs-theme="light"] .macro-preview .discord-timestamp {
         color: #2e3338;
     }
-    
+
     .macro-preview a, .macro-preview .discord-link {
         color: #00b0f4;
         text-decoration: none;
@@ -175,20 +175,20 @@
     .macro-preview a:hover, .macro-preview .discord-link:hover {
         text-decoration: underline;
     }
-    
+
     /* Placeholder text styling */
     .preview-placeholder {
         opacity: 0.6;
     }
-    
+
     [data-bs-theme="dark"] .preview-placeholder {
         color: #b9bbbe !important;
     }
-    
+
     [data-bs-theme="light"] .preview-placeholder {
         color: #6c757d !important;
     }
-    
+
     .name-available {
         color: #198754;
     }
@@ -198,7 +198,7 @@
     .name-checking {
         color: var(--text-secondary);
     }
-    
+
     .spinner {
         display: inline-block;
         width: 1rem;
@@ -209,7 +209,7 @@
         animation: spin 1s linear infinite;
         margin-right: 0.5rem;
     }
-    
+
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }

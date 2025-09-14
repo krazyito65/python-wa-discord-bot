@@ -29,7 +29,7 @@
             --wa-purple: #9f4af3;
             --wa-purple-hover: #8b3ee6;
             --wa-purple-dark: #7a35d1;
-            
+
             /* Light Mode Colors */
             --bg-primary: #ffffff;
             --bg-secondary: #f8f9fa;
@@ -42,7 +42,7 @@
             --nav-bg: var(--wa-purple);
             --input-bg: #ffffff;
             --input-border: #ced4da;
-            
+
             /* Shadows */
             --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
@@ -61,7 +61,7 @@
             --nav-bg: #1a1a1a;
             --input-bg: #495057;
             --input-border: #6c757d;
-            
+
             /* Shadows for dark mode */
             --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.3);
             --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.4);
@@ -248,22 +248,22 @@
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = document.getElementById('themeIcon');
             const html = document.documentElement;
-            
+
             // Get saved theme preference or default to 'light'
             const getStoredTheme = () => localStorage.getItem('wa-theme');
             const setStoredTheme = theme => localStorage.setItem('wa-theme', theme);
-            
+
             // Get preferred theme (user preference, then system preference, then default)
             const getPreferredTheme = () => {
                 const storedTheme = getStoredTheme();
                 if (storedTheme) {
                     return storedTheme;
                 }
-                
+
                 // Check system preference
                 return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             };
-            
+
             // Set theme
             const setTheme = theme => {
                 if (theme === 'dark') {
@@ -276,14 +276,14 @@
                     themeToggle.title = 'Switch to dark mode';
                 }
             };
-            
+
             // Initialize theme on page load
             const initTheme = () => {
                 const theme = getPreferredTheme();
                 setTheme(theme);
                 setStoredTheme(theme);
             };
-            
+
             // Toggle theme
             const toggleTheme = () => {
                 const currentTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'dark' : 'light';
@@ -291,10 +291,10 @@
                 setTheme(newTheme);
                 setStoredTheme(newTheme);
             };
-            
+
             // Event listeners
             themeToggle.addEventListener('click', toggleTheme);
-            
+
             // Listen for system theme changes
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
                 const storedTheme = getStoredTheme();
@@ -302,7 +302,7 @@
                     setTheme(e.matches ? 'dark' : 'light');
                 }
             });
-            
+
             // Initialize theme when DOM is loaded
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initTheme);

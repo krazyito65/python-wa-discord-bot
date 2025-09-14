@@ -62,7 +62,7 @@
                                 </select>
                                 <small class="text-muted">Leave empty to show top 10 most active users</small>
                             </div>
-                            
+
                             <!-- Sort Period -->
                             <div class="col-md-2">
                                 <label class="form-label">Sort by Period</label>
@@ -73,7 +73,7 @@
                                     <option value="all" {% if sort_period == 'all' %}selected{% endif %}>All Time</option>
                                 </select>
                             </div>
-                            
+
                             <!-- Activity Filter -->
                             <div class="col-md-2">
                                 <label class="form-label">Activity Filter</label>
@@ -84,7 +84,7 @@
                                     <option value="active_30d" {% if activity_filter == 'active_30d' %}selected{% endif %}>Active (30 days)</option>
                                 </select>
                             </div>
-                            
+
                             <!-- Show Channels -->
                             <div class="col-md-2">
                                 <label class="form-label">Show Channels</label>
@@ -94,7 +94,7 @@
                                     <option value="all" {% if show_channels == 'all' %}selected{% endif %}>All Channels</option>
                                 </select>
                             </div>
-                            
+
                             <!-- Apply Button -->
                             <div class="col-md-2 d-flex align-items-end">
                                 <button type="submit" class="btn btn-primary w-100">
@@ -147,7 +147,7 @@
                             <i class="fas fa-user text-white"></i>
                         </div>
                         {% endif %}
-                        
+
                         <div class="flex-grow-1">
                             <div class="d-flex align-items-center">
                                 <h6 class="mb-0 me-2">
@@ -167,7 +167,7 @@
                                 <span class="badge bg-secondary">⚫ Inactive</span>
                                 {% endif %}
                             </div>
-                            
+
                             <div class="row text-center mt-2">
                                 <div class="col-3">
                                     <small class="text-muted d-block">7d</small>
@@ -187,7 +187,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div class="ms-2">
                             <i class="fas fa-chevron-down collapse-indicator"></i>
                         </div>
@@ -204,7 +204,7 @@
                             <div class="mt-1">
                                 {% for channel in data.channels|slice:":3" %}
                                 <span class="badge bg-light text-dark me-1">
-                                    #{{ channel.channel.name }} 
+                                    #{{ channel.channel.name }}
                                     ({% if sort_period == '7d' %}{{ channel.messages_7d }}{% elif sort_period == '30d' %}{{ channel.messages_30d }}{% elif sort_period == '90d' %}{{ channel.messages_90d }}{% else %}{{ channel.total_messages }}{% endif %})
                                 </span>
                                 {% endfor %}
@@ -362,7 +362,7 @@
     .user-card .row.text-center .col-3 {
         font-size: 0.9em;
     }
-    
+
     .table-responsive table {
         font-size: 0.9em;
     }
@@ -385,7 +385,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Select2 for user selection
     const userSelect = $('select[name="user"]');
-    
+
     if (userSelect.length) {
         userSelect.select2({
             theme: 'bootstrap-5',
@@ -400,25 +400,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 return $('<span>').text(user.text);
             }
         });
-        
+
         // Clear search input when user is selected
         userSelect.on('select2:select', function(e) {
             const select2Instance = $(this).data('select2');
             setTimeout(() => {
                 const $dropdownSearch = select2Instance.$dropdown.find('.select2-search__field');
                 const $selectionSearch = select2Instance.$selection.find('.select2-search__field');
-                
+
                 $dropdownSearch.val('');
                 $selectionSearch.val('');
                 $selectionSearch.focus();
             }, 25);
         });
     }
-    
+
     // Expand/Collapse All functionality
     const expandAllBtn = document.getElementById('expandAllBtn');
     const collapseAllBtn = document.getElementById('collapseAllBtn');
-    
+
     if (expandAllBtn) {
         expandAllBtn.addEventListener('click', function() {
             const collapses = document.querySelectorAll('.user-card .collapse');
@@ -428,7 +428,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     if (collapseAllBtn) {
         collapseAllBtn.addEventListener('click', function() {
             const collapses = document.querySelectorAll('.user-card .collapse');
@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-    
+
     // Form submission with loading indicator
     const form = document.getElementById('multiUserFilterForm');
     if (form) {

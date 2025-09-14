@@ -374,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Time-based Line Chart with dates on x-axis and separate lines for each channel
     const timeCtx = document.getElementById('timeChart').getContext('2d');
-    
+
     // Generate colors for each channel line
     const lineColors = [
         'rgba(159, 74, 243, 1)',   // Purple
@@ -401,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
         pointHoverRadius: 6,
         fill: false
     }));
-    
+
     new Chart(timeCtx, {
         type: 'line',
         data: {

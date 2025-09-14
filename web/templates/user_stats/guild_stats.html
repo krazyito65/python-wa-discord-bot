@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return $('<span>').text(user.text);
                 }
             });
-            
+
             // Clear search input when user is selected
             userSelect.on('select2:select', function(e) {
                 const select2Instance = $(this).data('select2');
@@ -624,15 +624,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Clear both search inputs
                     const $dropdownSearch = select2Instance.$dropdown.find('.select2-search__field');
                     const $selectionSearch = select2Instance.$selection.find('.select2-search__field');
-                    
+
                     $dropdownSearch.val('');
                     $selectionSearch.val('');
-                    
+
                     // Keep dropdown open and maintain focus
                     $selectionSearch.focus();
                 }, 25);
             });
-            
+
             userSelect.on('change', function() {
                 const selectedValues = $(this).val();
                 console.log('Users selected:', selectedValues);
@@ -656,7 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return $('<span>').text(channel.text);
                 }
             });
-            
+
             // Clear search input when channel is selected
             channelSelect.on('select2:select', function(e) {
                 const select2Instance = $(this).data('select2');
@@ -665,15 +665,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Clear both search inputs
                     const $dropdownSearch = select2Instance.$dropdown.find('.select2-search__field');
                     const $selectionSearch = select2Instance.$selection.find('.select2-search__field');
-                    
+
                     $dropdownSearch.val('');
                     $selectionSearch.val('');
-                    
+
                     // Keep dropdown open and maintain focus
                     $selectionSearch.focus();
                 }, 25);
             });
-            
+
             channelSelect.on('change', function() {
                 const selectedValues = $(this).val();
                 console.log('Channels selected:', selectedValues);
@@ -687,12 +687,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function showLoadingAndSubmit() {
             console.log('showLoadingAndSubmit called');
-            
+
             // Ensure Select2 values are properly set in the underlying select elements
             const userValue = userSelect.val();
             const channelValue = channelSelect.val();
             console.log('Form values before submit - User:', userValue, 'Channel:', channelValue);
-            
+
             // Manually trigger change events to ensure values are synced
             if (userValue) {
                 userSelect[0].value = userValue;
@@ -700,7 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (channelValue) {
                 channelSelect[0].value = channelValue;
             }
-            
+
             // Show loading indicator
             const existingLoading = document.querySelector('.filter-loading');
             if (!existingLoading) {
