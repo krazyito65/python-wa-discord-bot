@@ -33,7 +33,7 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
     async def macro_name_autocomplete(
         interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[str]]:
-        """Autocomplete function for macro names"""
+        """Autocomplete function for all macro names"""
         if not interaction.guild:
             return []
 
@@ -43,6 +43,60 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
 
         # Filter macro names based on current input
         filtered_macros = [name for name in macros if current.lower() in name.lower()]
+
+        # Return up to 25 choices (Discord limit)
+        return [
+            app_commands.Choice(name=name, value=name) for name in filtered_macros[:25]
+        ]
+
+    async def text_macro_autocomplete(
+        interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        """Autocomplete function for text macro names only"""
+        if not interaction.guild:
+            return []
+
+        guild_id = interaction.guild.id
+        guild_name = interaction.guild.name
+        macros = bot.load_server_macros(guild_id, guild_name)
+
+        # Filter for text macros only and current input
+        filtered_macros = []
+        for name, data in macros.items():
+            if current.lower() in name.lower():
+                # Check if it's a text macro (not embed)
+                if isinstance(data, dict):
+                    macro_type = data.get("type", "text")
+                    if macro_type == "text":
+                        filtered_macros.append(name)
+                else:
+                    # Legacy format is always text
+                    filtered_macros.append(name)
+
+        # Return up to 25 choices (Discord limit)
+        return [
+            app_commands.Choice(name=name, value=name) for name in filtered_macros[:25]
+        ]
+
+    async def embed_macro_autocomplete(
+        interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[str]]:
+        """Autocomplete function for embed macro names only"""
+        if not interaction.guild:
+            return []
+
+        guild_id = interaction.guild.id
+        guild_name = interaction.guild.name
+        macros = bot.load_server_macros(guild_id, guild_name)
+
+        # Filter for embed macros only and current input
+        filtered_macros = []
+        for name, data in macros.items():
+            if current.lower() in name.lower() and isinstance(data, dict):
+                macro_type = data.get("type", "text")
+                if macro_type == "embed":
+                    filtered_macros.append(name)
+                # Note: Legacy format is never embed, so we skip those
 
         # Return up to 25 choices (Discord limit)
         return [
@@ -481,7 +535,7 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         name="edit_embed_macro",
         description="Edit an existing WeakAuras embed macro",
     )
-    @app_commands.autocomplete(name=macro_name_autocomplete)
+    @app_commands.autocomplete(name=embed_macro_autocomplete)
     @log_command
     async def edit_embed_macro(interaction: discord.Interaction, name: str):
         """Edit an existing embed macro"""
