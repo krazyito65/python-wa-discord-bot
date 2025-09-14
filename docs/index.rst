@@ -60,8 +60,8 @@ Available Commands
 * ``/wa_ping`` - Test bot responsiveness and show server information
 * ``/toggle_temperature`` - Enable/disable temperature events (admin role required)
 
-API Documentation
------------------
+Documentation
+-------------
 
 .. toctree::
    :maxdepth: 2
@@ -70,12 +70,6 @@ API Documentation
    getting_started
    configuration
    development
-   api/main
-   api/bot
-   api/commands
-   api/events
-   api/tests
-   api/utils
 
 Indices and tables
 ==================
