@@ -312,6 +312,172 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
         await send_embed_response(interaction, embed, logo_file)
 
     @bot.tree.command(
+        name="edit_macro",
+        description="Edit an existing WeakAuras macro (text or embed)",
+    )
+    @app_commands.autocomplete(name=macro_name_autocomplete)
+    @log_command
+    async def edit_macro(interaction: discord.Interaction, name: str):
+        """Edit an existing macro (automatically detects text vs embed type)"""
+        if not interaction.guild:
+            logger.warning("edit_macro command used outside of server")
+            await interaction.response.send_message(
+                "This command can only be used in a server!", ephemeral=True
+            )
+            return
+
+        guild_id = interaction.guild.id
+        guild_name = interaction.guild.name
+
+        # Check if user has permission to edit macros
+        if not isinstance(
+            interaction.user, discord.Member
+        ) or not check_server_permission(interaction.user, guild_id, "edit_macros"):
+            config = get_server_permission_config(guild_id)
+            error_message = get_permission_error_message("edit_macros", config)
+
+            embed, logo_file = bot.create_embed(
+                title="❌ Permission Denied",
+                description=error_message,
+                footer_text=f"Server: {guild_name}",
+            )
+            await send_embed_response(interaction, embed, logo_file)
+            logger.warning("edit_macro command denied - insufficient permissions")
+            return
+
+        # Load server-specific macros
+        macros = bot.load_server_macros(guild_id, guild_name)
+
+        if name not in macros:
+            logger.info(f"edit_macro failed - macro '{name}' does not exist")
+            await interaction.response.send_message(
+                f"WeakAuras macro '{name}' does not exist!", ephemeral=True
+            )
+            return
+
+        macro_data = macros[name]
+
+        # Check if this is an embed macro
+        if isinstance(macro_data, dict) and macro_data.get("type") == "embed":
+            # Redirect to embed editing
+            async def update_embed_macro(
+                save_interaction: discord.Interaction, embed_data: dict[str, Any]
+            ):
+                """Callback to update the embed macro"""
+                macro_data["embed_data"] = embed_data
+                macro_data["modified_by"] = str(interaction.user.id)
+                macro_data["modified_by_name"] = interaction.user.name
+                macro_data["modified_at"] = interaction.created_at.isoformat()
+
+                macros[name] = macro_data
+                bot.save_server_macros(guild_id, guild_name, macros)
+                logger.info(
+                    f"Successfully updated embed macro '{name}' via edit_macro in guild {guild_name} ({guild_id})"
+                )
+
+                success_embed, logo_file = bot.create_embed(
+                    title="✅ Embed Macro Updated",
+                    description=f"Successfully updated embed macro **{name}**",
+                    footer_text=f"Server: {guild_name}",
+                )
+                if logo_file:
+                    await save_interaction.response.send_message(
+                        embed=success_embed, file=logo_file, ephemeral=True
+                    )
+                else:
+                    await save_interaction.response.send_message(
+                        embed=success_embed, ephemeral=True
+                    )
+
+            # Create embed builder view with existing data
+            existing_embed_data = macro_data.get("embed_data", {})
+            embed_view = EmbedBuilderView(
+                macro_name=name,
+                embed_data=existing_embed_data,
+                callback_func=update_embed_macro,
+            )
+
+            preview_embed = embed_view.create_preview_embed()
+            content = f"**Editing Embed Macro: `{name}`**\n*Use the buttons below to modify your embed.*"
+
+            await interaction.response.send_message(
+                content=content, embed=preview_embed, view=embed_view, ephemeral=True
+            )
+        else:
+            # Handle text macro editing with a simple modal
+            class TextMacroEditModal(discord.ui.Modal):
+                def __init__(self, current_message: str):
+                    super().__init__(title=f"Edit Text Macro: {name}")
+
+                    self.message_input = discord.ui.TextInput(
+                        label="Macro Message",
+                        placeholder="Enter the macro content...",
+                        default=current_message,
+                        style=discord.TextStyle.paragraph,
+                        max_length=2000,
+                        required=True,
+                    )
+                    self.add_item(self.message_input)
+
+                async def on_submit(self, modal_interaction: discord.Interaction):
+                    new_message = self.message_input.value.strip()
+
+                    if not new_message:
+                        await modal_interaction.response.send_message(
+                            "❌ Macro message cannot be empty!", ephemeral=True
+                        )
+                        return
+
+                    # Update the macro
+                    if isinstance(macro_data, dict):
+                        macro_data["message"] = new_message
+                        macro_data["updated_by"] = str(interaction.user.id)
+                        macro_data["updated_by_name"] = interaction.user.name
+                        macro_data["updated_at"] = interaction.created_at.isoformat()
+                        macros[name] = macro_data
+                    else:
+                        # Convert legacy format to modern format with update info
+                        macros[name] = {
+                            "name": name,
+                            "message": new_message,
+                            "created_by": "",
+                            "created_by_name": "Unknown",
+                            "created_at": "",
+                            "updated_by": str(interaction.user.id),
+                            "updated_by_name": interaction.user.name,
+                            "updated_at": interaction.created_at.isoformat(),
+                        }
+
+                    bot.save_server_macros(guild_id, guild_name, macros)
+                    logger.info(
+                        f"Successfully updated text macro '{name}' via edit_macro in guild {guild_name} ({guild_id})"
+                    )
+
+                    success_embed, logo_file = bot.create_embed(
+                        title="✅ Text Macro Updated",
+                        description=f"Successfully updated text macro **{name}**",
+                        footer_text=f"Server: {guild_name}",
+                    )
+                    if logo_file:
+                        await modal_interaction.response.send_message(
+                            embed=success_embed, file=logo_file, ephemeral=True
+                        )
+                    else:
+                        await modal_interaction.response.send_message(
+                            embed=success_embed, ephemeral=True
+                        )
+
+            # Get current message
+            current_message = (
+                macro_data.get("message", macro_data)
+                if isinstance(macro_data, dict)
+                else macro_data
+            )
+
+            modal = TextMacroEditModal(current_message)
+            await interaction.response.send_modal(modal)
+
+    @bot.tree.command(
         name="edit_embed_macro",
         description="Edit an existing WeakAuras embed macro",
     )
@@ -387,9 +553,14 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
                 description=f"Successfully updated embed macro **{name}**",
                 footer_text=f"Server: {guild_name}",
             )
-            await save_interaction.response.send_message(
-                embed=success_embed, file=logo_file, ephemeral=True
-            )
+            if logo_file:
+                await save_interaction.response.send_message(
+                    embed=success_embed, file=logo_file, ephemeral=True
+                )
+            else:
+                await save_interaction.response.send_message(
+                    embed=success_embed, ephemeral=True
+                )
 
         # Create embed builder view with existing data
         existing_embed_data = macro_data.get("embed_data", {})

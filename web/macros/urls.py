@@ -17,6 +17,11 @@ urlpatterns = [
     path("<int:guild_id>/get/<str:macro_name>/", views.macro_get, name="macro_get"),
     path("<int:guild_id>/edit/<str:macro_name>/", views.macro_edit, name="macro_edit"),
     path(
+        "<int:guild_id>/edit/embed/<str:macro_name>/",
+        views.embed_macro_edit,
+        name="embed_macro_edit",
+    ),
+    path(
         "<int:guild_id>/delete/<str:macro_name>/",
         views.macro_delete,
         name="macro_delete",

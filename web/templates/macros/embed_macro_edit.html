@@ -1,0 +1,731 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Embed Macro - {{ guild.name }} - WeakAuras Bot{% endblock %}
+
+{% block extra_css %}
+    .form-container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: var(--shadow);
+    }
+
+    .embed-preview {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+        border-left: 4px solid #5865f2;
+    }
+
+    .embed-title {
+        font-weight: bold;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .embed-description {
+        margin-bottom: 1rem;
+        line-height: 1.4;
+    }
+
+    .embed-field {
+        margin: 0.5rem 0;
+        padding: 0.25rem 0;
+    }
+
+    .embed-field-name {
+        font-weight: bold;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .embed-field-value {
+        font-size: 0.85rem;
+        line-height: 1.3;
+    }
+
+    .embed-footer {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 1rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .embed-image {
+        max-width: 100%;
+        border-radius: 4px;
+        margin: 1rem 0;
+    }
+
+    .field-row {
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        background: var(--bg-secondary);
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+    }
+
+    .field-row .form-group {
+        flex: 1;
+        margin-bottom: 0;
+    }
+
+    .field-row .form-check {
+        margin-left: 1rem;
+    }
+
+    .btn-add-field {
+        margin-bottom: 1rem;
+    }
+
+    .char-counter {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .char-counter.warning {
+        color: #fd7e14;
+    }
+
+    .char-counter.danger {
+        color: #dc3545;
+    }
+
+    .color-preview {
+        width: 30px;
+        height: 30px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        display: inline-block;
+        margin-left: 10px;
+        vertical-align: middle;
+    }
+
+    .name-available {
+        color: #198754;
+    }
+    .name-unavailable {
+        color: #dc3545;
+    }
+    .name-checking {
+        color: var(--text-secondary);
+    }
+
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid var(--border-color);
+        border-top: 2px solid var(--text-secondary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1>Edit Embed Macro: {{ macro_name|default:"Unknown" }}</h1>
+                        <p class="text-muted">Server: {{ guild.name }} ({{ guild_id }})</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'servers:server_detail' guild_id=guild_id %}" class="btn btn-outline-secondary">
+                            ← Back to {{ guild.name }}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Form Column -->
+            <div class="col-lg-6">
+                <div class="form-container">
+                    <form method="post" id="embedMacroForm" novalidate>
+                        {% csrf_token %}
+
+                        <!-- Macro Name -->
+                        <div class="mb-4">
+                            <label for="macroName" class="form-label">
+                                <strong>Macro Name</strong>
+                                <span class="text-danger">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="macroName"
+                                name="name"
+                                placeholder="e.g. welcome, help, rules"
+                                maxlength="50"
+                                value="{{ form_data.name|default:macro_name|default:'' }}"
+                                required
+                            >
+                            <div class="form-text">
+                                Choose a simple, descriptive name. Users will type <code>/macro [name]</code> to use it.
+                            </div>
+                            <div class="char-counter" id="nameCounter">0 / 50</div>
+                            <div class="invalid-feedback" id="nameError"></div>
+                            <div class="form-text" id="nameAvailability" style="display: none;">
+                                <span id="availabilityIcon"></span>
+                                <span id="availabilityMessage"></span>
+                            </div>
+                        </div>
+
+                        <!-- Embed Title -->
+                        <div class="mb-3">
+                            <label for="embedTitle" class="form-label">
+                                <strong>Embed Title</strong>
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="embedTitle"
+                                name="embed_title"
+                                placeholder="Enter embed title..."
+                                maxlength="256"
+                                value="{% if form_data.embed_title %}{{ form_data.embed_title }}{% elif embed_data and embed_data.title %}{{ embed_data.title }}{% endif %}"
+                            >
+                            <div class="char-counter" id="titleCounter">0 / 256</div>
+                        </div>
+
+                        <!-- Embed Description -->
+                        <div class="mb-3">
+                            <label for="embedDescription" class="form-label">
+                                <strong>Description</strong>
+                            </label>
+                            <textarea
+                                class="form-control"
+                                id="embedDescription"
+                                name="embed_description"
+                                rows="4"
+                                placeholder="Enter the main description..."
+                                maxlength="4000"
+                            >{% if form_data.embed_description %}{{ form_data.embed_description }}{% elif embed_data and embed_data.description %}{{ embed_data.description }}{% endif %}</textarea>
+                            <div class="char-counter" id="descriptionCounter">0 / 4000</div>
+                        </div>
+
+                        <!-- Embed Color -->
+                        <div class="mb-3">
+                            <label for="embedColor" class="form-label">
+                                <strong>Color</strong>
+                            </label>
+                            <div class="d-flex align-items-center">
+                                <input
+                                    type="text"
+                                    class="form-control"
+                                    id="embedColor"
+                                    name="embed_color"
+                                    placeholder="#5865F2"
+                                    maxlength="7"
+                                    value="{% if form_data.embed_color %}{{ form_data.embed_color }}{% elif embed_data.color and embed_data.color != None %}#{{ embed_data.color|stringformat:'06x' }}{% else %}{% endif %}"
+                                >
+                                <div class="color-preview" id="colorPreview"></div>
+                            </div>
+                            <div class="form-text">
+                                Use hex color format (e.g., #5865F2)
+                            </div>
+                        </div>
+
+                        <!-- Embed Footer -->
+                        <div class="mb-3">
+                            <label for="embedFooter" class="form-label">
+                                <strong>Footer Text</strong>
+                            </label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="embedFooter"
+                                name="embed_footer"
+                                placeholder="Footer text (optional)..."
+                                maxlength="2048"
+                                value="{% if form_data.embed_footer %}{{ form_data.embed_footer }}{% elif embed_data and embed_data.footer %}{{ embed_data.footer }}{% endif %}"
+                            >
+                            <div class="char-counter" id="footerCounter">0 / 2048</div>
+                        </div>
+
+                        <!-- Embed Image -->
+                        <div class="mb-4">
+                            <label for="embedImage" class="form-label">
+                                <strong>Image URL</strong>
+                            </label>
+                            <input
+                                type="url"
+                                class="form-control"
+                                id="embedImage"
+                                name="embed_image"
+                                placeholder="https://example.com/image.png"
+                                value="{% if form_data.embed_image %}{{ form_data.embed_image }}{% elif embed_data and embed_data.image %}{{ embed_data.image }}{% endif %}"
+                            >
+                            <div class="form-text">
+                                Optional image to display in the embed
+                            </div>
+                        </div>
+
+                        <!-- Custom Fields -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <strong>Custom Fields</strong>
+                            </label>
+                            <div id="customFields">
+                                {% if form_data.fields %}
+                                    {% for field in form_data.fields %}
+                                        <div class="field-row">
+                                            <div class="form-group">
+                                                <label class="form-label">Field Name</label>
+                                                <input type="text" class="form-control" name="field_name[]"
+                                                       placeholder="Field name" maxlength="256"
+                                                       value="{{ field.name }}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Field Value</label>
+                                                <textarea class="form-control" name="field_value[]"
+                                                          placeholder="Field content" maxlength="1024"
+                                                          rows="2">{{ field.value }}</textarea>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" name="field_inline[]"
+                                                       id="inline_{{ forloop.counter }}" {% if field.inline %}checked{% endif %}>
+                                                <label class="form-check-label" for="inline_{{ forloop.counter }}">
+                                                    Inline
+                                                </label>
+                                            </div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-field">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                {% elif embed_data.fields %}
+                                    {% for field in embed_data.fields %}
+                                        <div class="field-row">
+                                            <div class="form-group">
+                                                <label class="form-label">Field Name</label>
+                                                <input type="text" class="form-control" name="field_name[]"
+                                                       placeholder="Field name" maxlength="256"
+                                                       value="{{ field.name }}">
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="form-label">Field Value</label>
+                                                <textarea class="form-control" name="field_value[]"
+                                                          placeholder="Field content" maxlength="1024"
+                                                          rows="2">{{ field.value }}</textarea>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" name="field_inline[]"
+                                                       id="inline_{{ forloop.counter }}" {% if field.inline %}checked{% endif %}>
+                                                <label class="form-check-label" for="inline_{{ forloop.counter }}">
+                                                    Inline
+                                                </label>
+                                            </div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-field">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </div>
+                            <button type="button" class="btn btn-outline-primary btn-add-field" id="addFieldBtn">
+                                <i class="fas fa-plus"></i> Add Field
+                            </button>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                                Cancel
+                            </button>
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                <i class="fas fa-save"></i> Update Embed Macro
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Preview Column -->
+            <div class="col-lg-6">
+                <div class="position-sticky" style="top: 2rem;">
+                    <h5>Live Preview</h5>
+                    <p class="text-muted">How your embed will appear in Discord</p>
+                    <div class="embed-preview" id="embedPreview">
+                        <div class="text-muted fst-italic">Fill in the fields on the left to see a preview...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('embedMacroForm');
+            const nameInput = document.getElementById('macroName');
+            const titleInput = document.getElementById('embedTitle');
+            const descriptionInput = document.getElementById('embedDescription');
+            const colorInput = document.getElementById('embedColor');
+            const footerInput = document.getElementById('embedFooter');
+            const imageInput = document.getElementById('embedImage');
+            const fieldsContainer = document.getElementById('customFields');
+            const addFieldBtn = document.getElementById('addFieldBtn');
+            const submitBtn = document.getElementById('submitBtn');
+            const preview = document.getElementById('embedPreview');
+            const colorPreview = document.getElementById('colorPreview');
+
+            // Counters
+            const nameCounter = document.getElementById('nameCounter');
+            const titleCounter = document.getElementById('titleCounter');
+            const descriptionCounter = document.getElementById('descriptionCounter');
+            const footerCounter = document.getElementById('footerCounter');
+
+            // Name availability
+            const nameAvailability = document.getElementById('nameAvailability');
+            const availabilityIcon = document.getElementById('availabilityIcon');
+            const availabilityMessage = document.getElementById('availabilityMessage');
+
+            let nameCheckTimeout = null;
+            let lastCheckedName = '';
+            let nameIsAvailable = false;
+            let fieldCounter = 0;
+            const originalName = '{{ macro_name|default:""|escapejs }}';
+
+            // Update character counters
+            function updateCounters() {
+                const nameLen = nameInput.value.length;
+                const titleLen = titleInput.value.length;
+                const descLen = descriptionInput.value.length;
+                const footerLen = footerInput.value.length;
+
+                nameCounter.textContent = `${nameLen} / 50`;
+                titleCounter.textContent = `${titleLen} / 256`;
+                descriptionCounter.textContent = `${descLen} / 4000`;
+                footerCounter.textContent = `${footerLen} / 2048`;
+
+                // Update counter colors
+                nameCounter.className = 'char-counter' + (nameLen > 40 ? ' warning' : '') + (nameLen > 48 ? ' danger' : '');
+                titleCounter.className = 'char-counter' + (titleLen > 220 ? ' warning' : '') + (titleLen > 250 ? ' danger' : '');
+                descriptionCounter.className = 'char-counter' + (descLen > 3600 ? ' warning' : '') + (descLen > 3900 ? ' danger' : '');
+                footerCounter.className = 'char-counter' + (footerLen > 1800 ? ' warning' : '') + (footerLen > 2000 ? ' danger' : '');
+            }
+
+            // Update color preview
+            function updateColorPreview() {
+                const color = colorInput.value.trim();
+                if (color && /^#[0-9A-F]{6}$/i.test(color)) {
+                    colorPreview.style.backgroundColor = color;
+                    colorPreview.style.display = 'inline-block';
+                } else {
+                    colorPreview.style.display = 'none';
+                }
+            }
+
+            // Update embed preview
+            function updatePreview() {
+                const title = titleInput.value.trim();
+                const description = descriptionInput.value.trim();
+                const color = colorInput.value.trim();
+                const footer = footerInput.value.trim();
+                const image = imageInput.value.trim();
+
+                // Get custom fields
+                const fieldNames = document.querySelectorAll('input[name="field_name[]"]');
+                const fieldValues = document.querySelectorAll('textarea[name="field_value[]"]');
+                const fieldInlines = document.querySelectorAll('input[name="field_inline[]"]');
+
+                const fields = [];
+                for (let i = 0; i < fieldNames.length; i++) {
+                    const name = fieldNames[i].value.trim();
+                    const value = fieldValues[i].value.trim();
+                    if (name && value) {
+                        fields.push({
+                            name: name,
+                            value: value,
+                            inline: fieldInlines[i] && fieldInlines[i].checked
+                        });
+                    }
+                }
+
+                // Build preview
+                let previewHtml = '';
+
+                if (title || description || footer || image || fields.length > 0) {
+                    // Set border color
+                    if (color && /^#[0-9A-F]{6}$/i.test(color)) {
+                        preview.style.borderLeftColor = color;
+                    } else {
+                        preview.style.borderLeftColor = '#5865f2';
+                    }
+
+                    if (title) {
+                        previewHtml += `<div class="embed-title">${escapeHtml(title)}</div>`;
+                    }
+
+                    if (description) {
+                        previewHtml += `<div class="embed-description">${escapeHtml(description).replace(/\n/g, '<br>')}</div>`;
+                    }
+
+                    if (fields.length > 0) {
+                        fields.forEach(field => {
+                            previewHtml += `
+                                <div class="embed-field">
+                                    <div class="embed-field-name">${escapeHtml(field.name)}</div>
+                                    <div class="embed-field-value">${escapeHtml(field.value).replace(/\n/g, '<br>')}</div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    if (image && isValidUrl(image)) {
+                        previewHtml += `<img src="${escapeHtml(image)}" class="embed-image" alt="Embed image" onerror="this.style.display='none'">`;
+                    }
+
+                    if (footer) {
+                        previewHtml += `<div class="embed-footer">${escapeHtml(footer)}</div>`;
+                    }
+                } else {
+                    previewHtml = '<div class="text-muted fst-italic">Fill in the fields on the left to see a preview...</div>';
+                    preview.style.borderLeftColor = '#5865f2';
+                }
+
+                preview.innerHTML = previewHtml;
+            }
+
+            // Helper functions
+            function escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+            }
+
+            function isValidUrl(string) {
+                try {
+                    new URL(string);
+                    return true;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            // Add field functionality
+            function addField() {
+                fieldCounter++;
+                const fieldHtml = `
+                    <div class="field-row">
+                        <div class="form-group">
+                            <label class="form-label">Field Name</label>
+                            <input type="text" class="form-control" name="field_name[]"
+                                   placeholder="Field name" maxlength="256">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Field Value</label>
+                            <textarea class="form-control" name="field_value[]"
+                                      placeholder="Field content" maxlength="1024" rows="2"></textarea>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="field_inline[]"
+                                   id="inline_${fieldCounter}">
+                            <label class="form-check-label" for="inline_${fieldCounter}">
+                                Inline
+                            </label>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-field">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                fieldsContainer.insertAdjacentHTML('beforeend', fieldHtml);
+                updatePreview();
+                validateForm();
+            }
+
+            // Name availability checking
+            function checkNameAvailability(name) {
+                if (!name.trim() || name === originalName) {
+                    hideAvailabilityFeedback();
+                    nameIsAvailable = true; // Original name is always available
+                    return;
+                }
+
+                if (name === lastCheckedName) {
+                    return;
+                }
+
+                lastCheckedName = name;
+                showCheckingFeedback();
+
+                const guildId = {{ guild_id }};
+                const url = `/macros/${guildId}/check-name/${encodeURIComponent(name)}/`;
+
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (name === nameInput.value.trim()) {
+                            if (data.available) {
+                                showAvailableFeedback(data.message);
+                                nameIsAvailable = true;
+                            } else {
+                                showUnavailableFeedback(data.message);
+                                nameIsAvailable = false;
+                            }
+                            validateForm();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking name availability:', error);
+                        hideAvailabilityFeedback();
+                        nameIsAvailable = true;
+                        validateForm();
+                    });
+            }
+
+            function showCheckingFeedback() {
+                nameAvailability.style.display = 'block';
+                nameAvailability.className = 'form-text name-checking';
+                availabilityIcon.innerHTML = '<div class="spinner"></div>';
+                availabilityMessage.textContent = 'Checking availability...';
+            }
+
+            function showAvailableFeedback(message) {
+                nameAvailability.style.display = 'block';
+                nameAvailability.className = 'form-text name-available';
+                availabilityIcon.innerHTML = '✓ ';
+                availabilityMessage.textContent = message;
+            }
+
+            function showUnavailableFeedback(message) {
+                nameAvailability.style.display = 'block';
+                nameAvailability.className = 'form-text name-unavailable';
+                availabilityIcon.innerHTML = '✗ ';
+                availabilityMessage.textContent = message;
+            }
+
+            function hideAvailabilityFeedback() {
+                nameAvailability.style.display = 'none';
+                nameIsAvailable = false;
+                lastCheckedName = '';
+            }
+
+            // Validate form
+            function validateForm() {
+                let isValid = true;
+
+                // Validate name
+                const name = nameInput.value.trim();
+                if (!name) {
+                    isValid = false;
+                } else if (name !== originalName && name === lastCheckedName && !nameIsAvailable) {
+                    isValid = false;
+                }
+
+                // Check if at least one embed field is filled
+                const title = titleInput.value.trim();
+                const description = descriptionInput.value.trim();
+                const footer = footerInput.value.trim();
+                const image = imageInput.value.trim();
+
+                const fieldNames = document.querySelectorAll('input[name="field_name[]"]');
+                const fieldValues = document.querySelectorAll('textarea[name="field_value[]"]');
+                let hasFields = false;
+                for (let i = 0; i < fieldNames.length; i++) {
+                    if (fieldNames[i].value.trim() && fieldValues[i].value.trim()) {
+                        hasFields = true;
+                        break;
+                    }
+                }
+
+                if (!title && !description && !footer && !image && !hasFields) {
+                    isValid = false;
+                }
+
+                submitBtn.disabled = !isValid;
+                return isValid;
+            }
+
+            // Event listeners
+            nameInput.addEventListener('input', function() {
+                updateCounters();
+                validateForm();
+
+                clearTimeout(nameCheckTimeout);
+                const currentName = nameInput.value.trim();
+
+                if (currentName && currentName !== originalName && currentName !== lastCheckedName) {
+                    hideAvailabilityFeedback();
+                    nameCheckTimeout = setTimeout(() => {
+                        checkNameAvailability(currentName);
+                    }, 500);
+                } else if (!currentName || currentName === originalName) {
+                    hideAvailabilityFeedback();
+                    nameIsAvailable = true;
+                    validateForm();
+                }
+            });
+
+            [titleInput, descriptionInput, footerInput, imageInput].forEach(input => {
+                input.addEventListener('input', function() {
+                    updateCounters();
+                    updatePreview();
+                    validateForm();
+                });
+            });
+
+            colorInput.addEventListener('input', function() {
+                updateColorPreview();
+                updatePreview();
+            });
+
+            addFieldBtn.addEventListener('click', addField);
+
+            // Event delegation for dynamic field removal and updates
+            fieldsContainer.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-field') || e.target.parentElement.classList.contains('remove-field')) {
+                    e.target.closest('.field-row').remove();
+                    updatePreview();
+                    validateForm();
+                }
+            });
+
+            fieldsContainer.addEventListener('input', function(e) {
+                updatePreview();
+                validateForm();
+            });
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                }
+            });
+
+            // Initial setup
+            updateCounters();
+            updateColorPreview();
+            updatePreview();
+            validateForm();
+        });
+    </script>
+{% endblock %}

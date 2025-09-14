@@ -16,6 +16,8 @@ from typing import Any
 import yaml
 from django.conf import settings
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class MacroData:
@@ -109,15 +111,109 @@ class BotDataInterface:
         Returns:
             Optional[Path]: Path to the server folder if it exists, None otherwise.
         """
-        # Check if any existing folder has the same guild_id suffix
+        return self._find_existing_server_folder(guild_id)
+
+    def _find_existing_server_folder(self, guild_id: int) -> Path | None:
+        """Find existing server folder with the same guild ID but potentially different name.
+
+        Args:
+            guild_id (int): Discord guild/server ID to search for.
+
+        Returns:
+            Optional[Path]: Path to existing folder, None if not found.
+        """
         if not self.data_dir.exists():
             return None
 
-        for folder_path in self.data_dir.iterdir():
-            if folder_path.is_dir() and folder_path.name.endswith(f"_{guild_id}"):
-                return folder_path
+        # Search for directories ending with the guild_id
+        guild_id_suffix = f"_{guild_id}"
+        matching_folders = [
+            folder_path
+            for folder_path in self.data_dir.iterdir()
+            if folder_path.is_dir() and folder_path.name.endswith(guild_id_suffix)
+        ]
 
-        return None
+        if not matching_folders:
+            return None
+
+        # If multiple folders exist for same guild_id, consolidate them
+        if len(matching_folders) > 1:
+            logger.warning(
+                f"Found {len(matching_folders)} directories for guild_id {guild_id}. Consolidating..."
+            )
+            self._consolidate_duplicate_folders(matching_folders, guild_id)
+
+            # Return the remaining folder after consolidation
+            remaining_folders = [f for f in matching_folders if f.exists()]
+            return remaining_folders[0] if remaining_folders else None
+
+        return matching_folders[0]
+
+    def _consolidate_duplicate_folders(
+        self, folders: list[Path], guild_id: int
+    ) -> None:
+        """Consolidate multiple folders for the same guild_id into one.
+
+        Args:
+            folders (list[Path]): List of folder paths to consolidate.
+            guild_id (int): Discord guild/server ID.
+        """
+        if len(folders) <= 1:
+            return
+
+        # Find the folder with the most recent modification time (likely has the latest data)
+        primary_folder = max(folders, key=lambda f: f.stat().st_mtime)
+        other_folders = [f for f in folders if f != primary_folder]
+
+        logger.info(
+            f"Consolidating {len(folders)} folders for guild_id {guild_id}. Primary: {primary_folder.name}"
+        )
+
+        # Merge data from other folders into the primary folder
+        for folder in other_folders:
+            macro_file = folder / f"{guild_id}_macros.json"
+            config_file = folder / f"{guild_id}_config.json"
+
+            # Only merge if the other folder has newer or additional data
+            if macro_file.exists():
+                primary_macro_file = primary_folder / f"{guild_id}_macros.json"
+                if not primary_macro_file.exists():
+                    # Primary has no macros, copy from other
+                    logger.info(
+                        f"Copying macros from {folder.name} to {primary_folder.name}"
+                    )
+                    macro_file.rename(primary_macro_file)
+                else:
+                    # Both have macros, merge them (primary takes precedence)
+                    logger.info(
+                        f"Both folders have macros. Keeping primary folder's data: {primary_folder.name}"
+                    )
+                    # Remove the duplicate macros file
+                    macro_file.unlink()
+
+            if config_file.exists():
+                primary_config_file = primary_folder / f"{guild_id}_config.json"
+                if not primary_config_file.exists():
+                    logger.info(
+                        f"Copying config from {folder.name} to {primary_folder.name}"
+                    )
+                    config_file.rename(primary_config_file)
+                else:
+                    # Remove duplicate config file
+                    config_file.unlink()
+
+            # Remove any remaining files in the folder
+            for file_path in folder.iterdir():
+                if file_path.is_file():
+                    logger.info(f"Removing remaining file: {file_path.name}")
+                    file_path.unlink()
+
+            # Remove the now-empty folder
+            try:
+                logger.info(f"Removing duplicate folder: {folder.name}")
+                folder.rmdir()
+            except OSError:
+                logger.exception(f"Failed to remove duplicate folder {folder.name}")
 
     def create_server_folder(self, guild_id: int, guild_name: str) -> Path | None:
         """Create a server folder for the given guild.
@@ -133,6 +229,33 @@ class BotDataInterface:
         folder_name = f"{sanitized_name}_{guild_id}"
         server_folder = self.data_dir / folder_name
 
+        # Check if folder already exists with correct name
+        if server_folder.exists():
+            return server_folder
+
+        # Check for existing directories with same guild_id but different name
+        existing_folder = self._find_existing_server_folder(guild_id)
+        if existing_folder:
+            # Only migrate if the names are actually different
+            if existing_folder.name != folder_name:
+                try:
+                    # Migrate old folder to new name
+                    logger.info(
+                        f"Migrating server folder from '{existing_folder.name}' to '{folder_name}'"
+                    )
+                    existing_folder.rename(server_folder)
+                    logger.info(
+                        f"Successfully migrated server folder to '{folder_name}'"
+                    )
+                    return server_folder
+                except OSError:
+                    logger.exception("Failed to migrate server folder")
+                    # Fall through to create new folder
+            else:
+                # Names are the same, just return the existing folder
+                return existing_folder
+
+        # Create new folder
         try:
             server_folder.mkdir(parents=True, exist_ok=True)
         except OSError:

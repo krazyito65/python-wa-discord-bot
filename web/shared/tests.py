@@ -8,6 +8,7 @@ by the Django web application to interact with bot data and Discord API.
 import json
 import shutil
 import tempfile
+import time
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -389,6 +390,123 @@ class TestBotDataInterface(TestCase):
             self.test_guild_id, self.test_guild_name
         )
         assert "test_macro" not in macros
+
+    def test_directory_migration_and_consolidation(self):
+        """Test directory migration and consolidation to ensure one folder per server ID."""
+        guild_id = 123456789
+        new_guild_name = "New Server Name"
+
+        # Create old directory with different name
+        old_folder_name = f"Old_Server_Name_{guild_id}"
+        old_folder = self.temp_dir / old_folder_name
+        old_folder.mkdir()
+
+        # Create test macros in old directory
+        test_macros = {
+            "old_macro": {
+                "name": "old_macro",
+                "message": "Old test message",
+                "created_by": "user123",
+                "created_by_name": "TestUser",
+                "created_at": "2024-01-01T00:00:00",
+            }
+        }
+
+        macros_file = old_folder / f"{guild_id}_macros.json"
+        with open(macros_file, "w", encoding="utf-8") as f:
+            json.dump(test_macros, f)
+
+        # Try to create server folder with new name - should migrate old folder
+        result_folder = self.interface.create_server_folder(guild_id, new_guild_name)
+
+        # Should return the migrated folder (spaces preserved in sanitization)
+        expected_new_name = f"New Server Name_{guild_id}"
+        assert result_folder is not None
+        assert result_folder.name == expected_new_name
+        assert result_folder.exists()
+
+        # Old folder should no longer exist
+        assert not old_folder.exists()
+
+        # Macros should be preserved in new location
+        migrated_macros = self.interface.load_server_macros(guild_id, new_guild_name)
+        assert "old_macro" in migrated_macros
+        assert migrated_macros["old_macro"]["message"] == "Old test message"
+
+    def test_directory_consolidation_multiple_folders(self):
+        """Test consolidation when multiple folders exist for same guild ID."""
+        guild_id = 987654321
+        guild_name = "Test Server"
+
+        # Create multiple directories with same guild_id but different names
+        folder1_name = f"Test Server Old_{guild_id}"
+        folder2_name = f"Test Server Older_{guild_id}"
+        folder3_name = f"Test Server Ancient_{guild_id}"
+
+        folder1 = self.temp_dir / folder1_name
+        folder2 = self.temp_dir / folder2_name
+        folder3 = self.temp_dir / folder3_name
+
+        folder1.mkdir()
+        folder2.mkdir()
+        folder3.mkdir()
+
+        # Create different macros in each folder
+        macros1 = {"macro1": {"name": "macro1", "message": "Message 1"}}
+        macros2 = {"macro2": {"name": "macro2", "message": "Message 2"}}
+        macros3 = {"macro3": {"name": "macro3", "message": "Message 3"}}
+
+        # Write macros to each folder
+        for folder, macros in [
+            (folder1, macros1),
+            (folder2, macros2),
+            (folder3, macros3),
+        ]:
+            macros_file = folder / f"{guild_id}_macros.json"
+            with open(macros_file, "w", encoding="utf-8") as f:
+                json.dump(macros, f)
+
+        # Make folder2 the most recently modified (should be kept as base for consolidation)
+        time.sleep(0.1)
+        folder2.touch()
+
+        # Create server folder - should consolidate all into one
+        result_folder = self.interface.create_server_folder(guild_id, guild_name)
+
+        # Should return a single folder
+        assert result_folder is not None
+        assert result_folder.exists()
+
+        # Only one folder should exist for this guild_id after consolidation
+        existing_folders = [
+            d for d in self.temp_dir.iterdir() if d.is_dir() and str(guild_id) in d.name
+        ]
+        assert len(existing_folders) == 1
+        assert existing_folders[0] == result_folder
+
+        # Should contain macros (at minimum from the most recently modified folder)
+        final_macros = self.interface.load_server_macros(guild_id, guild_name)
+        # Should have at least the macros from the most recently modified folder
+        assert len(final_macros) >= 1
+
+    def test_directory_migration_no_existing_folder(self):
+        """Test creating server folder when no existing folder exists."""
+        guild_id = 555666777
+        guild_name = "Brand New Server"
+
+        # No existing folders
+        result_folder = self.interface.create_server_folder(guild_id, guild_name)
+
+        # Should create new folder (spaces preserved in sanitization)
+        expected_name = f"Brand New Server_{guild_id}"
+        assert result_folder is not None
+        assert result_folder.name == expected_name
+        assert result_folder.exists()
+
+        # Should be able to save macros to it
+        test_macros = {"test": {"name": "test", "message": "test"}}
+        success = self.interface.save_server_macros(guild_id, guild_name, test_macros)
+        assert success is True
 
 
 class TestDiscordAPI(TestCase):
