@@ -19,6 +19,12 @@ from .models import (
     StatisticsCollectionJob,
 )
 
+# Test constants
+TEST_MESSAGE_COUNT_TOTAL = 100
+TEST_MESSAGE_COUNT_7_DAYS = 20
+TEST_PROGRESS_PERCENTAGE = 25.0
+HTTP_REDIRECT_STATUS = 302
+
 
 class UserStatsModelsTest(TestCase):
     """Test user statistics models."""
@@ -66,9 +72,9 @@ class UserStatsModelsTest(TestCase):
             messages_last_90_days=95,
         )
 
-        assert stats.total_messages == 100
-        assert stats.messages_last_7_days == 20
-        assert str(stats) == "testuser in general: 100 messages"
+        assert stats.total_messages == TEST_MESSAGE_COUNT_TOTAL
+        assert stats.messages_last_7_days == TEST_MESSAGE_COUNT_7_DAYS
+        assert str(stats) == f"testuser in general: {TEST_MESSAGE_COUNT_TOTAL} messages"
 
     def test_collection_job_creation(self):
         """Test statistics collection job creation."""
@@ -89,7 +95,7 @@ class UserStatsModelsTest(TestCase):
             guild=self.guild, progress_current=25, progress_total=100
         )
 
-        assert job.progress_percentage == 25.0
+        assert job.progress_percentage == TEST_PROGRESS_PERCENTAGE
 
     def test_collection_job_zero_total_progress(self):
         """Test collection job progress with zero total."""
@@ -171,7 +177,7 @@ class UserStatsViewsTest(TestCase):
     def test_dashboard_requires_login(self):
         """Test that dashboard requires authentication."""
         response = self.client.get(reverse("user_stats:dashboard"))
-        assert response.status_code == 302  # Redirect to login
+        assert response.status_code == HTTP_REDIRECT_STATUS  # Redirect to login
 
     @skip_discord_api_dependent
     @patch("user_stats.views.get_user_guilds")
@@ -184,14 +190,14 @@ class UserStatsViewsTest(TestCase):
 
         # When DiscordAPIError is raised, should redirect to servers dashboard
         response = self.client.get(reverse("user_stats:dashboard"))
-        assert response.status_code == 302  # Redirect to servers dashboard
+        assert response.status_code == HTTP_REDIRECT_STATUS  # Redirect to servers dashboard
 
     def test_api_endpoint_requires_login(self):
         """Test API endpoint requires authentication."""
         response = self.client.get(
             reverse("user_stats:api_guild_stats", args=[123456789012345678])
         )
-        assert response.status_code == 302  # Redirect to login
+        assert response.status_code == HTTP_REDIRECT_STATUS  # Redirect to login
 
     def test_user_detail_requires_login(self):
         """Test user detail requires authentication."""
@@ -201,4 +207,4 @@ class UserStatsViewsTest(TestCase):
                 args=[123456789012345678, "987654321098765432"],
             )
         )
-        assert response.status_code == 302  # Redirect to login
+        assert response.status_code == HTTP_REDIRECT_STATUS  # Redirect to login

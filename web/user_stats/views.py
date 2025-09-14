@@ -402,7 +402,7 @@ def guild_user_stats(request, guild_id):
         )
 
         if guild_id not in user_guild_ids:
-            raise Http404("Access denied")  # noqa: TRY003
+            raise Http404  # noqa: TRY003
 
         # Get guild and its statistics
         guild = get_object_or_404(DiscordGuild, guild_id=str(guild_id))
@@ -480,7 +480,7 @@ def user_detail_stats(request, guild_id, user_id):
         user_guild_ids = [int(guild["id"]) for guild in user_guilds]
 
         if guild_id not in user_guild_ids:
-            raise Http404("Access denied")  # noqa: TRY003
+            raise Http404  # noqa: TRY003
 
         guild = get_object_or_404(DiscordGuild, guild_id=str(guild_id))
         user = get_object_or_404(DiscordUser, user_id=str(user_id))
@@ -609,7 +609,7 @@ def multi_user_channel_stats(request, guild_id):
         user_guild_ids = [int(guild["id"]) for guild in user_guilds]
 
         if guild_id not in user_guild_ids:
-            raise Http404("Access denied")
+            raise Http404
 
         guild = get_object_or_404(DiscordGuild, guild_id=str(guild_id))
 

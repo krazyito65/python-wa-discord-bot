@@ -7,12 +7,11 @@ allowing users to choose which Discord server to manage macros for.
 
 import logging
 
+from admin_panel.models import ServerPermissionConfig
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import redirect, render
-
-from admin_panel.models import ServerPermissionConfig
 from shared.bot_interface import bot_interface
 from shared.discord_api import (
     DiscordAPIError,
@@ -194,13 +193,12 @@ def _check_admin_panel_access(request, guild_id: int, user_guilds: list) -> bool
         if created:
             # For new configs, use basic admin permission check (Discord administrator/owner)
             return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
-        else:
-            # Use the configured permission system
-            user_roles = []  # We'll need to implement role fetching from Discord API in the future
-            return server_config.has_permission(user_roles, 'admin_panel_access', guild_permissions, is_server_owner)
+        # Use the configured permission system
+        user_roles = []  # We'll need to implement role fetching from Discord API in the future
+        return server_config.has_permission(user_roles, 'admin_panel_access', guild_permissions, is_server_owner)
 
     except Exception as e:
-        logger.error(f"Error checking admin panel access: {e}")
+        logger.exception(f"Error checking admin panel access: {e}")
         return False
 
 
@@ -245,18 +243,17 @@ def _check_macro_permission(request, guild_id: int, user_guilds: list, permissio
         if created:
             # For new configs, use basic admin permission check (Discord administrator/owner/manage server)
             return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
-        else:
-            # Use the configured permission system with actual roles
-            try:
-                user_roles_data = get_user_roles_in_guild(request.user, guild_id) or []
-                user_role_names = [role["name"].lower() for role in user_roles_data]
-            except DiscordAPIError:
-                user_role_names = []  # Fall back to empty roles if API fails
+        # Use the configured permission system with actual roles
+        try:
+            user_roles_data = get_user_roles_in_guild(request.user, guild_id) or []
+            user_role_names = [role["name"].lower() for role in user_roles_data]
+        except DiscordAPIError:
+            user_role_names = []  # Fall back to empty roles if API fails
 
-            return server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
+        return server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
 
     except Exception as e:
-        logger.error(f"Error checking {permission_type} permission: {e}")
+        logger.exception(f"Error checking {permission_type} permission: {e}")
         return False
 
 
@@ -358,7 +355,7 @@ def _get_user_permission_status(request, guild_id: int, user_guilds: list) -> di
         }
 
     except Exception as e:
-        logger.error(f"Error getting user permission status: {e}")
+        logger.exception(f"Error getting user permission status: {e}")
         return {"error": f"Error checking permissions: {e}"}
 
 

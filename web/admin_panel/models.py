@@ -199,7 +199,7 @@ class ServerPermissionConfig(models.Model):
 
         if permission_level == 'everyone':
             return True
-        elif permission_level == 'custom_roles':
+        if permission_level == 'custom_roles':
             # Get the appropriate custom roles field
             if permission_type == 'admin_panel_access':
                 custom_roles = [role.lower() for role in self.custom_admin_panel_roles]
@@ -207,17 +207,17 @@ class ServerPermissionConfig(models.Model):
                 custom_roles_attr = f"custom_{permission_type.replace('_macros', '')}_roles"
                 custom_roles = [role.lower() for role in getattr(self, custom_roles_attr, [])]
             return any(role in custom_roles for role in user_roles_lower)
-        elif permission_level == 'trusted_users':
+        if permission_level == 'trusted_users':
             # Check trusted user roles
             trusted_roles = [role.lower() for role in self.trusted_user_roles]
             if any(role in trusted_roles for role in user_roles_lower):
                 return True
             # Fall through to check moderators and admins
             return self._check_moderator_or_admin_roles(user_roles_lower)
-        elif permission_level == 'moderators':
+        if permission_level == 'moderators':
             # Check moderators and admins
             return self._check_moderator_or_admin_roles(user_roles_lower)
-        elif permission_level == 'admin_only':
+        if permission_level == 'admin_only':
             # Check admin roles only
             admin_roles = [role.lower() for role in self.admin_roles]
             return any(role in admin_roles for role in user_roles_lower)

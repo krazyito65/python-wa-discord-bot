@@ -5,15 +5,14 @@ This module provides thorough test coverage for all admin panel view functions
 including dashboard, permission settings, role configurations, and audit logging.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
-from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
+from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
 
-from shared.test_utils import skip_discord_api_dependent, skip_complex_integration
 from .models import ServerPermissionConfig, ServerPermissionLog
-
 
 User = get_user_model()
 
@@ -50,7 +49,7 @@ class AdminPanelViewsTestCase(TestCase):
             mock_get_guilds.return_value = []  # User has no guilds
 
             response = self.client.get(reverse('admin_panel:dashboard', args=[self.guild_id]))
-            self.assertEqual(response.status_code, 302)  # Redirects to servers:dashboard
+            assert response.status_code == 302  # Redirects to servers:dashboard
 
     @skip_discord_api_dependent
     @patch('admin_panel.views.get_user_guilds')
@@ -69,7 +68,7 @@ class AdminPanelViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('admin_panel:dashboard', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, self.guild_name)
         self.assertContains(response, 'Admin Panel')
 
@@ -89,13 +88,13 @@ class AdminPanelViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('admin_panel:dashboard', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         # Check context variables
         context = response.context
-        self.assertEqual(context['guild_id'], self.guild_id)
-        self.assertEqual(context['guild_name'], self.guild_name)
-        self.assertIsNotNone(context['server_config'])
+        assert context['guild_id'] == self.guild_id
+        assert context['guild_name'] == self.guild_name
+        assert context['server_config'] is not None
 
     @skip_complex_integration
     @patch('admin_panel.views.get_user_guilds')
@@ -113,7 +112,7 @@ class AdminPanelViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('admin_panel:permission_settings', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'Permission Settings')
 
     @skip_complex_integration
@@ -142,11 +141,11 @@ class AdminPanelViewsTestCase(TestCase):
             }
         )
 
-        self.assertEqual(response.status_code, 302)  # Redirect after successful update
+        assert response.status_code == 302  # Redirect after successful update
 
         # Verify permission was updated
         self.server_config.refresh_from_db()
-        self.assertEqual(self.server_config.create_macros, 'admin_only')
+        assert self.server_config.create_macros == 'admin_only'
 
     @skip_complex_integration
     @patch('admin_panel.views.get_user_guilds')
@@ -164,7 +163,7 @@ class AdminPanelViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('admin_panel:role_settings', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'Role Settings')
 
     @skip_complex_integration
@@ -194,7 +193,7 @@ class AdminPanelViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('admin_panel:audit_log', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'create_macros')
         self.assertContains(response, 'Permission Level Changed')
 
@@ -218,16 +217,16 @@ class AdminPanelViewsTestCase(TestCase):
         self.server_config.save()
 
         response = self.client.post(reverse('admin_panel:reset_to_defaults', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 302)  # Redirect after reset
+        assert response.status_code == 302  # Redirect after reset
 
         # Verify settings were reset
         self.server_config.refresh_from_db()
-        self.assertEqual(self.server_config.create_macros, 'admin_only')  # Default value
+        assert self.server_config.create_macros == 'admin_only'  # Default value
 
     def test_unauthenticated_access_denied(self):
         """Test that unauthenticated users cannot access admin panel."""
         response = self.client.get(reverse('admin_panel:dashboard', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 302)  # Redirect to login
+        assert response.status_code == 302  # Redirect to login
 
     @skip_discord_api_dependent
     @patch('admin_panel.views.get_user_guilds')
@@ -240,7 +239,7 @@ class AdminPanelViewsTestCase(TestCase):
         mock_get_guilds.side_effect = DiscordAPIError("API Error")
 
         response = self.client.get(reverse('admin_panel:dashboard', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 302)  # Redirects to servers:dashboard
+        assert response.status_code == 302  # Redirects to servers:dashboard
 
     @skip_complex_integration
     @patch('admin_panel.views.get_user_guilds')
@@ -261,14 +260,14 @@ class AdminPanelViewsTestCase(TestCase):
         context = response.context
 
         # Check that permission displays are available
-        self.assertIn('permission_displays', context)
+        assert 'permission_displays' in context
         permission_displays = context['permission_displays']
 
         # Verify permission levels are properly mapped - check for permission keys
         expected_permission_keys = ['admin_panel_access', 'create_macros', 'edit_macros', 'delete_macros', 'use_macros']
         for key in expected_permission_keys:
-            self.assertIn(key, permission_displays)
-            self.assertIsInstance(permission_displays[key], str)
+            assert key in permission_displays
+            assert isinstance(permission_displays[key], str)
 
     def test_server_config_creation(self):
         """Test that server config is created when it doesn't exist."""
@@ -288,9 +287,7 @@ class AdminPanelViewsTestCase(TestCase):
             ]
 
             response = self.client.get(reverse('admin_panel:dashboard', args=[self.guild_id]))
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
 
             # Verify config was created
-            self.assertTrue(
-                ServerPermissionConfig.objects.filter(guild_id=str(self.guild_id)).exists()
-            )
+            assert ServerPermissionConfig.objects.filter(guild_id=str(self.guild_id)).exists()

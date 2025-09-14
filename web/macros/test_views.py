@@ -6,14 +6,14 @@ including listing, creation, editing, deletion, and permission checking.
 """
 
 import json
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import ANY, Mock, patch
+
+import pytest
+from admin_panel.models import ServerPermissionConfig
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
-
-from admin_panel.models import ServerPermissionConfig
-from shared.test_utils import skip_discord_api_dependent, skip_complex_integration
-
+from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
 
 User = get_user_model()
 
@@ -85,7 +85,7 @@ class MacrosViewsTestCase(TestCase):
 
         # Current application behavior: returns 404 when bot not found in server
         # This is actually reasonable behavior for a bot-specific interface
-        self.assertEqual(response.status_code, 404)
+        assert response.status_code == 404
 
     @skip_discord_api_dependent
     @patch('macros.views.get_user_guilds')
@@ -96,7 +96,7 @@ class MacrosViewsTestCase(TestCase):
         mock_get_guilds.return_value = []  # No guilds
 
         response = self.client.get(reverse('macros:macro_list', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 302)  # Redirects to servers:dashboard
+        assert response.status_code == 302  # Redirects to servers:dashboard
 
     @skip_complex_integration
     @patch('macros.views.bot_interface')
@@ -114,7 +114,7 @@ class MacrosViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('macros:macro_add', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'Create Macro')
 
     @skip_complex_integration
@@ -150,7 +150,7 @@ class MacrosViewsTestCase(TestCase):
             }
         )
 
-        self.assertEqual(response.status_code, 302)  # Redirect after success
+        assert response.status_code == 302  # Redirect after success
         # TODO: Re-enable this assertion when save flow is properly mocked
         # mock_bot_interface.save_server_macros.assert_called_once()
 
@@ -182,7 +182,7 @@ class MacrosViewsTestCase(TestCase):
             }
         )
 
-        self.assertEqual(response.status_code, 200)  # Stay on form with error
+        assert response.status_code == 200  # Stay on form with error
         self.assertContains(response, 'already exists')
 
     @skip_complex_integration
@@ -218,7 +218,7 @@ class MacrosViewsTestCase(TestCase):
             }
         )
 
-        self.assertEqual(response.status_code, 302)  # Redirect after success
+        assert response.status_code == 302  # Redirect after success
 
     @patch('macros.views.bot_interface')
     @patch('macros.views._check_server_permission')
@@ -245,8 +245,8 @@ class MacrosViewsTestCase(TestCase):
         response = self.client.get(reverse('macros:macro_edit', args=[self.guild_id, 'nonexistent']))
 
         # The view redirects to macro list when macro doesn't exist (good UX)
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.endswith('/macros/'))  # Redirects to macro list
+        assert response.status_code == 302
+        assert response.url.endswith('/macros/')  # Redirects to macro list
 
     @skip_complex_integration
     @patch('macros.views.bot_interface')
@@ -273,11 +273,11 @@ class MacrosViewsTestCase(TestCase):
         mock_bot_interface.load_server_macros.return_value = {'test_macro': macro_data}
 
         response = self.client.get(reverse('macros:macro_get', args=[self.guild_id, 'test_macro']))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         data = json.loads(response.content)
-        self.assertEqual(data['name'], 'test_macro')
-        self.assertEqual(data['message'], 'Test message')
+        assert data['name'] == 'test_macro'
+        assert data['message'] == 'Test message'
 
     @skip_complex_integration
     @patch('macros.views.bot_interface')
@@ -305,7 +305,7 @@ class MacrosViewsTestCase(TestCase):
         mock_bot_interface.save_server_macros.return_value = True
 
         response = self.client.post(reverse('macros:macro_delete', args=[self.guild_id, 'test_macro']))
-        self.assertEqual(response.status_code, 302)  # Redirect after deletion
+        assert response.status_code == 302  # Redirect after deletion
 
     @skip_complex_integration
     @patch('macros.views.bot_interface')
@@ -327,10 +327,10 @@ class MacrosViewsTestCase(TestCase):
         response = self.client.get(
             reverse('macros:check_name', args=[self.guild_id, 'new_macro'])
         )
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         data = json.loads(response.content)
-        self.assertTrue(data['available'])
+        assert data['available']
 
     @skip_complex_integration
     @patch('macros.views.bot_interface')
@@ -354,15 +354,15 @@ class MacrosViewsTestCase(TestCase):
         response = self.client.get(
             reverse('macros:check_name', args=[self.guild_id, 'existing_macro'])
         )
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         data = json.loads(response.content)
-        self.assertFalse(data['available'])
+        assert not data['available']
 
     def test_unauthenticated_access_denied(self):
         """Test that unauthenticated users cannot access macro views."""
         response = self.client.get(reverse('macros:macro_list', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 302)  # Redirect to login
+        assert response.status_code == 302  # Redirect to login
 
     @skip_discord_api_dependent
     @patch('macros.views.get_user_guilds')
@@ -374,7 +374,7 @@ class MacrosViewsTestCase(TestCase):
         mock_get_guilds.side_effect = DiscordAPIError("API Error")
 
         response = self.client.get(reverse('macros:macro_list', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 302)  # Redirects to servers:dashboard
+        assert response.status_code == 302  # Redirects to servers:dashboard
 
     @skip_complex_integration
     @patch('macros.views.bot_interface')
@@ -403,14 +403,14 @@ class MacrosViewsTestCase(TestCase):
         }
 
         response = self.client.get(reverse('macros:debug_permissions', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         # Check that it returns JSON with expected debug info
         data = json.loads(response.content)
-        self.assertEqual(data['guild_id'], self.guild_id)
-        self.assertEqual(data['guild_name'], self.guild_name)
-        self.assertIn('bot_config', data)
-        self.assertIn('admin_access', data)
+        assert data['guild_id'] == self.guild_id
+        assert data['guild_name'] == self.guild_name
+        assert 'bot_config' in data
+        assert 'admin_access' in data
 
     @skip_complex_integration
     @patch('macros.views.bot_interface')
@@ -435,7 +435,7 @@ class MacrosViewsTestCase(TestCase):
             }
         )
 
-        self.assertEqual(response.status_code, 200)  # Stay on form with error
+        assert response.status_code == 200  # Stay on form with error
         self.assertContains(response, 'required')
 
     @skip_complex_integration
@@ -469,7 +469,7 @@ class MacrosViewsTestCase(TestCase):
         )
 
         # Since length validation doesn't exist, macro creation succeeds
-        self.assertEqual(response.status_code, 302)  # Redirect after success
+        assert response.status_code == 302  # Redirect after success
 
     @skip_complex_integration
     @patch('macros.views._check_server_permission')
@@ -484,7 +484,7 @@ class MacrosViewsTestCase(TestCase):
 
         response = self.client.get(reverse('macros:macro_add', args=[self.guild_id]))
 
-        self.assertEqual(response.status_code, 302)  # Redirect after permission denied
+        assert response.status_code == 302  # Redirect after permission denied
         mock_check_permission.assert_called_once_with(ANY, self.guild_id, 'create_macros')
 
     @patch('macros.views.bot_interface')
@@ -514,7 +514,7 @@ class MacrosViewsTestCase(TestCase):
             }
         )
 
-        self.assertEqual(response.status_code, 200)  # Stay on form with error
+        assert response.status_code == 200  # Stay on form with error
         self.assertContains(response, 'cannot be empty')
 
     @patch('macros.views.bot_interface')
@@ -540,7 +540,7 @@ class MacrosViewsTestCase(TestCase):
         )
 
         # Should handle error gracefully and show error message
-        self.assertEqual(response.status_code, 302)  # Redirect after error
+        assert response.status_code == 302  # Redirect after error
 
     @skip_discord_api_dependent
     @patch('macros.views.get_user_guilds')
@@ -554,7 +554,7 @@ class MacrosViewsTestCase(TestCase):
         from macros.views import _validate_server_access
 
         result = _validate_server_access(Mock(user=self.user), guild_id)
-        self.assertEqual(result, 'Test Server')
+        assert result == 'Test Server'
 
     @skip_discord_api_dependent
     @patch('macros.views.get_user_guilds')
@@ -563,10 +563,11 @@ class MacrosViewsTestCase(TestCase):
         guild_id = 123456789012345678
         mock_get_guilds.return_value = []  # No guilds
 
-        from macros.views import _validate_server_access
         from django.http import Http404
 
-        with self.assertRaises(Http404):
+        from macros.views import _validate_server_access
+
+        with pytest.raises(Http404):
             _validate_server_access(Mock(user=self.user), guild_id)
 
     @skip_discord_api_dependent
@@ -579,10 +580,11 @@ class MacrosViewsTestCase(TestCase):
             {'id': str(different_guild_id), 'name': 'Different Server'}
         ]
 
-        from macros.views import _validate_server_access
         from django.http import Http404
 
-        with self.assertRaises(Http404):
+        from macros.views import _validate_server_access
+
+        with pytest.raises(Http404):
             _validate_server_access(Mock(user=self.user), guild_id)
 
     @skip_complex_integration
@@ -615,7 +617,7 @@ class MacrosViewsTestCase(TestCase):
         has_permission = _check_server_permission(request, guild_id, 'create_macros')
 
         # Should check against server config permissions
-        self.assertIsInstance(has_permission, bool)
+        assert isinstance(has_permission, bool)
 
     @skip_complex_integration
     @patch('macros.views.get_user_guilds')
@@ -640,7 +642,7 @@ class MacrosViewsTestCase(TestCase):
         has_permission = _check_server_permission(request, guild_id, 'create_macros')
 
         # Should return True for admin permissions on new config
-        self.assertTrue(has_permission)
+        assert has_permission
 
     @skip_complex_integration
     @patch('macros.views.get_user_roles_in_guild')
@@ -667,4 +669,4 @@ class MacrosViewsTestCase(TestCase):
 
         # Should handle API error gracefully and fall back to empty roles
         has_permission = _check_server_permission(request, guild_id, 'create_macros')
-        self.assertIsInstance(has_permission, bool)
+        assert isinstance(has_permission, bool)

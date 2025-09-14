@@ -7,13 +7,12 @@ for specific Discord servers through the web interface.
 
 import logging
 
+from admin_panel.models import ServerPermissionConfig
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
-
-from admin_panel.models import ServerPermissionConfig
 from shared.bot_interface import MacroData, MacroUpdateData, bot_interface
 from shared.discord_api import DiscordAPIError, get_user_guilds, get_user_roles_in_guild
 
@@ -239,26 +238,25 @@ def _check_server_permission(request, guild_id: int, permission_type: str) -> bo
             logger.info(f"Created new server config for guild {guild_id}, using default admin-only permissions")
             # For new configs, use basic admin permission check (Discord administrator/owner/manage server)
             return is_server_owner or (guild_permissions & 0x8) == 0x8 or (guild_permissions & 0x20) == 0x20
-        else:
-            # Use the configured permission system with actual roles
-            try:
-                user_roles_data = get_user_roles_in_guild(request.user, guild_id) or []
-                user_role_names = [role["name"].lower() for role in user_roles_data]
-            except DiscordAPIError:
-                user_role_names = []  # Fall back to empty roles if API fails
+        # Use the configured permission system with actual roles
+        try:
+            user_roles_data = get_user_roles_in_guild(request.user, guild_id) or []
+            user_role_names = [role["name"].lower() for role in user_roles_data]
+        except DiscordAPIError:
+            user_role_names = []  # Fall back to empty roles if API fails
 
-            has_permission = server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
+        has_permission = server_config.has_permission(user_role_names, permission_type, guild_permissions, is_server_owner)
 
-            logger.info(
-                f"Permission check for user {request.user.username} in guild {guild_id}: "
-                f"permission_type={permission_type}, result={has_permission}, "
-                f"permission_level={getattr(server_config, permission_type, 'admin_only')}"
-            )
+        logger.info(
+            f"Permission check for user {request.user.username} in guild {guild_id}: "
+            f"permission_type={permission_type}, result={has_permission}, "
+            f"permission_level={getattr(server_config, permission_type, 'admin_only')}"
+        )
 
-            return has_permission
+        return has_permission
 
     except Exception as e:
-        logger.error(f"Error checking {permission_type} permission for user {request.user.username} in guild {guild_id}: {e}")
+        logger.exception(f"Error checking {permission_type} permission for user {request.user.username} in guild {guild_id}: {e}")
         return False
 
 

@@ -6,7 +6,6 @@ hard to test due to complex external dependencies like Discord API integration.
 """
 
 import unittest
-from functools import wraps
 
 
 def skip_complex_integration(reason="Complex integration test - requires extensive mocking"):

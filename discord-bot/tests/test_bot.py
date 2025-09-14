@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
 from bot import WeakAurasBot
 
 # Test constants
@@ -283,8 +284,7 @@ class TestWeakAurasBot(unittest.TestCase):
 
             with patch.object(bot, "get_server_folder", return_value=self.temp_dir):
                 # Should raise JSONDecodeError for invalid JSON
-                import json
-                with self.assertRaises(json.JSONDecodeError):
+                with pytest.raises(json.JSONDecodeError):
                     bot.load_server_macros(self.test_guild_id, self.test_guild_name)
 
     def test_save_server_macros_creates_directory(self):

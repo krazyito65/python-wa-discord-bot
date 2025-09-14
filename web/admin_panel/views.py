@@ -7,13 +7,14 @@ including macro permissions, role configurations, and admin panel access control
 
 import json
 import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.http import Http404
+from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
-
 from shared.discord_api import DiscordAPIError, get_user_guilds
+
 from .models import ServerPermissionConfig, ServerPermissionLog
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ def _validate_admin_panel_access(request, guild_id: int):
         return guild_name, server_config, user_guilds
 
     except DiscordAPIError as e:
-        logger.error(f"Discord API error in admin panel access validation: {e}")
+        logger.exception(f"Discord API error in admin panel access validation: {e}")
         raise Http404(f"Error accessing server information: {e}")
 
 

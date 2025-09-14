@@ -6,14 +6,14 @@ including dashboards, detailed stats, and API endpoints.
 """
 
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
 
-from shared.test_utils import skip_discord_api_dependent, skip_complex_integration
-from .models import MessageStatistics, DailyMessageStatistics
-
+from .models import DailyMessageStatistics, MessageStatistics
 
 User = get_user_model()
 
@@ -33,7 +33,7 @@ class UserStatsViewsTestCase(TestCase):
         self.channel_id = 555666777012345678
 
         # Create Discord entities with proper relationships
-        from user_stats.models import DiscordUser, DiscordGuild, DiscordChannel
+        from user_stats.models import DiscordChannel, DiscordGuild, DiscordUser
 
         # Create Discord user
         self.discord_user = DiscordUser.objects.create(
@@ -80,7 +80,7 @@ class UserStatsViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('user_stats:dashboard'))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'User Statistics Dashboard')
 
     @skip_discord_api_dependent
@@ -92,7 +92,7 @@ class UserStatsViewsTestCase(TestCase):
         mock_get_guilds.return_value = []  # No guilds
 
         response = self.client.get(reverse('user_stats:dashboard'))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'No servers')
 
     @skip_discord_api_dependent
@@ -110,7 +110,7 @@ class UserStatsViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('user_stats:guild_stats', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'Test Server')
 
     @skip_discord_api_dependent
@@ -122,7 +122,7 @@ class UserStatsViewsTestCase(TestCase):
         mock_get_guilds.return_value = []  # No guilds
 
         response = self.client.get(reverse('user_stats:guild_stats', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 404)
+        assert response.status_code == 404
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -145,7 +145,7 @@ class UserStatsViewsTestCase(TestCase):
                 reverse('user_stats:guild_stats', args=[self.guild_id]),
                 {'time_range': time_range}
             )
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -164,7 +164,7 @@ class UserStatsViewsTestCase(TestCase):
         response = self.client.get(
             reverse('user_stats:user_detail', args=[self.guild_id, self.user_id])
         )
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'User Statistics')
 
     @skip_discord_api_dependent
@@ -182,7 +182,7 @@ class UserStatsViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('user_stats:multi_user_channel', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         self.assertContains(response, 'Multi-User Channel Analysis')
 
     @skip_discord_api_dependent
@@ -200,12 +200,12 @@ class UserStatsViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('user_stats:api_guild_stats', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/json'
 
         data = json.loads(response.content)
-        self.assertIn('users', data)
-        self.assertIn('channels', data)
+        assert 'users' in data
+        assert 'channels' in data
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -226,10 +226,10 @@ class UserStatsViewsTestCase(TestCase):
             reverse('user_stats:api_guild_stats', args=[self.guild_id]),
             {'time_range': '7days', 'sort': 'activity'}
         )
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         data = json.loads(response.content)
-        self.assertIn('users', data)
+        assert 'users' in data
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -246,14 +246,14 @@ class UserStatsViewsTestCase(TestCase):
         ]
 
         response = self.client.get(reverse('user_stats:live_stats', args=[self.guild_id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/json'
 
     @skip_complex_integration
     def test_unauthenticated_access_denied(self):
         """Test that unauthenticated users cannot access user stats views."""
         response = self.client.get(reverse('user_stats:dashboard'))
-        self.assertEqual(response.status_code, 302)  # Redirect to login
+        assert response.status_code == 302  # Redirect to login
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -265,27 +265,27 @@ class UserStatsViewsTestCase(TestCase):
         mock_get_guilds.side_effect = DiscordAPIError("API Error")
 
         response = self.client.get(reverse('user_stats:dashboard'))
-        self.assertEqual(response.status_code, 200)  # Should handle error gracefully
+        assert response.status_code == 200  # Should handle error gracefully
 
     @skip_complex_integration
     def test_message_field_for_time_range(self):
         """Test utility function for getting message field for time range."""
         from user_stats.views import _get_message_field_for_time_range
 
-        self.assertEqual(_get_message_field_for_time_range('7days'), 'messages_last_7_days')
-        self.assertEqual(_get_message_field_for_time_range('30days'), 'messages_last_30_days')
-        self.assertEqual(_get_message_field_for_time_range('90days'), 'messages_last_90_days')
-        self.assertEqual(_get_message_field_for_time_range('all_time'), 'total_messages')
-        self.assertEqual(_get_message_field_for_time_range('invalid'), 'total_messages')
+        assert _get_message_field_for_time_range('7days') == 'messages_last_7_days'
+        assert _get_message_field_for_time_range('30days') == 'messages_last_30_days'
+        assert _get_message_field_for_time_range('90days') == 'messages_last_90_days'
+        assert _get_message_field_for_time_range('all_time') == 'total_messages'
+        assert _get_message_field_for_time_range('invalid') == 'total_messages'
 
     @skip_complex_integration
     def test_get_period_field(self):
         """Test utility function for getting period field."""
         from user_stats.views import _get_period_field
 
-        self.assertEqual(_get_period_field('day'), '__date')
-        self.assertEqual(_get_period_field('week'), '__week')
-        self.assertEqual(_get_period_field('month'), '__month')
+        assert _get_period_field('day') == '__date'
+        assert _get_period_field('week') == '__week'
+        assert _get_period_field('month') == '__month'
 
     @skip_complex_integration
     def test_determine_activity_level(self):
@@ -295,12 +295,12 @@ class UserStatsViewsTestCase(TestCase):
         # Test with high activity user
         high_activity_stats = {'messages_last_7_days': 100}
         activity_level = _determine_activity_level(high_activity_stats, '7days')
-        self.assertEqual(activity_level, 'high')
+        assert activity_level == 'high'
 
         # Test with low activity user
         low_activity_stats = {'messages_last_7_days': 1}
         activity_level = _determine_activity_level(low_activity_stats, '7days')
-        self.assertEqual(activity_level, 'low')
+        assert activity_level == 'low'
 
     @skip_complex_integration
     def test_sort_users_by_activity(self):
@@ -316,9 +316,9 @@ class UserStatsViewsTestCase(TestCase):
         sorted_users = _sort_users_by_activity(users_data, '7days')
 
         # Should be sorted by activity (descending)
-        self.assertEqual(sorted_users[0]['username'], 'user2')  # 100 messages
-        self.assertEqual(sorted_users[1]['username'], 'user1')  # 50 messages
-        self.assertEqual(sorted_users[2]['username'], 'user3')  # 25 messages
+        assert sorted_users[0]['username'] == 'user2'  # 100 messages
+        assert sorted_users[1]['username'] == 'user1'  # 50 messages
+        assert sorted_users[2]['username'] == 'user3'  # 25 messages
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -338,7 +338,7 @@ class UserStatsViewsTestCase(TestCase):
             reverse('user_stats:guild_stats', args=[self.guild_id]),
             {'time_range': 'invalid_range'}
         )
-        self.assertEqual(response.status_code, 200)  # Should handle gracefully
+        assert response.status_code == 200  # Should handle gracefully
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -365,7 +365,7 @@ class UserStatsViewsTestCase(TestCase):
         response = self.client.get(
             reverse('user_stats:user_detail', args=[self.guild_id, self.user_id])
         )
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
     @skip_complex_integration
     def test_clear_user_stats_cache(self):
@@ -388,17 +388,17 @@ class UserStatsViewsTestCase(TestCase):
 
         # Test with valid guild
         queryset = _build_base_queryset(self.guild_id, self.user_id)
-        self.assertIsNotNone(queryset)
+        assert queryset is not None
 
         # Test with all guilds (None)
         queryset = _build_base_queryset(None, self.user_id)
-        self.assertIsNotNone(queryset)
+        assert queryset is not None
 
     @skip_complex_integration
     def test_get_user_statistics(self):
         """Test user statistics gathering utility function."""
-        from user_stats.views import _get_user_statistics
         from user_stats.models import MessageStatistics
+        from user_stats.views import _get_user_statistics
 
         # Create a queryset
         queryset = MessageStatistics.objects.filter(user=self.discord_user)
@@ -407,13 +407,13 @@ class UserStatsViewsTestCase(TestCase):
         stats = _get_user_statistics(queryset, 'total_messages')
 
         # Should return dictionary with user statistics
-        self.assertIsInstance(stats, dict)
+        assert isinstance(stats, dict)
 
     @skip_complex_integration
     def test_get_channel_statistics(self):
         """Test channel statistics gathering utility function."""
-        from user_stats.views import _get_channel_statistics
         from user_stats.models import MessageStatistics
+        from user_stats.views import _get_channel_statistics
 
         # Create a queryset
         queryset = MessageStatistics.objects.filter(channel=self.discord_channel)
@@ -422,7 +422,7 @@ class UserStatsViewsTestCase(TestCase):
         stats = _get_channel_statistics(queryset, 'total_messages')
 
         # Should return dictionary with channel statistics
-        self.assertIsInstance(stats, dict)
+        assert isinstance(stats, dict)
 
     @skip_complex_integration
     def test_get_available_users(self):
@@ -433,8 +433,8 @@ class UserStatsViewsTestCase(TestCase):
         users = _get_available_users(self.discord_guild)
 
         # Should return queryset of users
-        self.assertEqual(len(users), 1)
-        self.assertEqual(users[0], self.discord_user)
+        assert len(users) == 1
+        assert users[0] == self.discord_user
 
     @skip_complex_integration
     def test_get_available_channels(self):
@@ -445,8 +445,8 @@ class UserStatsViewsTestCase(TestCase):
         channels = _get_available_channels(self.discord_guild)
 
         # Should return queryset of channels
-        self.assertEqual(len(channels), 1)
-        self.assertEqual(channels[0], self.discord_channel)
+        assert len(channels) == 1
+        assert channels[0] == self.discord_channel
 
     @skip_complex_integration
     def test_sort_users_by_activity_edge_cases(self):
@@ -455,12 +455,12 @@ class UserStatsViewsTestCase(TestCase):
 
         # Test with empty data
         empty_result = _sort_users_by_activity([], '7days')
-        self.assertEqual(empty_result, [])
+        assert empty_result == []
 
         # Test with single user
         single_user = [{'messages_last_7_days': 50, 'username': 'user1'}]
         result = _sort_users_by_activity(single_user, '7days')
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
 
     @skip_complex_integration
     def test_determine_activity_level_edge_cases(self):
@@ -470,17 +470,17 @@ class UserStatsViewsTestCase(TestCase):
         # Test with zero messages
         zero_stats = {'messages_last_7_days': 0}
         level = _determine_activity_level(zero_stats, '7days')
-        self.assertEqual(level, 'low')
+        assert level == 'low'
 
         # Test with missing field
         empty_stats = {}
         level = _determine_activity_level(empty_stats, '7days')
-        self.assertEqual(level, 'low')
+        assert level == 'low'
 
         # Test with very high activity
         high_stats = {'total_messages': 10000}
         level = _determine_activity_level(high_stats, 'all_time')
-        self.assertEqual(level, 'high')
+        assert level == 'high'
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -496,9 +496,9 @@ class UserStatsViewsTestCase(TestCase):
         data = _get_multi_user_channel_data(self.guild_id, '7days')
 
         # Should return dictionary with channel analysis data
-        self.assertIsInstance(data, dict)
-        self.assertIn('channels', data)
-        self.assertIn('users', data)
+        assert isinstance(data, dict)
+        assert 'channels' in data
+        assert 'users' in data
 
     @skip_discord_api_dependent
     @patch('user_stats.views.get_user_guilds')
@@ -518,8 +518,8 @@ class UserStatsViewsTestCase(TestCase):
             reverse('user_stats:api_guild_stats', args=[self.guild_id]),
             {'sort': 'invalid_sort_option'}
         )
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         data = json.loads(response.content)
         # Should handle invalid sort gracefully
-        self.assertIn('users', data)
+        assert 'users' in data

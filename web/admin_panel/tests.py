@@ -5,9 +5,8 @@ This module provides comprehensive test coverage for admin panel model functiona
 including configuration validation, permission logic, and audit logging.
 """
 
-from django.core.exceptions import ValidationError
+import pytest
 from django.test import TestCase
-from django.utils import timezone
 
 from .models import ServerPermissionConfig, ServerPermissionLog
 
@@ -138,7 +137,7 @@ class ServerPermissionConfigTest(TestCase):
         )
 
         # Attempting to create another config with same guild_id should fail
-        with self.assertRaises(Exception):  # IntegrityError
+        with pytest.raises(Exception):  # IntegrityError
             ServerPermissionConfig.objects.create(
                 guild_id=self.guild_id,
                 guild_name="Different Server Name",

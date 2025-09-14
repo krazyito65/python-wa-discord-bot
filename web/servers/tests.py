@@ -8,7 +8,7 @@ from allauth.socialaccount.models import SocialAccount, SocialApp
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
-from shared.test_utils import skip_discord_api_dependent, skip_complex_integration
+from shared.test_utils import skip_complex_integration, skip_discord_api_dependent
 
 
 class ServerViewTests(TestCase):

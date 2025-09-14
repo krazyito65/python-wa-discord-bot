@@ -5,13 +5,11 @@ This module tests the Django database integration functionality
 used by the Discord bot to check permissions.
 """
 
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import discord
-
 from utils.django_permissions import (
     get_django_database_path,
     get_permission_error_message,
@@ -37,7 +35,7 @@ class TestDjangoPermissions(unittest.TestCase):
             result = get_django_database_path()
             # Should return the expanded default path
             expected = str(Path("~/weakauras-bot-data/statistics.db").expanduser())
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_get_django_database_path_with_config(self):
         """Test getting Django database path from config file."""
@@ -48,12 +46,12 @@ class TestDjangoPermissions(unittest.TestCase):
         }
 
         with patch("pathlib.Path.exists", return_value=True), \
-             patch("builtins.open", create=True) as mock_open, \
+             patch("builtins.open", create=True), \
              patch("yaml.safe_load", return_value=test_config):
 
             result = get_django_database_path()
             expected = str(Path("~/test-data/test.db").expanduser())
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_get_django_database_path_exception_handling(self):
         """Test that database path function handles exceptions gracefully."""
@@ -61,7 +59,7 @@ class TestDjangoPermissions(unittest.TestCase):
             result = get_django_database_path()
             # Should still return default path
             expected = str(Path("~/weakauras-bot-data/statistics.db").expanduser())
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_get_server_permission_config_no_database(self):
         """Test getting server permission config when database doesn't exist."""
@@ -69,15 +67,15 @@ class TestDjangoPermissions(unittest.TestCase):
             result = get_server_permission_config(self.test_guild_id)
 
             # Should return None when database is not accessible
-            self.assertIsNone(result)
+            assert result is None
 
     def test_get_permission_error_message_no_config(self):
         """Test getting permission error message when no config is provided."""
         result = get_permission_error_message("create_macros", None)
 
         # Should return a default error message
-        self.assertIsInstance(result, str)
-        self.assertIn("permission", result.lower())
+        assert isinstance(result, str)
+        assert "permission" in result.lower()
 
     def test_get_permission_error_message_with_config(self):
         """Test getting permission error message with config."""
@@ -87,17 +85,17 @@ class TestDjangoPermissions(unittest.TestCase):
         result = get_permission_error_message("create_macros", mock_config)
 
         # Should return a descriptive error message
-        self.assertIsInstance(result, str)
+        assert isinstance(result, str)
         # Just verify it's a non-empty string with permission context
-        self.assertGreater(len(result), 0)
-        self.assertIn("permission", result.lower())
+        assert len(result) > 0
+        assert "permission" in result.lower()
 
     def test_permission_functions_exist(self):
         """Test that all required permission functions exist and are callable."""
         # Test that the main functions we need exist
-        self.assertTrue(callable(get_django_database_path))
-        self.assertTrue(callable(get_server_permission_config))
-        self.assertTrue(callable(get_permission_error_message))
+        assert callable(get_django_database_path)
+        assert callable(get_server_permission_config)
+        assert callable(get_permission_error_message)
 
     def test_get_django_database_path_sqlite_prefix(self):
         """Test database path extraction from different SQLite URL formats."""
@@ -116,9 +114,9 @@ class TestDjangoPermissions(unittest.TestCase):
                  patch("yaml.safe_load", return_value=config):
 
                 result = get_django_database_path()
-                self.assertIsInstance(result, str)
+                assert isinstance(result, str)
                 # Should not contain the sqlite:/// prefix
-                self.assertNotIn("sqlite:///", result)
+                assert "sqlite:///" not in result
 
     def test_get_django_database_path_yaml_parsing(self):
         """Test that function properly parses YAML configuration."""
@@ -132,8 +130,8 @@ class TestDjangoPermissions(unittest.TestCase):
 
             result = get_django_database_path()
             # Should process the config and return a path
-            self.assertIsInstance(result, str)
-            self.assertIn("test-db", result)
+            assert isinstance(result, str)
+            assert "test-db" in result
 
     def test_get_django_database_path_non_sqlite(self):
         """Test behavior with non-SQLite database URLs."""
@@ -148,7 +146,7 @@ class TestDjangoPermissions(unittest.TestCase):
             result = get_django_database_path()
             # Should fall back to default path for non-SQLite URLs
             expected = str(Path("~/weakauras-bot-data/statistics.db").expanduser())
-            self.assertEqual(result, expected)
+            assert result == expected
 
     def test_get_permission_error_message_different_permissions(self):
         """Test permission error messages for different permission types."""
@@ -162,8 +160,8 @@ class TestDjangoPermissions(unittest.TestCase):
 
         for perm_type in permission_types:
             result = get_permission_error_message(perm_type, mock_config)
-            self.assertIsInstance(result, str)
-            self.assertGreater(len(result), 0)
+            assert isinstance(result, str)
+            assert len(result) > 0
 
     def test_get_permission_error_message_missing_attribute(self):
         """Test permission error message when config lacks the requested permission."""
@@ -171,9 +169,9 @@ class TestDjangoPermissions(unittest.TestCase):
         # Don't set any permission attributes
 
         result = get_permission_error_message("nonexistent_permission", mock_config)
-        self.assertIsInstance(result, str)
-        self.assertGreater(len(result), 0)
-        self.assertIn("permission", result.lower())
+        assert isinstance(result, str)
+        assert len(result) > 0
+        assert "permission" in result.lower()
 
 
 if __name__ == "__main__":

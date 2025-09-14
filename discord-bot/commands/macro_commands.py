@@ -1,7 +1,11 @@
 import discord
 from bot.weakauras_bot import WeakAurasBot
 from discord import app_commands
-from utils.django_permissions import check_server_permission, get_permission_error_message, get_server_permission_config
+from utils.django_permissions import (
+    check_server_permission,
+    get_permission_error_message,
+    get_server_permission_config,
+)
 from utils.logging import get_logger, log_command
 
 logger = get_logger(__name__)
