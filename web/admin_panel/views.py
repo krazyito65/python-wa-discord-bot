@@ -539,9 +539,94 @@ def manage_assignable_roles(request, guild_id):
         return redirect("servers:dashboard")
 
 
+def _process_role_assignments(
+    role_ids, discord_roles, server_config, user_id, user_name, is_self_assignable, requires_permission
+):
+    """Process role assignments and return results."""
+    added_roles = []
+    updated_roles = []
+    failed_roles = []
+
+    for role_id in role_ids:
+        # Find role info in Discord data
+        role_info = next(
+            (role for role in discord_roles if role["id"] == role_id), None
+        )
+
+        if not role_info:
+            failed_roles.append(f"Role ID {role_id}")
+            continue
+
+        # Convert color from decimal to hex
+        role_color = ""
+        if role_info.get("color"):
+            role_color = f"#{role_info['color']:06x}"
+
+        # Create or update assignable role
+        assignable_role, created = AssignableRole.objects.get_or_create(
+            server_config=server_config,
+            role_id=role_id,
+            defaults={
+                "role_name": role_info["name"],
+                "role_color": role_color,
+                "is_self_assignable": is_self_assignable,
+                "requires_permission": requires_permission,
+                "added_by": user_id,
+                "added_by_name": user_name,
+            },
+        )
+
+        if created:
+            added_roles.append(role_info["name"])
+        else:
+            # Update existing role
+            assignable_role.role_name = role_info["name"]
+            assignable_role.role_color = role_color
+            assignable_role.is_self_assignable = is_self_assignable
+            assignable_role.requires_permission = requires_permission
+            assignable_role.save()
+            updated_roles.append(role_info["name"])
+
+    return added_roles, updated_roles, failed_roles
+
+
+def _display_role_assignment_messages(request, added_roles, updated_roles, failed_roles):
+    """Display appropriate messages for role assignment results."""
+    if added_roles:
+        if len(added_roles) == 1:
+            messages.success(
+                request, f"Role '{added_roles[0]}' added to assignable roles."
+            )
+        else:
+            role_list = "', '".join(added_roles)
+            messages.success(
+                request,
+                f"Added {len(added_roles)} roles to assignable list: '{role_list}'",
+            )
+
+    if updated_roles:
+        if len(updated_roles) == 1:
+            messages.info(request, f"Role '{updated_roles[0]}' settings updated.")
+        else:
+            role_list = "', '".join(updated_roles)
+            messages.info(
+                request,
+                f"Updated {len(updated_roles)} role settings: '{role_list}'",
+            )
+
+    if failed_roles:
+        if len(failed_roles) == 1:
+            messages.error(request, f"Could not find role: {failed_roles[0]}")
+        else:
+            role_list = ", ".join(failed_roles)
+            messages.error(
+                request, f"Could not find {len(failed_roles)} roles: {role_list}"
+            )
+
+
 @require_POST
 @login_required
-def add_assignable_role(request, guild_id):
+def add_assignable_role(request, guild_id):  # noqa: PLR0912
     """Add one or more roles to the assignable roles list."""
     try:
         guild_name, server_config, user_guilds = _validate_admin_panel_access(
@@ -578,72 +663,14 @@ def add_assignable_role(request, guild_id):
         )
         user_name = request.user.username
 
-        # Process each selected role
-        added_roles = []
-        updated_roles = []
-        failed_roles = []
-
-        for role_id in role_ids:
-            # Find role info in Discord data
-            role_info = next(
-                (role for role in discord_roles if role["id"] == role_id), None
-            )
-
-            if not role_info:
-                failed_roles.append(f"Role ID {role_id}")
-                continue
-
-            # Convert color from decimal to hex
-            role_color = ""
-            if role_info.get("color"):
-                role_color = f"#{role_info['color']:06x}"
-
-            # Create or update assignable role
-            assignable_role, created = AssignableRole.objects.get_or_create(
-                server_config=server_config,
-                role_id=role_id,
-                defaults={
-                    "role_name": role_info["name"],
-                    "role_color": role_color,
-                    "is_self_assignable": is_self_assignable,
-                    "requires_permission": requires_permission,
-                    "added_by": user_id,
-                    "added_by_name": user_name,
-                },
-            )
-
-            if created:
-                added_roles.append(role_info["name"])
-            else:
-                # Update existing role
-                assignable_role.role_name = role_info["name"]
-                assignable_role.role_color = role_color
-                assignable_role.is_self_assignable = is_self_assignable
-                assignable_role.requires_permission = requires_permission
-                assignable_role.save()
-                updated_roles.append(role_info["name"])
+        # Process role assignments
+        added_roles, updated_roles, failed_roles = _process_role_assignments(
+            role_ids, discord_roles, server_config, user_id, user_name,
+            is_self_assignable, requires_permission
+        )
 
         # Display appropriate messages
-        if added_roles:
-            if len(added_roles) == 1:
-                messages.success(request, f"Role '{added_roles[0]}' added to assignable roles.")
-            else:
-                role_list = "', '".join(added_roles)
-                messages.success(request, f"Added {len(added_roles)} roles to assignable list: '{role_list}'")
-
-        if updated_roles:
-            if len(updated_roles) == 1:
-                messages.info(request, f"Role '{updated_roles[0]}' settings updated.")
-            else:
-                role_list = "', '".join(updated_roles)
-                messages.info(request, f"Updated {len(updated_roles)} role settings: '{role_list}'")
-
-        if failed_roles:
-            if len(failed_roles) == 1:
-                messages.error(request, f"Could not find role: {failed_roles[0]}")
-            else:
-                role_list = ", ".join(failed_roles)
-                messages.error(request, f"Could not find {len(failed_roles)} roles: {role_list}")
+        _display_role_assignment_messages(request, added_roles, updated_roles, failed_roles)
 
     except Http404:
         messages.error(
