@@ -18,6 +18,7 @@ from shared.discord_api import DiscordAPIError, get_guild_roles, get_user_guilds
 from .models import (
     DISCORD_ADMINISTRATOR_PERMISSION,
     DISCORD_MANAGE_SERVER_PERMISSION,
+    AssignableRole,
     ServerPermissionConfig,
     ServerPermissionLog,
 )
@@ -477,3 +478,240 @@ def reset_to_defaults(request, guild_id):
         )
 
     return redirect("admin_panel:dashboard", guild_id=guild_id)
+
+
+@login_required
+def manage_assignable_roles(request, guild_id):
+    """Manage assignable roles for a server."""
+    try:
+        guild_name, server_config, user_guilds = _validate_admin_panel_access(
+            request, int(guild_id)
+        )
+
+        if request.method == "POST":
+            return _handle_assignable_role_update(request, server_config, guild_id)
+
+        # Fetch Discord roles for dropdown
+        discord_roles = []
+        try:
+            discord_roles = get_guild_roles(int(guild_id))
+            if discord_roles is None:
+                discord_roles = []
+                messages.warning(
+                    request,
+                    "Could not fetch Discord roles. The bot may not be in this server or may lack permissions.",
+                )
+        except DiscordAPIError as e:
+            logger.warning(f"Failed to fetch Discord roles for guild {guild_id}: {e}")
+            messages.warning(
+                request,
+                "Could not fetch Discord roles. Some features may not work correctly.",
+            )
+
+        # Get current assignable roles
+        assignable_roles = AssignableRole.objects.filter(server_config=server_config)
+
+        # Filter out roles that are already assignable
+        assignable_role_ids = {role.role_id for role in assignable_roles}
+        available_roles = [
+            role
+            for role in discord_roles
+            if role["id"] not in assignable_role_ids and role["name"] != "@everyone"
+        ]
+
+        context = {
+            "guild_id": guild_id,
+            "guild_name": guild_name,
+            "server_config": server_config,
+            "assignable_roles": assignable_roles,
+            "available_roles": available_roles,
+            "discord_roles": discord_roles,
+            "permission_choices": ServerPermissionConfig.PERMISSION_CHOICES,
+        }
+
+        return render(request, "admin_panel/manage_assignable_roles.html", context)
+
+    except Http404:
+        messages.error(
+            request,
+            "You don't have permission to access the admin panel for this server",
+        )
+        return redirect("servers:dashboard")
+
+
+@require_POST
+@login_required
+def add_assignable_role(request, guild_id):
+    """Add one or more roles to the assignable roles list."""
+    try:
+        guild_name, server_config, user_guilds = _validate_admin_panel_access(
+            request, int(guild_id)
+        )
+
+        # Handle both single role_id (legacy) and multiple role_ids
+        role_ids = request.POST.getlist("role_ids")
+        if not role_ids:
+            # Fallback to single role_id for backward compatibility
+            single_role_id = request.POST.get("role_id")
+            if single_role_id:
+                role_ids = [single_role_id]
+
+        is_self_assignable = request.POST.get("is_self_assignable") == "on"
+        requires_permission = request.POST.get("requires_permission", "everyone")
+
+        if not role_ids:
+            messages.error(request, "Please select at least one role to add.")
+            return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
+
+        # Fetch role information from Discord
+        try:
+            discord_roles = get_guild_roles(int(guild_id))
+        except DiscordAPIError:
+            messages.error(request, "Could not fetch role information from Discord.")
+            return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
+
+        # Get user info for logging
+        user_id = (
+            str(request.user.socialaccount_set.first().uid)
+            if request.user.socialaccount_set.first()
+            else str(request.user.id)
+        )
+        user_name = request.user.username
+
+        # Process each selected role
+        added_roles = []
+        updated_roles = []
+        failed_roles = []
+
+        for role_id in role_ids:
+            # Find role info in Discord data
+            role_info = next(
+                (role for role in discord_roles if role["id"] == role_id), None
+            )
+
+            if not role_info:
+                failed_roles.append(f"Role ID {role_id}")
+                continue
+
+            # Convert color from decimal to hex
+            role_color = ""
+            if role_info.get("color"):
+                role_color = f"#{role_info['color']:06x}"
+
+            # Create or update assignable role
+            assignable_role, created = AssignableRole.objects.get_or_create(
+                server_config=server_config,
+                role_id=role_id,
+                defaults={
+                    "role_name": role_info["name"],
+                    "role_color": role_color,
+                    "is_self_assignable": is_self_assignable,
+                    "requires_permission": requires_permission,
+                    "added_by": user_id,
+                    "added_by_name": user_name,
+                },
+            )
+
+            if created:
+                added_roles.append(role_info["name"])
+            else:
+                # Update existing role
+                assignable_role.role_name = role_info["name"]
+                assignable_role.role_color = role_color
+                assignable_role.is_self_assignable = is_self_assignable
+                assignable_role.requires_permission = requires_permission
+                assignable_role.save()
+                updated_roles.append(role_info["name"])
+
+        # Display appropriate messages
+        if added_roles:
+            if len(added_roles) == 1:
+                messages.success(request, f"Role '{added_roles[0]}' added to assignable roles.")
+            else:
+                role_list = "', '".join(added_roles)
+                messages.success(request, f"Added {len(added_roles)} roles to assignable list: '{role_list}'")
+
+        if updated_roles:
+            if len(updated_roles) == 1:
+                messages.info(request, f"Role '{updated_roles[0]}' settings updated.")
+            else:
+                role_list = "', '".join(updated_roles)
+                messages.info(request, f"Updated {len(updated_roles)} role settings: '{role_list}'")
+
+        if failed_roles:
+            if len(failed_roles) == 1:
+                messages.error(request, f"Could not find role: {failed_roles[0]}")
+            else:
+                role_list = ", ".join(failed_roles)
+                messages.error(request, f"Could not find {len(failed_roles)} roles: {role_list}")
+
+    except Http404:
+        messages.error(
+            request,
+            "You don't have permission to access the admin panel for this server",
+        )
+
+    return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
+
+
+@require_POST
+@login_required
+def remove_assignable_role(request, guild_id, role_id):
+    """Remove a role from the assignable roles list."""
+    try:
+        guild_name, server_config, user_guilds = _validate_admin_panel_access(
+            request, int(guild_id)
+        )
+
+        assignable_role = AssignableRole.objects.get(
+            server_config=server_config, role_id=role_id
+        )
+
+        role_name = assignable_role.role_name
+        assignable_role.delete()
+
+        messages.success(request, f"Role '{role_name}' removed from assignable roles.")
+
+    except AssignableRole.DoesNotExist:
+        messages.error(request, "Assignable role not found.")
+    except Http404:
+        messages.error(
+            request,
+            "You don't have permission to access the admin panel for this server",
+        )
+
+    return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
+
+
+def _handle_assignable_role_update(request, server_config, guild_id):
+    """Handle updates to assignable role settings."""
+    try:
+        # Handle bulk updates to existing assignable roles
+        for role_id in request.POST.getlist("role_ids"):
+            try:
+                assignable_role = AssignableRole.objects.get(
+                    server_config=server_config, role_id=role_id
+                )
+
+                # Update settings
+                is_self_assignable_key = f"is_self_assignable_{role_id}"
+                requires_permission_key = f"requires_permission_{role_id}"
+
+                assignable_role.is_self_assignable = (
+                    request.POST.get(is_self_assignable_key) == "on"
+                )
+                assignable_role.requires_permission = request.POST.get(
+                    requires_permission_key, "everyone"
+                )
+                assignable_role.save()
+
+            except AssignableRole.DoesNotExist:
+                continue
+
+        messages.success(request, "Assignable role settings updated successfully.")
+
+    except Exception:
+        logger.exception("Error updating assignable roles")
+        messages.error(request, "An error occurred while updating role settings.")
+
+    return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)

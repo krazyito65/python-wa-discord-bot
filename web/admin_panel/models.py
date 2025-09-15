@@ -247,6 +247,86 @@ class ServerPermissionConfig(models.Model):
         )
 
 
+class AssignableRole(models.Model):
+    """Represents a Discord role that can be assigned to users via the admin panel."""
+
+    server_config = models.ForeignKey(
+        ServerPermissionConfig,
+        on_delete=models.CASCADE,
+        related_name="assignable_roles",
+        help_text="The server configuration this role belongs to",
+    )
+
+    # Discord role information
+    role_id = models.CharField(max_length=20, help_text="Discord role ID")
+    role_name = models.CharField(
+        max_length=100, help_text="Discord role name (cached for display)"
+    )
+    role_color = models.CharField(
+        max_length=7,
+        blank=True,
+        default="",
+        help_text="Role color in hex format (e.g., #ff0000)",
+    )
+
+    # Role assignment settings
+    is_self_assignable = models.BooleanField(
+        default=True, help_text="Whether users can assign this role to themselves"
+    )
+    requires_permission = models.CharField(
+        max_length=20,
+        choices=ServerPermissionConfig.PERMISSION_CHOICES,
+        default="everyone",
+        help_text="Permission level required to assign this role",
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(
+        default=timezone.now, help_text="When this role was added to assignable list"
+    )
+    added_by = models.CharField(
+        max_length=20, help_text="Discord user ID who added this role"
+    )
+    added_by_name = models.CharField(
+        max_length=100,
+        default="",
+        help_text="Discord username who added this role",
+    )
+
+    class Meta:
+        verbose_name = "Assignable Role"
+        verbose_name_plural = "Assignable Roles"
+        ordering = ["role_name"]
+        unique_together = ["server_config", "role_id"]
+
+    def __str__(self):
+        return f"{self.server_config.guild_name} - {self.role_name}"
+
+    def can_assign_role(
+        self,
+        user_roles: list[str],
+        guild_permissions: int = 0,
+        is_server_owner: bool = False,
+    ) -> bool:
+        """
+        Check if a user can assign this role based on their permissions.
+
+        Args:
+            user_roles: List of role names the user has in the server
+            guild_permissions: User's Discord permissions in the server
+            is_server_owner: Whether the user is the server owner
+
+        Returns:
+            bool: True if user can assign this role, False otherwise
+        """
+        return (
+            self.server_config.has_permission(
+                user_roles, "admin_panel_access", guild_permissions, is_server_owner
+            )
+            and self.is_self_assignable
+        )
+
+
 class ServerPermissionLog(models.Model):
     """Log of permission configuration changes for auditing purposes."""
 

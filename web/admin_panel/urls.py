@@ -16,6 +16,21 @@ urlpatterns = [
         name="permission_settings",
     ),
     path("<int:guild_id>/roles/", views.role_settings, name="role_settings"),
+    path(
+        "<int:guild_id>/assignable-roles/",
+        views.manage_assignable_roles,
+        name="manage_assignable_roles",
+    ),
+    path(
+        "<int:guild_id>/assignable-roles/add/",
+        views.add_assignable_role,
+        name="add_assignable_role",
+    ),
+    path(
+        "<int:guild_id>/assignable-roles/remove/<str:role_id>/",
+        views.remove_assignable_role,
+        name="remove_assignable_role",
+    ),
     path("<int:guild_id>/audit/", views.audit_log, name="audit_log"),
     path("<int:guild_id>/reset/", views.reset_to_defaults, name="reset_to_defaults"),
 ]

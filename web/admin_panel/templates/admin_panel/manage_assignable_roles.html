@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% load humanize %}
+
+{% block title %}Manage Assignable Roles - {{ guild_name }}{% endblock %}
+
+{% block extra_head %}
+<style>
+    .role-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .role-color-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 6px;
+        border: 1px solid rgba(0,0,0,0.1);
+    }
+    .role-autocomplete {
+        position: relative;
+    }
+    .role-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 0.375rem;
+        max-height: 200px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: var(--shadow);
+    }
+    .role-dropdown-item {
+        padding: 0.75rem;
+        cursor: pointer;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        color: var(--text-primary);
+        font-weight: 500;
+        transition: all 0.2s ease;
+        font-size: 0.95rem;
+    }
+    .role-dropdown-item:hover {
+        background-color: var(--wa-purple);
+        color: white;
+    }
+    .role-dropdown-item:hover .role-color-dot {
+        border-color: rgba(255, 255, 255, 0.4);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
+    .role-dropdown-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Enhanced contrast for all form-select dropdowns on this page */
+    .form-select option {
+        background-color: var(--input-bg);
+        color: var(--text-primary);
+        padding: 0.5rem;
+    }
+
+    .form-select option:checked {
+        background-color: var(--wa-purple) !important;
+        color: white !important;
+        font-weight: 500;
+    }
+
+    .form-select option:hover {
+        background-color: rgba(159, 74, 243, 0.1) !important;
+        color: var(--text-primary) !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Header -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-1">🎭 Manage Assignable Roles</h1>
+                    <p class="text-muted mb-0">{{ guild_name }}</p>
+                </div>
+                <div>
+                    <a href="{% url 'admin_panel:dashboard' guild_id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> Back to Admin Panel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add New Role Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-plus-circle"></i> Add Assignable Roles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'admin_panel:add_assignable_role' guild_id %}">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="role_ids" class="form-label">Select Roles (Hold Ctrl/Cmd to select multiple)</label>
+                                <select multiple
+                                        name="role_ids"
+                                        id="role_ids"
+                                        class="form-select"
+                                        size="8"
+                                        style="min-height: 200px;">
+                                    {% for role in available_roles %}
+                                    <option value="{{ role.id }}"
+                                            data-role-color="#{{ role.color|stringformat:'06x' }}"
+                                            style="padding: 8px;">
+                                        {% if role.color %}🎨{% else %}⚪{% endif %} {{ role.name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted mt-1">
+                                    💡 Hold Ctrl (Windows/Linux) or Cmd (Mac) while clicking to select multiple roles
+                                </small>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="requires_permission" class="form-label">Required Permission</label>
+                                <select name="requires_permission" id="requires_permission" class="form-select">
+                                    {% for value, display in permission_choices %}
+                                    <option value="{{ value }}" {% if value == "everyone" %}selected{% endif %}>
+                                        {{ display }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-check mt-4">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           name="is_self_assignable"
+                                           id="is_self_assignable"
+                                           checked>
+                                    <label class="form-check-label" for="is_self_assignable">
+                                        Self-assignable
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary mt-4">
+                                    <i class="fas fa-plus"></i> Add Selected Roles
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Assignable Roles -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-list"></i> Current Assignable Roles ({{ assignable_roles|length }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if assignable_roles %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Role</th>
+                                        <th>Permission Required</th>
+                                        <th>Self-Assignable</th>
+                                        <th>Added By</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for role in assignable_roles %}
+                                    <tr>
+                                        <td>
+                                            <div class="role-badge" style="background-color: {{ role.role_color|default:'#99aab5' }}20; color: {{ role.role_color|default:'#666' }}; border: 1px solid {{ role.role_color|default:'#ddd' }};">
+                                                {% if role.role_color %}
+                                                <div class="role-color-dot" style="background-color: {{ role.role_color }};"></div>
+                                                {% endif %}
+                                                {{ role.role_name }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <input type="hidden" name="role_ids" value="{{ role.role_id }}">
+                                            <select name="requires_permission_{{ role.role_id }}" class="form-select form-select-sm">
+                                                {% for value, display in permission_choices %}
+                                                <option value="{{ value }}" {% if value == role.requires_permission %}selected{% endif %}>
+                                                    {{ display }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       name="is_self_assignable_{{ role.role_id }}"
+                                                       {% if role.is_self_assignable %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ role.added_by_name }}<br>
+                                                {{ role.created_at|naturaltime }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <form method="post" action="{% url 'admin_panel:remove_assignable_role' guild_id role.role_id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('Remove {{ role.role_name }} from assignable roles?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-user-tag fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Assignable Roles</h5>
+                        <p class="text-muted">Add roles above to allow users to assign them to themselves.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const roleSelect = document.getElementById('role_ids');
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    // Update button text based on selection
+    function updateButtonText() {
+        const selectedCount = roleSelect.selectedOptions.length;
+        if (selectedCount === 0) {
+            submitButton.innerHTML = '<i class="fas fa-plus"></i> Add Selected Roles';
+            submitButton.disabled = true;
+        } else if (selectedCount === 1) {
+            submitButton.innerHTML = '<i class="fas fa-plus"></i> Add 1 Role';
+            submitButton.disabled = false;
+        } else {
+            submitButton.innerHTML = `<i class="fas fa-plus"></i> Add ${selectedCount} Roles`;
+            submitButton.disabled = false;
+        }
+    }
+
+    // Listen for selection changes
+    roleSelect.addEventListener('change', updateButtonText);
+
+    // Initial button state
+    updateButtonText();
+
+    // Prevent form submission if no roles selected
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        if (roleSelect.selectedOptions.length === 0) {
+            e.preventDefault();
+            alert('Please select at least one role to add.');
+        }
+    });
+});
+</script>
+{% endblock %}
