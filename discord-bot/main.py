@@ -38,7 +38,9 @@ from pathlib import Path
 import yaml
 from bot import WeakAurasBot
 from commands import setup_macro_commands
+from commands.color_role_commands import setup_color_role_commands
 from commands.config_commands import setup_config_commands
+from commands.help_commands import setup_help_commands
 from commands.ping_commands import setup_ping_commands
 from commands.stats_commands import setup_stats_commands
 from commands.wiki_commands import setup_wiki_commands
@@ -202,8 +204,14 @@ def main() -> None:
     setup_macro_commands(bot)
     logger.info("Macro commands registered")
 
+    setup_color_role_commands(bot)
+    logger.info("Color role commands registered")
+
     setup_ping_commands(bot)
     logger.info("Ping commands registered")
+
+    setup_help_commands(bot)
+    logger.info("Help commands registered")
 
     setup_config_commands(bot)
     logger.info("Config commands registered")
