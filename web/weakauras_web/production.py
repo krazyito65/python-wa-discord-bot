@@ -12,6 +12,7 @@ DEBUG = False
 ENVIRONMENT = "prod"
 
 # Security settings for production
+# sourced from /etc/weakauras-bot/production.env
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 
 # Force HTTPS in production (temporarily disabled for testing)
@@ -76,6 +77,11 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "django.db.backends": {
+            "handlers": ["file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
         "macros": {
             "handlers": ["file"],
             "level": "INFO",
@@ -95,6 +101,7 @@ LOGGING = {
 }
 
 # Override secret key from environment
+# sourced from /etc/weakauras-bot/production.env
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 if not SECRET_KEY:
     raise ValueError(
