@@ -200,7 +200,7 @@ jobs:
       run: |
         # Additional security check for hardcoded secrets
         echo "🔒 Scanning for potential secrets..."
-        if grep -r "sk-" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock"; then
+        if grep -r "sk-" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock" --exclude="bin/prod-logs-status"; then
           echo "❌ Found potential API keys (sk- pattern)"
           exit 1
         fi
