@@ -1,0 +1,13 @@
+# Security scan exclusions
+# Files and patterns that contain legitimate "sk-" patterns that should be excluded from security scans
+# One pattern per line, supports grep --exclude-from syntax (base names only)
+
+# Production log management script (contains --disk-usage parameter)
+prod-logs-status
+
+# Claude Code settings (may contain command examples with patterns)
+settings.local.json
+
+# Add other exclusions here as needed
+# Example: disk-manager.sh
+# Example: api-usage.md

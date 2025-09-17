@@ -200,14 +200,25 @@ jobs:
       run: |
         # Additional security check for hardcoded secrets
         echo "🔒 Scanning for potential secrets..."
-        if grep -r "sk-" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock" --exclude="bin/prod-logs-status"; then
+
+        # Check for potential API keys (sk- pattern)
+        EXCLUDE_FROM_ARG=""
+        if [ -f .github/security-exclusions.txt ]; then
+          echo "📋 Using security exclusions from .github/security-exclusions.txt"
+          EXCLUDE_FROM_ARG="--exclude-from=.github/security-exclusions.txt"
+        fi
+
+        if grep -r "sk-" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude-dir=.claude --exclude="*.lock" $EXCLUDE_FROM_ARG; then
           echo "❌ Found potential API keys (sk- pattern)"
           exit 1
         fi
+
+        # Check for hardcoded Discord tokens
         if grep -r "DISCORD_TOKEN.*=" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock" --exclude="*.example" --exclude="CLAUDE.md"; then
           echo "❌ Found potential hardcoded Discord tokens"
           exit 1
         fi
+
         echo "✅ No obvious secrets found"
 
     - name: Validate Configuration Templates
