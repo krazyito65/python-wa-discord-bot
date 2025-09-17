@@ -1,0 +1,46 @@
+#!/bin/bash
+# Check log rotation status and disk usage
+# Usage: bin/prod-logs-status
+
+set -euo pipefail
+
+echo "📊 WeakAuras Production Log Status"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# SystemD Journal Status
+echo "🗂️  SystemD Journal:"
+echo "   $(journalctl --disk-usage)"
+echo ""
+
+# Nginx Log Files
+echo "📄 Nginx Log Files:"
+if ls /var/log/nginx/weakauras-bot-*.log >/dev/null 2>&1; then
+    du -h /var/log/nginx/weakauras-bot-*.log | while read size file; do
+        echo "   • $(basename "$file"): $size"
+    done
+else
+    echo "   • No WeakAuras nginx logs found"
+fi
+echo ""
+
+# Log Rotation Configuration
+echo "🔄 Log Rotation Settings:"
+echo "   • SystemD Journal: Max 100MB total, 30 days retention"
+echo "   • Nginx Logs: Max 10MB per file, 7 days retention"
+echo "   • Files rotate weekly or when size limit reached"
+echo ""
+
+# Last Rotation Status
+echo "⏰ Last Rotation Status:"
+if [ -f /var/lib/logrotate/status ]; then
+    grep -E "(weakauras|nginx)" /var/lib/logrotate/status 2>/dev/null | head -5 || echo "   • No rotation history found"
+else
+    echo "   • Logrotate status file not found"
+fi
+echo ""
+
+echo "💡 Log Management Commands:"
+echo "   • bin/prod-logs-all     - View live logs"
+echo "   • journalctl --vacuum-time=7d  - Clean old journal logs manually"
+echo "   • logrotate -f /etc/logrotate.d/weakauras-bot  - Force log rotation"
