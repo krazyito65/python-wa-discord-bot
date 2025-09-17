@@ -7,6 +7,7 @@ set -euo pipefail
 echo "🌐 Viewing Django web interface logs (Ctrl+C to exit)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📁 Log source: systemd journal (weakauras-django service)"
+echo "📂 Physical path: /var/log/journal/5ee67bd382c4251a97ac7ee268bfa2d0/"
 echo ""
 
 sudo journalctl -f -u weakauras-django --since "10 minutes ago" -o short-precise
