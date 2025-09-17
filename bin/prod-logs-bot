@@ -1,0 +1,11 @@
+#!/bin/bash
+# View Discord bot logs in real-time
+# Usage: bin/prod-logs-bot
+
+set -euo pipefail
+
+echo "🤖 Viewing Discord bot logs (Ctrl+C to exit)..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+sudo journalctl -f -u weakauras-bot --since "10 minutes ago" -o short-precise

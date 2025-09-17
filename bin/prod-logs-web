@@ -1,0 +1,11 @@
+#!/bin/bash
+# View Django web interface logs in real-time
+# Usage: bin/prod-logs-web
+
+set -euo pipefail
+
+echo "🌐 Viewing Django web interface logs (Ctrl+C to exit)..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+sudo journalctl -f -u weakauras-django --since "10 minutes ago" -o short-precise

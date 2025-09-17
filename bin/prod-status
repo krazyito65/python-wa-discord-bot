@@ -1,0 +1,54 @@
+#!/bin/bash
+# Check production service status
+# Usage: bin/prod-status
+
+set -euo pipefail
+
+echo "📊 Production Service Status"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Service status
+echo "🔍 Service Status:"
+echo "  • Discord Bot: $(sudo systemctl is-active weakauras-bot)"
+echo "  • Django Web: $(sudo systemctl is-active weakauras-django)"
+echo "  • Nginx Proxy: $(sudo systemctl is-active nginx)"
+echo ""
+
+# Website test
+echo "🌐 Website Check:"
+if curl -s -I https://bot.weakauras.wtf | head -1 | grep -q "HTTP/2 [23][0-9][0-9]"; then
+    echo "  • https://bot.weakauras.wtf: ✅ ONLINE"
+else
+    echo "  • https://bot.weakauras.wtf: ❌ OFFLINE"
+fi
+echo ""
+
+# Disk space
+echo "💾 Disk Usage:"
+df -h / | awk 'NR==2 {print "  • Root: " $3 "/" $2 " (" $5 " used)"}'
+echo ""
+
+# Memory usage
+echo "🧠 Memory Usage:"
+free -h | awk 'NR==2 {print "  • RAM: " $3 "/" $2 " (" int($3/$2*100) "% used)"}'
+echo ""
+
+# Recent errors (last 5 minutes)
+echo "⚠️  Recent Errors (last 5 minutes):"
+error_count=$(sudo journalctl -u weakauras-bot -u weakauras-django --since "5 minutes ago" | grep -i "error\|critical\|exception" | wc -l)
+if [ "$error_count" -eq 0 ]; then
+    echo "  • No errors found ✅"
+else
+    echo "  • Found $error_count errors ⚠️"
+    echo "  • Check logs: bin/prod-logs-all"
+fi
+echo ""
+
+echo "📝 Available Commands:"
+echo "  • bin/prod-restart-all    - Restart all services"
+echo "  • bin/prod-restart-bot    - Restart Discord bot only"
+echo "  • bin/prod-restart-web    - Restart web interface only"
+echo "  • bin/prod-logs-all       - View all service logs"
+echo "  • bin/prod-logs-bot       - View Discord bot logs"
+echo "  • bin/prod-logs-web       - View web interface logs"

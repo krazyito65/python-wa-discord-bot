@@ -1,0 +1,26 @@
+#!/bin/bash
+# Restart only the Django web interface
+# Usage: bin/prod-restart-web
+
+set -euo pipefail
+
+echo "🌐 Restarting Django web interface..."
+
+echo "  • Stopping Django service..."
+sudo systemctl stop weakauras-django
+
+echo "  • Starting Django service..."
+sudo systemctl start weakauras-django
+
+echo "  • Reloading nginx..."
+sudo systemctl reload nginx
+
+echo "  • Checking web status..."
+sleep 3
+sudo systemctl status weakauras-django nginx --no-pager
+
+echo "✅ Django web interface restarted successfully!"
+echo ""
+echo "📊 Web Status: $(sudo systemctl is-active weakauras-django)"
+echo "🌐 Website: https://bot.weakauras.wtf"
+echo "📝 Web Logs: bin/prod-logs-web"

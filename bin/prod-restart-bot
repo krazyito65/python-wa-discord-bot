@@ -1,0 +1,22 @@
+#!/bin/bash
+# Restart only the Discord bot service
+# Usage: bin/prod-restart-bot
+
+set -euo pipefail
+
+echo "🤖 Restarting Discord bot service..."
+
+echo "  • Stopping Discord bot..."
+sudo systemctl stop weakauras-bot
+
+echo "  • Starting Discord bot..."
+sudo systemctl start weakauras-bot
+
+echo "  • Checking bot status..."
+sleep 3
+sudo systemctl status weakauras-bot --no-pager
+
+echo "✅ Discord bot restarted successfully!"
+echo ""
+echo "📊 Bot Status: $(sudo systemctl is-active weakauras-bot)"
+echo "📝 Bot Logs: bin/prod-logs-bot"

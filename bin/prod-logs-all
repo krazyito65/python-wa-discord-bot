@@ -1,0 +1,17 @@
+#!/bin/bash
+# View all production service logs in real-time
+# Usage: bin/prod-logs-all
+
+set -euo pipefail
+
+echo "📝 Viewing all production service logs (Ctrl+C to exit)..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+
+# Show combined logs from all services
+sudo journalctl -f \
+    -u weakauras-bot \
+    -u weakauras-django \
+    -u nginx \
+    --since "10 minutes ago" \
+    -o short-precise
