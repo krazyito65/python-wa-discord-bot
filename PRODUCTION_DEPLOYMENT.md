@@ -92,6 +92,23 @@ systemctl enable weakauras-bot weakauras-django nginx
 ```
 
 ### Service Management Commands
+
+**Use the provided management scripts (recommended):**
+```bash
+# Service Management
+bin/prod-restart-all      # Restart all services
+bin/prod-restart-bot      # Restart Discord bot only
+bin/prod-restart-web      # Restart web interface only
+bin/prod-status           # Complete production health check
+
+# Log Management
+bin/prod-logs-all         # View all service logs
+bin/prod-logs-bot         # View Discord bot logs
+bin/prod-logs-web         # View web interface logs
+bin/prod-logs-status      # Check log rotation and disk usage
+```
+
+**Manual systemctl commands (if needed):**
 ```bash
 # Check service status
 systemctl status weakauras-bot weakauras-django nginx
@@ -99,7 +116,6 @@ systemctl status weakauras-bot weakauras-django nginx
 # View logs
 journalctl -u weakauras-bot -f
 journalctl -u weakauras-django -f
-tail -f /var/log/weakauras-bot/*.log
 
 # Restart services
 systemctl restart weakauras-bot
@@ -112,12 +128,32 @@ systemctl stop weakauras-bot weakauras-django
 
 ## 📊 Monitoring & Maintenance
 
-### Log Locations
-- Bot logs: `/var/log/weakauras-bot/bot.log`
-- Django logs: `/var/log/weakauras-bot/django.log`
-- Monitor logs: `/var/log/weakauras-bot/monitor.log`
-- Backup logs: `/var/log/weakauras-bot/backup.log`
-- Nginx logs: `/var/log/nginx/weakauras-bot-*.log`
+### Log Management & Rotation
+
+**Automatic Log Rotation (Configured):**
+- **SystemD Journal**: 100MB max total, 30-day retention, weekly rotation
+- **Nginx Logs**: 10MB per file, 7-day retention, daily rotation
+- **Compression**: Enabled for space efficiency
+
+**Log Locations:**
+- **SystemD Journal**: `/var/log/journal/[machine-id]/` (binary format)
+- **Nginx Logs**: `/var/log/nginx/weakauras-bot-*.log` (text format)
+- **Log Configuration**: `/etc/systemd/journald.conf.d/10-weakauras.conf`
+- **Rotation Config**: `/etc/logrotate.d/weakauras-bot`
+
+**Viewing Logs:**
+```bash
+# Use management scripts (recommended)
+bin/prod-logs-all         # View all service logs
+bin/prod-logs-status      # Check log sizes and rotation
+
+# View logs in vim (text editor friendly)
+journalctl -u weakauras-bot --since "1 hour ago" > /tmp/logs.txt && vim /tmp/logs.txt
+
+# Manual systemd journal access
+journalctl -u weakauras-bot -f
+journalctl -u weakauras-django -f
+```
 
 ### Backup Management
 ```bash

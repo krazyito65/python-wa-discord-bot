@@ -120,16 +120,17 @@ systemctl restart weakauras-django
 # Check disk usage
 df -h
 
-# Clean up logs
-journalctl --vacuum-time=7d  # Keep only 7 days of system logs
-find /var/log/weakauras-bot/ -name "*.log.*" -mtime +14 -delete
+# Check log status and sizes
+bin/prod-logs-status
 
-# Clean old backups (keep only 30 days - already automated)
-find /var/backups/weakauras-bot/ -name "*.tar.gz" -mtime +30 -delete
+# Clean up logs (automatic rotation already configured)
+journalctl --vacuum-time=7d  # Keep only 7 days of system logs
+logrotate -f /etc/logrotate.d/weakauras-bot  # Force log rotation
 
 # Check what's using space
-du -sh /var/lib/weakauras-bot/*
-du -sh /var/log/*
+du -sh ~/weakauras-bot-data/*
+du -sh /var/log/nginx/*
+du -sh /var/log/journal/$(cat /etc/machine-id)/*
 ```
 
 ### 6. **High Memory/CPU Usage**
@@ -146,14 +147,17 @@ du -sh /var/log/*
 ```bash
 # Check resource usage
 htop
-systemctl status weakauras-bot weakauras-django
+bin/prod-status
 
 # Restart services to clear memory
-systemctl restart weakauras-bot weakauras-django
+bin/prod-restart-all
 
 # Check for unusual activity in logs
+bin/prod-logs-all
 tail -f /var/log/nginx/weakauras-bot-access.log
-grep ERROR /var/log/weakauras-bot/*.log
+
+# Check for errors in journal
+journalctl -u weakauras-bot -u weakauras-django --since "1 hour ago" | grep -i error
 ```
 
 ### 7. **Code Updates**
@@ -200,7 +204,8 @@ systemctl status weakauras-bot weakauras-django nginx
 df -h
 
 # Check recent errors
-grep -i error /var/log/weakauras-bot/*.log | tail -20
+bin/prod-logs-status
+journalctl -u weakauras-bot -u weakauras-django --since "1 week ago" | grep -i error | tail -20
 
 # Check certificate expiration (should auto-renew at 30 days)
 certbot certificates
@@ -221,14 +226,28 @@ ls -la /var/backups/weakauras-bot/ | tail -5
 
 **Important File Locations:**
 - Configuration: `/etc/weakauras-bot/production.env`
-- Server Data: `/var/lib/weakauras-bot/`
-- Logs: `/var/log/weakauras-bot/`
-- Backups: `/var/backups/weakauras-bot/`
+- Bot Config: `~/.config/weakauras-bot/token.yml`
+- Server Data: `~/weakauras-bot-data/`
+- SystemD Logs: `/var/log/journal/$(cat /etc/machine-id)/`
+- Nginx Logs: `/var/log/nginx/weakauras-bot-*.log`
 - Nginx Config: `/etc/nginx/sites-available/weakauras-bot`
+- Log Rotation: `/etc/systemd/journald.conf.d/10-weakauras.conf`
 
 **Service Commands:**
 ```bash
-# Service management
+# Use management scripts (recommended)
+bin/prod-restart-all      # Restart all services
+bin/prod-restart-bot      # Restart Discord bot only
+bin/prod-restart-web      # Restart web interface only
+bin/prod-status           # Complete production health check
+
+# Log Management
+bin/prod-logs-all         # View all service logs
+bin/prod-logs-bot         # View Discord bot logs
+bin/prod-logs-web         # View web interface logs
+bin/prod-logs-status      # Check log rotation and disk usage
+
+# Manual service management (if needed)
 systemctl start|stop|restart|status weakauras-bot
 systemctl start|stop|restart|status weakauras-django
 systemctl start|stop|restart|status nginx
@@ -236,7 +255,9 @@ systemctl start|stop|restart|status nginx
 # View logs in real-time
 journalctl -u weakauras-bot -f
 journalctl -u weakauras-django -f
-tail -f /var/log/weakauras-bot/bot.log
+
+# View logs in vim (text editor friendly)
+journalctl -u weakauras-bot --since "1 hour ago" > /tmp/logs.txt && vim /tmp/logs.txt
 ```
 
 **Discord Bot Settings:**

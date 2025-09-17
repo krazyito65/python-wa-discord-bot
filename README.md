@@ -110,6 +110,135 @@ A Discord bot designed to facilitate common questions and FAQs for the WeakAuras
 /list_macros
 ```
 
+## 🏭 Production Deployment
+
+### Prerequisites
+
+- Linux server (Ubuntu/Debian recommended)
+- Domain name with DNS pointing to your server
+- Sudo/root access for system configuration
+
+### Production Setup
+
+1. **Initial Server Setup**
+   ```bash
+   # Clone repository
+   git clone <repository-url>
+   cd python-wa-discord-bot
+
+   # Install dependencies
+   uv sync
+   ```
+
+2. **Configure External Storage** (Recommended)
+   ```bash
+   # Setup external configuration (survives git operations)
+   mkdir -p ~/.config/weakauras-bot
+   cp discord-bot/settings/token.yml.example ~/.config/weakauras-bot/token.yml
+   # Edit with your production tokens
+
+   # Setup external data storage
+   mkdir -p ~/weakauras-bot-data
+   ```
+
+3. **SSL Certificate Setup**
+   ```bash
+   # Install Certbot for Let's Encrypt
+   sudo apt update && sudo apt install certbot python3-certbot-nginx
+
+   # Obtain SSL certificate (replace with your domain)
+   sudo certbot --nginx -d bot.weakauras.wtf
+   ```
+
+4. **Production Services**
+
+   The system uses systemd services for automatic startup and management:
+
+   - **WeakAuras Discord Bot**: `weakauras-bot.service`
+   - **Django Web Interface**: `weakauras-django.service`
+   - **Nginx Reverse Proxy**: `nginx.service`
+
+5. **Environment Configuration**
+
+   Create `/etc/weakauras-bot/production.env` with:
+   ```bash
+   DISCORD_TOKEN=your_production_token_here
+   DJANGO_SECRET_KEY=your_generated_secret_key
+   DJANGO_ALLOWED_HOSTS=bot.yourdomain.com
+   DJANGO_DATABASE_URL=sqlite:///path/to/external/db.sqlite3
+   ```
+
+### Production Management
+
+Use the included management scripts for easy service administration:
+
+```bash
+# Service Management
+bin/prod-restart-all      # Restart all services
+bin/prod-restart-bot      # Restart Discord bot only
+bin/prod-restart-web      # Restart web interface only
+
+# Log Management
+bin/prod-logs-all         # View all service logs
+bin/prod-logs-bot         # View Discord bot logs
+bin/prod-logs-web         # View web interface logs
+bin/prod-logs-status      # Check log rotation and disk usage
+
+# System Status
+bin/prod-status           # Complete production health check
+```
+
+### Log Management & Rotation
+
+**Automatic Log Rotation:**
+- **SystemD Journal**: 100MB max total, 30-day retention, weekly rotation
+- **Nginx Logs**: 10MB per file, 7-day retention, daily rotation
+- **Compression**: Enabled for space efficiency
+
+**Manual Log Management:**
+```bash
+# View logs in vim
+journalctl -u weakauras-bot --since "1 hour ago" > /tmp/logs.txt && vim /tmp/logs.txt
+
+# Manual cleanup
+journalctl --vacuum-time=7d  # Clean logs older than 7 days
+logrotate -f /etc/logrotate.d/weakauras-bot  # Force rotation
+
+# Check disk usage
+bin/prod-logs-status
+```
+
+### Security & Monitoring
+
+**Firewall Configuration:**
+```bash
+# Only allow SSH, HTTP, and HTTPS
+sudo ufw enable
+sudo ufw allow ssh
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+```
+
+**System Security:**
+- Environment variables stored in `/etc/weakauras-bot/production.env` (600 permissions)
+- Discord tokens and secrets never stored in repository
+- Nginx security headers and rate limiting configured
+- Services run with minimal required privileges
+
+### Backup & Recovery
+
+**Important Files to Backup:**
+- `~/.config/weakauras-bot/token.yml` - Configuration
+- `~/weakauras-bot-data/` - Server macros and user statistics
+- `/etc/weakauras-bot/production.env` - Environment variables
+
+**Recovery Process:**
+```bash
+# After server rebuild, restore backups and run:
+cd /path/to/python-wa-discord-bot
+bin/prod-restart-all  # Services auto-start on boot
+```
+
 ## 🛠️ Development
 
 ### Project Structure
