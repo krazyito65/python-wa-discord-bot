@@ -214,7 +214,7 @@ jobs:
         fi
 
         # Check for hardcoded Discord tokens
-        if grep -r "DISCORD_TOKEN.*=" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock" --exclude="*.example" --exclude="CLAUDE.md"; then
+        if grep -r "DISCORD_TOKEN.*=" . --exclude-dir=.git --exclude-dir=.venv --exclude-dir=htmlcov --exclude-dir=.github --exclude="*.lock" --exclude="*.example" --exclude="CLAUDE.md" $EXCLUDE_FROM_ARG; then
           echo "❌ Found potential hardcoded Discord tokens"
           exit 1
         fi

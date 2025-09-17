@@ -11,3 +11,5 @@ settings.local.json
 # Add other exclusions here as needed
 # Example: disk-manager.sh
 # Example: api-usage.md
+
+README.md
