@@ -327,6 +327,77 @@ class AssignableRole(models.Model):
         )
 
 
+class EventConfig(models.Model):
+    """Configuration for server-specific bot events."""
+
+    # Event type choices
+    EVENT_TYPE_CHOICES = [
+        ("temperature", "Temperature Conversion"),
+        # Add more event types here as they are developed
+    ]
+
+    server_config = models.ForeignKey(
+        ServerPermissionConfig,
+        on_delete=models.CASCADE,
+        related_name="event_configs",
+        help_text="The server configuration this event belongs to",
+    )
+
+    event_type = models.CharField(
+        max_length=50,
+        choices=EVENT_TYPE_CHOICES,
+        help_text="Type of event to configure",
+    )
+
+    enabled = models.BooleanField(
+        default=True,
+        help_text="Whether this event is enabled for the server",
+    )
+
+    # Additional configuration can be stored as JSON
+    configuration = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional configuration options for this event (JSON format)",
+    )
+
+    # Metadata
+    created_at = models.DateTimeField(
+        default=timezone.now,
+        help_text="When this event configuration was created",
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="When this event configuration was last updated",
+    )
+    updated_by = models.CharField(
+        max_length=20,
+        help_text="Discord user ID who last updated this configuration",
+    )
+    updated_by_name = models.CharField(
+        max_length=100,
+        default="",
+        help_text="Discord username who last updated this configuration",
+    )
+
+    class Meta:
+        verbose_name = "Event Configuration"
+        verbose_name_plural = "Event Configurations"
+        ordering = ["event_type"]
+        unique_together = ["server_config", "event_type"]
+
+    def __str__(self):
+        status = "enabled" if self.enabled else "disabled"
+        return f"{self.server_config.guild_name} - {self.get_event_type_display()} ({status})"
+
+    def get_event_description(self):
+        """Get a human-readable description of what this event does."""
+        descriptions = {
+            "temperature": "Automatically converts temperature values between Fahrenheit and Celsius when mentioned in chat",
+        }
+        return descriptions.get(self.event_type, "Custom event configuration")
+
+
 class ServerPermissionLog(models.Model):
     """Log of permission configuration changes for auditing purposes."""
 

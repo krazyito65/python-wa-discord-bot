@@ -21,10 +21,7 @@ def setup_temperature_event(bot: WeakAurasBot):
             return
 
         # Check server-specific configuration
-        server_config = bot.load_server_config(message.guild.id, message.guild.name)
-        temp_config = server_config.get("events", {}).get("temperature", {})
-
-        if not temp_config.get("enabled", True):
+        if not await bot.is_event_enabled(message.guild.id, "temperature"):
             logger.debug(
                 f"Temperature event disabled for guild {message.guild.name} ({message.guild.id})"
             )

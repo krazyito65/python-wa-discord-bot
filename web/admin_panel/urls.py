@@ -31,6 +31,16 @@ urlpatterns = [
         views.remove_assignable_role,
         name="remove_assignable_role",
     ),
+    path(
+        "<int:guild_id>/events/",
+        views.manage_events,
+        name="manage_events",
+    ),
+    path(
+        "<int:guild_id>/events/toggle/<str:event_type>/",
+        views.toggle_event,
+        name="toggle_event",
+    ),
     path("<int:guild_id>/audit/", views.audit_log, name="audit_log"),
     path("<int:guild_id>/reset/", views.reset_to_defaults, name="reset_to_defaults"),
 ]

@@ -19,6 +19,7 @@ from .models import (
     DISCORD_ADMINISTRATOR_PERMISSION,
     DISCORD_MANAGE_SERVER_PERMISSION,
     AssignableRole,
+    EventConfig,
     ServerPermissionConfig,
     ServerPermissionLog,
 )
@@ -540,7 +541,13 @@ def manage_assignable_roles(request, guild_id):
 
 
 def _process_role_assignments(
-    role_ids, discord_roles, server_config, user_id, user_name, is_self_assignable, requires_permission
+    role_ids,
+    discord_roles,
+    server_config,
+    user_id,
+    user_name,
+    is_self_assignable,
+    requires_permission,
 ):
     """Process role assignments and return results."""
     added_roles = []
@@ -590,7 +597,9 @@ def _process_role_assignments(
     return added_roles, updated_roles, failed_roles
 
 
-def _display_role_assignment_messages(request, added_roles, updated_roles, failed_roles):
+def _display_role_assignment_messages(
+    request, added_roles, updated_roles, failed_roles
+):
     """Display appropriate messages for role assignment results."""
     if added_roles:
         if len(added_roles) == 1:
@@ -665,12 +674,19 @@ def add_assignable_role(request, guild_id):  # noqa: PLR0912
 
         # Process role assignments
         added_roles, updated_roles, failed_roles = _process_role_assignments(
-            role_ids, discord_roles, server_config, user_id, user_name,
-            is_self_assignable, requires_permission
+            role_ids,
+            discord_roles,
+            server_config,
+            user_id,
+            user_name,
+            is_self_assignable,
+            requires_permission,
         )
 
         # Display appropriate messages
-        _display_role_assignment_messages(request, added_roles, updated_roles, failed_roles)
+        _display_role_assignment_messages(
+            request, added_roles, updated_roles, failed_roles
+        )
 
     except Http404:
         messages.error(
@@ -742,3 +758,120 @@ def _handle_assignable_role_update(request, server_config, guild_id):
         messages.error(request, "An error occurred while updating role settings.")
 
     return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
+
+
+@login_required
+def manage_events(request, guild_id):
+    """Manage bot events configuration for a server."""
+    try:
+        guild_name, server_config, user_guilds = _validate_admin_panel_access(
+            request, int(guild_id)
+        )
+
+        # Get all available event types
+        available_events = EventConfig.EVENT_TYPE_CHOICES
+
+        # Get current event configurations
+        current_events = {}
+        for event_config in EventConfig.objects.filter(server_config=server_config):
+            current_events[event_config.event_type] = event_config
+
+        # Create list of events with their status
+        events_status = []
+        for event_type, event_display_name in available_events:
+            event_config = current_events.get(event_type)
+            if event_config:
+                enabled = event_config.enabled
+                config_obj = event_config
+            else:
+                # Default to enabled for new events
+                enabled = True
+                config_obj = None
+
+            # Get description for this event type
+            temp_config = EventConfig(event_type=event_type)
+            description = temp_config.get_event_description()
+
+            events_status.append(
+                {
+                    "type": event_type,
+                    "display_name": event_display_name,
+                    "enabled": enabled,
+                    "config": config_obj,
+                    "description": description,
+                }
+            )
+
+        context = {
+            "guild_id": guild_id,
+            "guild_name": guild_name,
+            "server_config": server_config,
+            "events_status": events_status,
+        }
+
+        return render(request, "admin_panel/manage_events.html", context)
+
+    except Http404:
+        messages.error(
+            request,
+            "You don't have permission to access the admin panel for this server",
+        )
+        return redirect("servers:dashboard")
+
+
+@require_POST
+@login_required
+def toggle_event(request, guild_id, event_type):
+    """Toggle an event on/off for a server."""
+    try:
+        guild_name, server_config, user_guilds = _validate_admin_panel_access(
+            request, int(guild_id)
+        )
+
+        # Validate event type
+        valid_event_types = [choice[0] for choice in EventConfig.EVENT_TYPE_CHOICES]
+        if event_type not in valid_event_types:
+            messages.error(request, f"Invalid event type: {event_type}")
+            return redirect("admin_panel:manage_events", guild_id=guild_id)
+
+        # Get user info for logging
+        user_id = (
+            str(request.user.socialaccount_set.first().uid)
+            if request.user.socialaccount_set.first()
+            else str(request.user.id)
+        )
+        user_name = request.user.username
+
+        # Get or create event configuration
+        event_config, created = EventConfig.objects.get_or_create(
+            server_config=server_config,
+            event_type=event_type,
+            defaults={
+                "enabled": True,
+                "updated_by": user_id,
+                "updated_by_name": user_name,
+            },
+        )
+
+        if not created:
+            # Toggle the existing configuration
+            event_config.enabled = not event_config.enabled
+            event_config.updated_by = user_id
+            event_config.updated_by_name = user_name
+            event_config.save()
+
+        event_display_name = dict(EventConfig.EVENT_TYPE_CHOICES)[event_type]
+        status = "enabled" if event_config.enabled else "disabled"
+
+        messages.success(
+            request,
+            f"{event_display_name} event has been {status} for this server.",
+        )
+
+    except Http404:
+        messages.error(
+            request,
+            "You don't have permission to access the admin panel for this server",
+        )
+
+    return redirect("admin_panel:manage_events", guild_id=guild_id)

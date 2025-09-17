@@ -24,13 +24,35 @@ Attributes:
 """
 
 import json
+import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
 import discord
 from discord.ext import commands
 from utils.logging import get_logger
+
+# Setup Django for database access
+try:
+    web_dir = Path(__file__).resolve().parent.parent.parent / "web"
+    if str(web_dir) not in sys.path:
+        sys.path.append(str(web_dir))
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "weakauras_web.settings")
+    import django
+
+    django.setup()
+    from admin_panel.models import EventConfig, ServerPermissionConfig
+    from asgiref.sync import sync_to_async
+
+    DJANGO_AVAILABLE = True
+except ImportError:
+    # Django models not available - event configuration will fall back to JSON
+    EventConfig = None
+    ServerPermissionConfig = None
+    sync_to_async = None
+    DJANGO_AVAILABLE = False
 
 
 class WeakAurasBot(commands.Bot):
@@ -185,6 +207,62 @@ class WeakAurasBot(commands.Bot):
         config_file = self.get_server_config_file(guild_id, guild_name)
         with open(config_file, "w") as f:
             json.dump(config, f, indent=2)
+
+    async def is_event_enabled(self, guild_id: int, event_type: str) -> bool:
+        """
+        Check if a specific event is enabled for a server.
+
+        Checks Django database first, then falls back to JSON configuration.
+
+        Args:
+            guild_id: Discord guild ID
+            event_type: Type of event (e.g., "temperature")
+
+        Returns:
+            bool: True if event is enabled, False otherwise
+        """
+        if DJANGO_AVAILABLE:
+            try:
+                event_config = await sync_to_async(
+                    lambda: (
+                        EventConfig.objects.filter(
+                            server_config__guild_id=str(guild_id), event_type=event_type
+                        ).first()
+                    )
+                )()
+
+                if event_config:
+                    self.logger.debug(
+                        f"Django event config for {event_type} in guild {guild_id}: enabled={event_config.enabled}"
+                    )
+                    return event_config.enabled
+                self.logger.debug(
+                    f"No Django event config found for {event_type} in guild {guild_id}, defaulting to enabled"
+                )
+
+            except Exception as e:
+                self.logger.warning(
+                    f"Error checking Django event config for guild {guild_id}: {e}"
+                )
+        else:
+            self.logger.debug(
+                "Django not available, falling back to JSON configuration"
+            )
+
+        # Fall back to JSON configuration
+        try:
+            server_config = self.load_server_config(guild_id, "")
+            event_config = server_config.get("events", {}).get(event_type, {})
+            enabled = event_config.get("enabled", True)  # Default to enabled
+            self.logger.debug(
+                f"JSON event config for {event_type} in guild {guild_id}: enabled={enabled}"
+            )
+            return enabled
+        except Exception as e:
+            self.logger.warning(
+                f"Error loading server config for guild {guild_id}: {e}"
+            )
+            return True  # Default to enabled if no configuration found
 
     def has_admin_access(self, member: discord.Member) -> bool:
         """Check if member has admin access via role names or Discord permissions"""
