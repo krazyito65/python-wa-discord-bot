@@ -7,7 +7,7 @@ set -euo pipefail
 echo "📝 Viewing all production service logs (Ctrl+C to exit)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📁 Log sources: systemd journal (weakauras-bot, weakauras-django, nginx)"
-echo "📂 Physical path: /var/log/journal/5ee67bd382c4251a97ac7ee268bfa2d0/"
+echo "📂 Physical path: /var/log/journal/$(cat /etc/machine-id)/"
 echo ""
 
 # Show combined logs from all services

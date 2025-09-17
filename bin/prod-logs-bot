@@ -7,7 +7,7 @@ set -euo pipefail
 echo "🤖 Viewing Discord bot logs (Ctrl+C to exit)..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "📁 Log source: systemd journal (weakauras-bot service)"
-echo "📂 Physical path: /var/log/journal/5ee67bd382c4251a97ac7ee268bfa2d0/"
+echo "📂 Physical path: /var/log/journal/$(cat /etc/machine-id)/"
 echo ""
 
 sudo journalctl -f -u weakauras-bot --since "10 minutes ago" -o short-precise
