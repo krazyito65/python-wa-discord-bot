@@ -572,9 +572,9 @@ def _process_role_assignments(
     updated_roles = []
     failed_roles = []
 
-    for role_id in role_ids:
+    for role_id_input in role_ids:
         # Ensure role_id is a string for comparison with Discord API
-        role_id = str(role_id)
+        role_id = str(role_id_input)
 
         # Find role info in Discord data
         role_info = next(
@@ -607,7 +607,9 @@ def _process_role_assignments(
 
             if created:
                 added_roles.append(role_info["name"])
-                logger.info(f"Created assignable role: {role_info['name']} (ID: {role_id}) for guild {server_config.guild_id}")
+                logger.info(
+                    f"Created assignable role: {role_info['name']} (ID: {role_id}) for guild {server_config.guild_id}"
+                )
             else:
                 # Update existing role
                 assignable_role.role_name = role_info["name"]
@@ -616,9 +618,13 @@ def _process_role_assignments(
                 assignable_role.requires_permission = requires_permission
                 assignable_role.save()
                 updated_roles.append(role_info["name"])
-                logger.info(f"Updated assignable role: {role_info['name']} (ID: {role_id}) for guild {server_config.guild_id}")
+                logger.info(
+                    f"Updated assignable role: {role_info['name']} (ID: {role_id}) for guild {server_config.guild_id}"
+                )
         except Exception as e:
-            logger.exception(f"Failed to create/update assignable role {role_info['name']} (ID: {role_id}): {e}")
+            logger.exception(
+                f"Failed to create/update assignable role {role_info['name']} (ID: {role_id})"
+            )
             failed_roles.append(f"Role {role_info['name']} - Database error: {str(e)}")
 
     return added_roles, updated_roles, failed_roles
@@ -664,7 +670,9 @@ def _display_role_assignment_messages(
 @login_required
 def add_assignable_role(request, guild_id):  # noqa: PLR0912
     """Add one or more roles to the assignable roles list."""
-    logger.info(f"add_assignable_role called: guild_id={guild_id}, method={request.method}")
+    logger.info(
+        f"add_assignable_role called: guild_id={guild_id}, method={request.method}"
+    )
     try:
         guild_name, server_config, user_guilds = _validate_admin_panel_access(
             request, int(guild_id)
@@ -683,7 +691,9 @@ def add_assignable_role(request, guild_id):  # noqa: PLR0912
 
         is_self_assignable = request.POST.get("is_self_assignable") == "on"
         requires_permission = request.POST.get("requires_permission", "everyone")
-        logger.info(f"Form data: role_ids={role_ids}, is_self_assignable={is_self_assignable}, requires_permission={requires_permission}")
+        logger.info(
+            f"Form data: role_ids={role_ids}, is_self_assignable={is_self_assignable}, requires_permission={requires_permission}"
+        )
 
         if not role_ids:
             logger.warning("No role IDs provided in form submission")
@@ -693,9 +703,11 @@ def add_assignable_role(request, guild_id):  # noqa: PLR0912
         # Fetch role information from Discord
         try:
             discord_roles = get_guild_roles(int(guild_id))
-            logger.info(f"Fetched {len(discord_roles) if discord_roles else 0} roles from Discord")
-        except DiscordAPIError as e:
-            logger.error(f"DiscordAPIError fetching roles: {e}")
+            logger.info(
+                f"Fetched {len(discord_roles) if discord_roles else 0} roles from Discord"
+            )
+        except DiscordAPIError:
+            logger.exception("DiscordAPIError fetching roles")
             messages.error(request, "Could not fetch role information from Discord.")
             return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
 
@@ -719,7 +731,9 @@ def add_assignable_role(request, guild_id):  # noqa: PLR0912
                 is_self_assignable,
                 requires_permission,
             )
-        logger.info(f"Role processing complete: added={len(added_roles)}, updated={len(updated_roles)}, failed={len(failed_roles)}")
+        logger.info(
+            f"Role processing complete: added={len(added_roles)}, updated={len(updated_roles)}, failed={len(failed_roles)}"
+        )
 
         # Display appropriate messages
         _display_role_assignment_messages(
@@ -727,13 +741,15 @@ def add_assignable_role(request, guild_id):  # noqa: PLR0912
         )
 
     except Http404:
-        logger.error(f"Http404 in add_assignable_role for guild {guild_id}")
+        logger.exception(f"Http404 in add_assignable_role for guild {guild_id}")
         messages.error(
             request,
             "You don't have permission to access the admin panel for this server",
         )
-    except Exception as e:
-        logger.exception(f"Unexpected error in add_assignable_role for guild {guild_id}: {e}")
+    except Exception:
+        logger.exception(
+            f"Unexpected error in add_assignable_role for guild {guild_id}"
+        )
         messages.error(request, "An unexpected error occurred while adding roles.")
 
     logger.info(f"Redirecting to manage_assignable_roles for guild {guild_id}")
