@@ -38,6 +38,11 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = "DENY"
 
+# Proxy trust settings for HTTPS detection behind reverse proxy
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 # Static files production settings
 STATIC_ROOT = "/var/www/weakauras-bot/static"
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
