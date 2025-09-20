@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import redirect, render
+from django.utils.html import format_html
 from django.views.decorators.http import require_POST
 from shared.discord_api import DiscordAPIError, get_guild_roles, get_user_guilds
 
@@ -211,13 +212,21 @@ def role_settings(request, guild_id):
                 discord_roles = []
                 messages.warning(
                     request,
-                    "Could not fetch Discord roles. The bot may not be in this server or may lack permissions.",
+                    format_html(
+                        "Could not fetch Discord roles. The bot may not be in this server or may lack permissions. "
+                        '<a href="https://discord.com/oauth2/authorize?client_id=270716626469519372&permissions=2550262784&redirect_uri=https%3A%2F%2Fbot.weakauras.wtf%2Faccounts%2Fdiscord%2Flogin%2Fcallback%2F&integration_type=0&scope=bot+applications.commands" target="_blank" rel="noopener">'
+                        "Click here to invite the bot with proper permissions</a>."
+                    ),
                 )
         except DiscordAPIError as e:
             logger.warning(f"Failed to fetch Discord roles for guild {guild_id}: {e}")
             messages.warning(
                 request,
-                "Could not fetch Discord roles. Some features may not work correctly.",
+                format_html(
+                    "Could not fetch Discord roles. Some features may not work correctly. "
+                    '<a href="https://discord.com/oauth2/authorize?client_id=270716626469519372&permissions=2550262784&redirect_uri=https%3A%2F%2Fbot.weakauras.wtf%2Faccounts%2Fdiscord%2Flogin%2Fcallback%2F&integration_type=0&scope=bot+applications.commands" target="_blank" rel="noopener">'
+                    "Click here to invite the bot with proper permissions</a>."
+                ),
             )
 
         # Create role name to ID mapping for template selection
@@ -500,13 +509,21 @@ def manage_assignable_roles(request, guild_id):
                 discord_roles = []
                 messages.warning(
                     request,
-                    "Could not fetch Discord roles. The bot may not be in this server or may lack permissions.",
+                    format_html(
+                        "Could not fetch Discord roles. The bot may not be in this server or may lack permissions. "
+                        '<a href="https://discord.com/oauth2/authorize?client_id=270716626469519372&permissions=2550262784&redirect_uri=https%3A%2F%2Fbot.weakauras.wtf%2Faccounts%2Fdiscord%2Flogin%2Fcallback%2F&integration_type=0&scope=bot+applications.commands" target="_blank" rel="noopener">'
+                        "Click here to invite the bot with proper permissions</a>."
+                    ),
                 )
         except DiscordAPIError as e:
             logger.warning(f"Failed to fetch Discord roles for guild {guild_id}: {e}")
             messages.warning(
                 request,
-                "Could not fetch Discord roles. Some features may not work correctly.",
+                format_html(
+                    "Could not fetch Discord roles. Some features may not work correctly. "
+                    '<a href="https://discord.com/oauth2/authorize?client_id=270716626469519372&permissions=2550262784&redirect_uri=https%3A%2F%2Fbot.weakauras.wtf%2Faccounts%2Fdiscord%2Flogin%2Fcallback%2F&integration_type=0&scope=bot+applications.commands" target="_blank" rel="noopener">'
+                    "Click here to invite the bot with proper permissions</a>."
+                ),
             )
 
         # Get current assignable roles
