@@ -517,6 +517,10 @@ async def assign_hex_color_role(
         )
         logger.exception("Unexpected error in color_role command")
 
+
+def setup_remove_role_command(bot: WeakAurasBot):
+    """Set up the remove_role command."""
+
     @bot.tree.command(
         name="remove_role",
         description="Remove your current color role OR unassign a server role",
@@ -911,4 +915,5 @@ def setup_list_roles_command(bot: WeakAurasBot):
 def setup_color_role_commands(bot: WeakAurasBot):
     """Set up all color role and assignable role commands."""
     setup_basic_color_commands(bot)
+    setup_remove_role_command(bot)
     setup_list_roles_command(bot)
