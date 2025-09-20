@@ -282,9 +282,9 @@ def get_bot_discord_token() -> str | None:
     """
     try:
         config = bot_interface.load_bot_config()
-        # Try to get dev token first, then prod
+        # Try to get prod token first, then dev
         tokens = config.get("discord", {}).get("tokens", {})
-        return tokens.get("dev") or tokens.get("prod")
+        return tokens.get("prod") or tokens.get("dev")
     except Exception:
         return None
 
