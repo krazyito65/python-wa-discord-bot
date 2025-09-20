@@ -15,6 +15,12 @@ ENVIRONMENT = "prod"
 # sourced from /etc/weakauras-bot/production.env
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost").split(",")
 
+# CSRF trusted origins for cross-origin requests
+CSRF_TRUSTED_ORIGINS = [
+    "https://bot.weakauras.wtf",
+    "http://bot.weakauras.wtf",  # For development/testing
+]
+
 # Force HTTPS in production (temporarily disabled for testing)
 SECURE_SSL_REDIRECT = False
 SECURE_HSTS_SECONDS = 31536000  # 1 year
