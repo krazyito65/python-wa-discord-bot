@@ -10,6 +10,7 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import Http404
 from django.shortcuts import redirect, render
 from django.utils.html import format_html
@@ -572,9 +573,12 @@ def _process_role_assignments(
     failed_roles = []
 
     for role_id in role_ids:
+        # Ensure role_id is a string for comparison with Discord API
+        role_id = str(role_id)
+
         # Find role info in Discord data
         role_info = next(
-            (role for role in discord_roles if role["id"] == role_id), None
+            (role for role in discord_roles if str(role["id"]) == role_id), None
         )
 
         if not role_info:
@@ -587,29 +591,35 @@ def _process_role_assignments(
             role_color = f"#{role_info['color']:06x}"
 
         # Create or update assignable role
-        assignable_role, created = AssignableRole.objects.get_or_create(
-            server_config=server_config,
-            role_id=role_id,
-            defaults={
-                "role_name": role_info["name"],
-                "role_color": role_color,
-                "is_self_assignable": is_self_assignable,
-                "requires_permission": requires_permission,
-                "added_by": user_id,
-                "added_by_name": user_name,
-            },
-        )
+        try:
+            assignable_role, created = AssignableRole.objects.get_or_create(
+                server_config=server_config,
+                role_id=role_id,
+                defaults={
+                    "role_name": role_info["name"],
+                    "role_color": role_color,
+                    "is_self_assignable": is_self_assignable,
+                    "requires_permission": requires_permission,
+                    "added_by": user_id,
+                    "added_by_name": user_name,
+                },
+            )
 
-        if created:
-            added_roles.append(role_info["name"])
-        else:
-            # Update existing role
-            assignable_role.role_name = role_info["name"]
-            assignable_role.role_color = role_color
-            assignable_role.is_self_assignable = is_self_assignable
-            assignable_role.requires_permission = requires_permission
-            assignable_role.save()
-            updated_roles.append(role_info["name"])
+            if created:
+                added_roles.append(role_info["name"])
+                logger.info(f"Created assignable role: {role_info['name']} (ID: {role_id}) for guild {server_config.guild_id}")
+            else:
+                # Update existing role
+                assignable_role.role_name = role_info["name"]
+                assignable_role.role_color = role_color
+                assignable_role.is_self_assignable = is_self_assignable
+                assignable_role.requires_permission = requires_permission
+                assignable_role.save()
+                updated_roles.append(role_info["name"])
+                logger.info(f"Updated assignable role: {role_info['name']} (ID: {role_id}) for guild {server_config.guild_id}")
+        except Exception as e:
+            logger.exception(f"Failed to create/update assignable role {role_info['name']} (ID: {role_id}): {e}")
+            failed_roles.append(f"Role {role_info['name']} - Database error: {str(e)}")
 
     return added_roles, updated_roles, failed_roles
 
@@ -654,30 +664,38 @@ def _display_role_assignment_messages(
 @login_required
 def add_assignable_role(request, guild_id):  # noqa: PLR0912
     """Add one or more roles to the assignable roles list."""
+    logger.info(f"add_assignable_role called: guild_id={guild_id}, method={request.method}")
     try:
         guild_name, server_config, user_guilds = _validate_admin_panel_access(
             request, int(guild_id)
         )
+        logger.info(f"Access validation passed for guild {guild_id}")
 
         # Handle both single role_id (legacy) and multiple role_ids
         role_ids = request.POST.getlist("role_ids")
+        logger.info(f"Initial role_ids from POST: {role_ids}")
         if not role_ids:
             # Fallback to single role_id for backward compatibility
             single_role_id = request.POST.get("role_id")
             if single_role_id:
                 role_ids = [single_role_id]
+            logger.info(f"After fallback, role_ids: {role_ids}")
 
         is_self_assignable = request.POST.get("is_self_assignable") == "on"
         requires_permission = request.POST.get("requires_permission", "everyone")
+        logger.info(f"Form data: role_ids={role_ids}, is_self_assignable={is_self_assignable}, requires_permission={requires_permission}")
 
         if not role_ids:
+            logger.warning("No role IDs provided in form submission")
             messages.error(request, "Please select at least one role to add.")
             return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
 
         # Fetch role information from Discord
         try:
             discord_roles = get_guild_roles(int(guild_id))
-        except DiscordAPIError:
+            logger.info(f"Fetched {len(discord_roles) if discord_roles else 0} roles from Discord")
+        except DiscordAPIError as e:
+            logger.error(f"DiscordAPIError fetching roles: {e}")
             messages.error(request, "Could not fetch role information from Discord.")
             return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
 
@@ -690,15 +708,18 @@ def add_assignable_role(request, guild_id):  # noqa: PLR0912
         user_name = request.user.username
 
         # Process role assignments
-        added_roles, updated_roles, failed_roles = _process_role_assignments(
-            role_ids,
-            discord_roles,
-            server_config,
-            user_id,
-            user_name,
-            is_self_assignable,
-            requires_permission,
-        )
+        logger.info(f"Processing role assignments for {len(role_ids)} roles")
+        with transaction.atomic():
+            added_roles, updated_roles, failed_roles = _process_role_assignments(
+                role_ids,
+                discord_roles,
+                server_config,
+                user_id,
+                user_name,
+                is_self_assignable,
+                requires_permission,
+            )
+        logger.info(f"Role processing complete: added={len(added_roles)}, updated={len(updated_roles)}, failed={len(failed_roles)}")
 
         # Display appropriate messages
         _display_role_assignment_messages(
@@ -706,11 +727,16 @@ def add_assignable_role(request, guild_id):  # noqa: PLR0912
         )
 
     except Http404:
+        logger.error(f"Http404 in add_assignable_role for guild {guild_id}")
         messages.error(
             request,
             "You don't have permission to access the admin panel for this server",
         )
+    except Exception as e:
+        logger.exception(f"Unexpected error in add_assignable_role for guild {guild_id}: {e}")
+        messages.error(request, "An unexpected error occurred while adding roles.")
 
+    logger.info(f"Redirecting to manage_assignable_roles for guild {guild_id}")
     return redirect("admin_panel:manage_assignable_roles", guild_id=guild_id)
 
 
