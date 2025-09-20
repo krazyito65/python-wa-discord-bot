@@ -71,7 +71,8 @@ def setup_ping_commands(bot: WeakAurasBot):
             f"🔗 **Links:**\n"
             f"• [GitHub Repository](https://github.com/krazyito65/python-wa-discord-bot)\n"
             f"• [WeakAuras Website](https://weakauras.wtf)\n"
-            f"• [Bot Dashboard](https://bot.weakauras.wtf)"
+            f"• [Bot Dashboard](https://bot.weakauras.wtf)\n"
+            f"• [Invite Bot to Server](https://discord.com/oauth2/authorize?client_id=270716626469519372&permissions=268435456&scope=bot+applications.commands)"
         )
 
         embed, logo_file = bot.create_embed(
