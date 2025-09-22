@@ -14,6 +14,128 @@ from views.embed_builder import EmbedBuilderView
 logger = get_logger(__name__)
 
 
+class MacroListView(discord.ui.View):
+    """A paginated view for displaying macro lists"""
+
+    def __init__(
+        self, macros: dict, guild_name: str, bot: WeakAurasBot, items_per_page: int = 50
+    ):
+        super().__init__(timeout=300)  # 5 minute timeout
+        self.macros = macros
+        self.guild_name = guild_name
+        self.bot = bot
+        self.items_per_page = items_per_page
+        self.current_page = 0
+
+        # Convert macros dict to list of tuples for easier pagination
+        self.macro_items = list(macros.items())
+        self.total_pages = (
+            len(self.macro_items) + items_per_page - 1
+        ) // items_per_page
+
+        # Update button states
+        self._update_buttons()
+
+    def _update_buttons(self):
+        """Update button states based on current page"""
+        # Remove all items first
+        self.clear_items()
+
+        # Only add navigation buttons if we have multiple pages
+        if self.total_pages > 1:
+            # Previous button
+            prev_button = discord.ui.Button(
+                style=discord.ButtonStyle.secondary,
+                emoji="⬅️",
+                disabled=self.current_page == 0,
+                custom_id="prev_page",
+            )
+            prev_button.callback = self._prev_page
+            self.add_item(prev_button)
+
+            # Page indicator button (disabled, just for display)
+            page_button = discord.ui.Button(
+                style=discord.ButtonStyle.secondary,
+                label=f"Page {self.current_page + 1}/{self.total_pages}",
+                disabled=True,
+                custom_id="page_indicator",
+            )
+            self.add_item(page_button)
+
+            # Next button
+            next_button = discord.ui.Button(
+                style=discord.ButtonStyle.secondary,
+                emoji="➡️",
+                disabled=self.current_page >= self.total_pages - 1,
+                custom_id="next_page",
+            )
+            next_button.callback = self._next_page
+            self.add_item(next_button)
+
+    def create_embed(self) -> tuple[discord.Embed, discord.File | None]:
+        """Create the embed for the current page"""
+        start_idx = self.current_page * self.items_per_page
+        end_idx = min(start_idx + self.items_per_page, len(self.macro_items))
+        page_items = self.macro_items[start_idx:end_idx]
+
+        # Build macro list with type indicators for current page
+        macro_lines = []
+        for name, data in page_items:
+            if isinstance(data, dict) and data.get("type") == "embed":
+                macro_lines.append(f"📄 {name} *(embed)*")
+            else:
+                macro_lines.append(f"💬 {name} *(text)*")
+
+        macro_list = "\n".join(macro_lines)
+
+        # Add page info to title if multiple pages
+        title = "📂 WeakAuras Macros"
+        if self.total_pages > 1:
+            title += f" (Page {self.current_page + 1}/{self.total_pages})"
+
+        embed, logo_file = self.bot.create_embed(
+            title=title,
+            description=macro_list,
+            footer_text=f"Server: {self.guild_name} • Total macros: {len(self.macro_items)}",
+        )
+        return embed, logo_file
+
+    async def _prev_page(self, interaction: discord.Interaction):
+        """Handle previous page button click"""
+        if self.current_page > 0:
+            self.current_page -= 1
+            self._update_buttons()
+            embed, logo_file = self.create_embed()
+
+            # Update the message
+            kwargs = {"embed": embed, "view": self}
+            if logo_file:
+                kwargs["attachments"] = [logo_file]
+
+            await interaction.response.edit_message(**kwargs)
+
+    async def _next_page(self, interaction: discord.Interaction):
+        """Handle next page button click"""
+        if self.current_page < self.total_pages - 1:
+            self.current_page += 1
+            self._update_buttons()
+            embed, logo_file = self.create_embed()
+
+            # Update the message
+            kwargs = {"embed": embed, "view": self}
+            if logo_file:
+                kwargs["attachments"] = [logo_file]
+
+            await interaction.response.edit_message(**kwargs)
+
+    async def on_timeout(self):
+        """Called when the view times out"""
+        # Disable all buttons when view times out
+        for item in self.children:
+            if isinstance(item, discord.ui.Button):
+                item.disabled = True
+
+
 async def send_embed_response(
     interaction: discord.Interaction,
     embed: discord.Embed,
@@ -239,9 +361,14 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
                 description=f"Successfully created embed macro **{name}**",
                 footer_text=f"Server: {guild_name}",
             )
-            await save_interaction.response.send_message(
-                embed=success_embed, file=logo_file, ephemeral=True
-            )
+            if logo_file:
+                await save_interaction.response.send_message(
+                    embed=success_embed, file=logo_file, ephemeral=True
+                )
+            else:
+                await save_interaction.response.send_message(
+                    embed=success_embed, ephemeral=True
+                )
 
         # Create embed builder view
         embed_view = EmbedBuilderView(macro_name=name, callback_func=save_embed_macro)
@@ -287,21 +414,28 @@ def setup_macro_commands(bot: WeakAurasBot):  # noqa: PLR0915
             f"list_macros returned {len(macros)} macros for guild {guild_name} ({guild_id}): {', '.join(macros.keys())}"
         )
 
-        # Build macro list with type indicators
-        macro_lines = []
-        for name, data in macros.items():
-            if isinstance(data, dict) and data.get("type") == "embed":
-                macro_lines.append(f"📄 {name} *(embed)*")
-            else:
-                macro_lines.append(f"💬 {name} *(text)*")
+        # Create paginated view for macro list
+        macro_view = MacroListView(macros, guild_name, bot, items_per_page=50)
+        embed, logo_file = macro_view.create_embed()
 
-        macro_list = "\n".join(macro_lines)
-        embed, logo_file = bot.create_embed(
-            title="📂 WeakAuras Macros",
-            description=macro_list,
-            footer_text=f"Server: {guild_name}",
-        )
-        await send_embed_response(interaction, embed, logo_file)
+        # Send with view (pagination buttons) if multiple pages, otherwise without view
+        if macro_view.total_pages > 1:
+            # Use view for pagination
+            if logo_file:
+                await interaction.response.send_message(
+                    embed=embed, file=logo_file, view=macro_view, ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    embed=embed, view=macro_view, ephemeral=True
+                )
+        # No pagination needed
+        elif logo_file:
+            await interaction.response.send_message(
+                embed=embed, file=logo_file, ephemeral=True
+            )
+        else:
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @bot.tree.command(
         name="delete_macro",
